@@ -59,6 +59,16 @@ final class InstanceSetupViewModel {
         return true
     }
 
+    /// Creates a demo instance (see `Instance.demoBaseURL`) so the app can be tried
+    /// without a real server or API key. Goes through the same save path as a real
+    /// instance — `APIClient` is what actually short-circuits to mock data.
+    func useDemoInstance(in modelContext: ModelContext) async -> Bool {
+        name = "Demo"
+        baseURL = Instance.demoBaseURL
+        apiKey = "demo"
+        return await testAndSave(in: modelContext)
+    }
+
     private static func message(for error: Error) -> String {
         guard let apiError = error as? APIError else {
             return "Connection failed: \(error.localizedDescription)"

@@ -32,6 +32,10 @@ public struct EventCredential: Sendable {
         self.baseURL = baseURL
         self.apiKey = apiKey
     }
+
+    /// True for the sentinel demo instance (see `Instance.demoBaseURL`) — `APIClient`
+    /// returns static mock data for these instead of making a real network request.
+    var isDemo: Bool { baseURL.hasPrefix(Instance.demoBaseURL) }
 }
 
 public final class APIClient {
@@ -42,7 +46,11 @@ public final class APIClient {
     public init() {}
 
     public func fetchInfo(_ credential: EventCredential) async throws -> EventInfo {
-        try await withCredential(credential) {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return DemoData.info
+        }
+        return try await withCredential(credential) {
             guard let data = try await EventAPI.infoGet().data else {
                 throw APIError.decoding("Missing data in /info response")
             }
@@ -51,43 +59,71 @@ public final class APIClient {
     }
 
     public func fetchNews(_ credential: EventCredential) async throws -> [News] {
-        try await withCredentialList(credential) {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return DemoData.news
+        }
+        return try await withCredentialList(credential) {
             try await NewsAPI.newsGet().data ?? []
         }
     }
 
     public func fetchAngelTypes(_ credential: EventCredential) async throws -> [AngelType] {
-        try await withCredentialList(credential) {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return DemoData.angelTypes
+        }
+        return try await withCredentialList(credential) {
             try await AngelTypeAPI.angeltypesGet().data ?? []
         }
     }
 
     public func fetchLocations(_ credential: EventCredential) async throws -> [Location] {
-        try await withCredentialList(credential) {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return DemoData.locations
+        }
+        return try await withCredentialList(credential) {
             try await LocationAPI.locationsGet().data ?? []
         }
     }
 
     public func fetchShiftTypes(_ credential: EventCredential) async throws -> [ShiftType] {
-        try await withCredentialList(credential) {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return DemoData.shiftTypes
+        }
+        return try await withCredentialList(credential) {
             try await ShiftTypeAPI.shifttypesGet().data ?? []
         }
     }
 
     public func fetchShifts(for user: UserReference, _ credential: EventCredential) async throws -> [Shift] {
-        try await withCredentialList(credential) {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return DemoData.shifts
+        }
+        return try await withCredentialList(credential) {
             try await ShiftAPI.usersIdShiftsGet(id: user.parameter).data ?? []
         }
     }
 
     public func fetchWorklogs(for user: UserReference, _ credential: EventCredential) async throws -> [Worklog] {
-        try await withCredentialList(credential) {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return DemoData.worklogs
+        }
+        return try await withCredentialList(credential) {
             try await WorklogAPI.usersIdWorklogsGet(id: user.parameter).data ?? []
         }
     }
 
     public func fetchOwnProfile(_ credential: EventCredential) async throws -> UsersIdGet200ResponseData {
-        try await withCredential(credential) {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return DemoData.ownProfile
+        }
+        return try await withCredential(credential) {
             guard let data = try await UserAPI.usersIdGet(id: UserReference.me.parameter).data else {
                 throw APIError.decoding("Missing data in /users/self response")
             }

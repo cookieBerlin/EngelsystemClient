@@ -5,7 +5,12 @@ let package = Package(
     name: "EngelsystemClientKit",
     platforms: [
         .iOS(.v26),
-        .watchOS(.v26)
+        .watchOS(.v26),
+        // Not a shipping target — lets `swift test` run directly on the host Mac
+        // instead of requiring a booted iOS/watchOS simulator for every test run.
+        // SwiftData's @Model needs macOS 14; everything else in this package
+        // (Foundation/Security/URLSession-based) already runs fine on macOS.
+        .macOS(.v14)
     ],
     products: [
         .library(name: "EngelsystemClientKit", targets: ["EngelsystemClientKit"])

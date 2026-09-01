@@ -45,6 +45,20 @@ struct InstanceSetupView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+
+                Section {
+                    Button("Try Demo Mode") {
+                        Task {
+                            if await viewModel.useDemoInstance(in: modelContext) {
+                                onSaved?()
+                                dismiss()
+                            }
+                        }
+                    }
+                    .disabled(viewModel.isTesting)
+                } footer: {
+                    Text("Explore the app with sample data — no real server or API key needed.")
+                }
             }
             .navigationTitle("Add Instance")
             #if os(iOS)

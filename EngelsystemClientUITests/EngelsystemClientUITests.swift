@@ -34,6 +34,19 @@ final class EngelsystemClientUITests: XCTestCase {
     }
 
     @MainActor
+    func testDemoModeFlow() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let demoButton = app.buttons["Try Demo Mode"]
+        XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
+        demoButton.tap()
+
+        XCTAssertTrue(app.navigationBars["Instances"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Demo"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {

@@ -184,9 +184,8 @@ Error handling centralized in `APIClient`: 401 → back to Instance Setup,
 5. ⬜ iOS app: Shifts / News / Profile / Settings
 6. ⬜ Watch app: `NextShiftView`, sync status display, fallback form
 7. ⬜ Watch complication
-8. ⬜ Demo mode (`DemoData` provider in `APIClient` + "Try Demo" entry
-   point on `InstanceSetup`) — can be built independently of steps 5-7,
-   at any point once `APIClient` supports the endpoints being demoed
+8. ✅ Demo mode (`DemoData` provider in `APIClient` + "Try Demo" entry
+   point on `InstanceSetup`)
 
 ## Implemented features (current state)
 
@@ -217,6 +216,11 @@ exists without reading the whole diff history.
   Keychain access group) and `LocalKeychainStore` (device-local fallback)
   behind the shared `APIKeyStore` protocol; `ICloudAvailability` checks
   whether iCloud is available on the device.
+- **Demo mode**: `Instance.demoBaseURL` is the sentinel URL; `APIClient`
+  checks `EventCredential.isDemo` at the top of every `fetchX` method and
+  returns static data from `DemoData` instead of touching the network.
+  `DemoData` is `internal`, not `public` — it must stay contained to this
+  package.
 
 ### iOS/iPadOS app
 
@@ -232,6 +236,9 @@ exists without reading the whole diff history.
   (cleans up both keychain stores, since which one was used at creation
   time isn't persisted). The first instance created is activated
   automatically.
+- **Demo mode entry point**: a "Try Demo Mode" button on `InstanceSetup`
+  creates an `Instance` with `Instance.demoBaseURL` and goes through the
+  normal save flow — no separate demo UI anywhere else.
 
 ### watchOS app
 
@@ -249,7 +256,27 @@ exists without reading the whole diff history.
 - CloudKit sync (iOS + Watch entitlements not configured yet — requires
   an Apple Developer team, see Entitlements above).
 - Watch app functionality and complication (steps 6-7).
-- Demo mode (step 8) — see "Demo mode" above for the intended design.
+
+## Testing
+
+- **Always add tests for new features** — logic in `EngelsystemClientKit`
+  gets unit tests, non-trivial UI flows in the app targets get an XCUITest.
+  Don't rely on manual simulator checks alone.
+- Unit tests use the **Swift Testing** framework (`import Testing`,
+  `@Test`, `#expect`), matching `EngelsystemClientKitTests` — not XCTest.
+- Run them with `swift test` from the `EngelsystemClientKit` directory.
+  This works directly on the host Mac, no simulator needed, because
+  `Package.swift` declares `.macOS(.v14)` alongside `.iOS(.v26)`/
+  `.watchOS(.v26)` — **test-tooling only, not a shipping target**.
+  SwiftData's `@Model` requires macOS 14; everything else in the package
+  (Foundation/Security/URLSession-based) already ran fine on macOS, so
+  this platform entry unblocks fast local test runs without touching what
+  the app actually ships on.
+- UI tests (`EngelsystemClientUITests`) drive the simulator via XCUITest,
+  not AppleScript/System Events (no Accessibility permission is granted
+  in the dev environment) or `simctl` (no tap/touch support). Run with
+  `xcodebuild test -scheme EngelsystemClient -destination 'platform=iOS
+  Simulator,name=<device>' -only-testing:EngelsystemClientUITests/<Class>/<method>`.
 
 ## Important constraints that apply to every implementation step
 

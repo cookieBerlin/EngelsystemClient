@@ -50,4 +50,11 @@ public extension Instance {
     }
 
     var apiBasePath: String { "\(normalizedBaseURL)/api/v0-beta" }
+
+    /// Sentinel base URL recognized by `APIClient` — an instance using this URL never
+    /// makes real network requests; `APIClient` returns static mock data instead
+    /// (see `DemoData`). Lets the app be tried out without a real server or API key.
+    static let demoBaseURL = "demo://engelsystem.local"
+
+    var isDemo: Bool { normalizedBaseURL == Instance.demoBaseURL }
 }
