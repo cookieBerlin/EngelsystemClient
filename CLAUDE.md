@@ -154,14 +154,77 @@ Error handling centralized in `APIClient`: 401 → back to Instance Setup,
 
 ## Implementation order
 
-1. Finish `EngelsystemClientKit` package + codegen setup
-2. SwiftData models (`Instance`, `CachedShift`, `CachedNews`, `CachedUser`,
-   `CachedWorklog`) incl. CloudKit configuration
-3. `APIClient` + `KeychainSyncStore`/`LocalKeychainStore`
-4. iOS app: `InstanceSetup` feature (first runnable feature)
-5. iOS app: Shifts / News / Profile / Settings
-6. Watch app: `NextShiftView`, sync status display, fallback form
-7. Watch complication
+1. ✅ Finish `EngelsystemClientKit` package + codegen setup
+2. ✅ SwiftData models (`Instance`, `CachedShift`, `CachedNews`, `CachedUser`,
+   `CachedWorklog`) incl. CloudKit configuration — models done, CloudKit
+   wiring still open (see Implemented Features below)
+3. ✅ `APIClient` + `KeychainSyncStore`/`LocalKeychainStore`
+4. ✅ iOS app: `InstanceSetup` feature (first runnable feature)
+5. ⬜ iOS app: Shifts / News / Profile / Settings
+6. ⬜ Watch app: `NextShiftView`, sync status display, fallback form
+7. ⬜ Watch complication
+
+## Implemented features (current state)
+
+Kept up to date as features land, so a fresh session can see what already
+exists without reading the whole diff history.
+
+### EngelsystemClientKit (shared package)
+
+- **Persistence (SwiftData)**: `Instance`, `CachedShift`, `CachedNews`,
+  `CachedUser`, `CachedWorklog` models exist, with cascade-delete
+  relationships from `Instance` to all four cache models. **Not yet
+  CloudKit-backed** — the app's `ModelConfiguration` is local-only for
+  now; CloudKit needs to be wired up once the entitlements below are
+  configured.
+- **Generated OpenAPI client** (`Generated/`): DTOs and API classes for
+  every GET endpoint in `openapi.yml`, produced by
+  `Scripts/generate-api.sh`. Regenerate with that script whenever
+  `openapi.yml` changes — never hand-edit `Generated/`.
+- **APIClient**: async/await wrapper over the generated client —
+  `fetchInfo`, `fetchNews`, `fetchAngelTypes`, `fetchLocations`,
+  `fetchShiftTypes`, `fetchShifts(for:)`, `fetchWorklogs(for:)`,
+  `fetchOwnProfile`. Internally serializes requests (`RequestGate`) so
+  concurrent calls to different instances can't clobber the generated
+  client's global base URL/headers. Maps 404 to an empty list for list
+  endpoints; everything else surfaces as `APIError`
+  (unauthorized/forbidden/notFound/server/invalidBaseURL/network/decoding).
+- **Keychain storage**: `KeychainSyncStore` (iCloud-synced, shared
+  Keychain access group) and `LocalKeychainStore` (device-local fallback)
+  behind the shared `APIKeyStore` protocol; `ICloudAvailability` checks
+  whether iCloud is available on the device.
+
+### iOS/iPadOS app
+
+- **Instance Setup** (`Features/InstanceSetup`): form to add an
+  Engelsystem instance (name, server URL, API key). Tests the connection
+  against `GET /info` before saving; only creates the `Instance` and
+  stores the API key in the keychain on success. Shown automatically as
+  the app's entry point whenever no instance is configured yet.
+- **Instance management** (`Features/Settings/InstanceListView`): a
+  `NavigationSplitView` listing all configured instances; switch the
+  active instance (its ID stored in `@AppStorage`, not the key itself),
+  view an instance's name/server/active status, remove an instance
+  (cleans up both keychain stores, since which one was used at creation
+  time isn't persisted). The first instance created is activated
+  automatically.
+
+### watchOS app
+
+- Still the unmodified Xcode template (`ContentView` shows "Hello,
+  world!"). No real feature built yet — `NextShiftView`, the sync-status
+  display, and the fallback entry form (see Watch App Scope above) are
+  still open.
+
+### Not yet implemented
+
+- Shifts / News / Profile / Worklogs screens on iOS (step 5) —
+  `APIClient` already supports fetching this data, but there is no UI or
+  sync service populating the cache models yet.
+- Local shift-start notifications.
+- CloudKit sync (iOS + Watch entitlements not configured yet — requires
+  an Apple Developer team, see Entitlements above).
+- Watch app functionality and complication (steps 6-7).
 
 ## Important constraints that apply to every implementation step
 
