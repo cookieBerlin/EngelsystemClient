@@ -279,6 +279,18 @@ exists without reading the whole diff history.
   `InstanceCredentialError` to the same user-facing English message
   across Shifts/News/Profile), so the three nearly-identical view models
   don't each re-implement error-message switch statements.
+- **Local shift-start notifications** (`Services/NotificationScheduler`):
+  after every successful Shifts sync, requests notification authorization
+  if not yet determined and schedules a local reminder
+  (`CachedShift.notificationDate(minutesBefore:)`, default 15 minutes
+  before start) for each upcoming shift, keyed by a stable identifier
+  (`shift-notification-<uid>`) so re-syncing updates in place instead of
+  duplicating. Also cancels any previously scheduled shift notification
+  that's no longer in the synced/upcoming set. Goes through a thin
+  `NotificationCenterScheduling` protocol over `UNUserNotificationCenter`
+  so the scheduling logic is unit-testable with a fake center — no
+  simulator or real permission prompt needed for that. No server push
+  involved, per the "no server-side push" constraint.
 
 ### watchOS app
 
@@ -289,7 +301,6 @@ exists without reading the whole diff history.
 
 ### Not yet implemented
 
-- Local shift-start notifications.
 - CloudKit sync (iOS + Watch entitlements not configured yet — requires
   an Apple Developer team, see Entitlements above).
 - Watch app functionality and complication (steps 6-7).

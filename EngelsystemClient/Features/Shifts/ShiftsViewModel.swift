@@ -10,13 +10,19 @@ final class ShiftsViewModel {
 
     private let syncService: ShiftSyncService
     private let credentialResolver: InstanceCredentialResolver
+    private let notificationScheduler: NotificationScheduler
 
     // `ShiftSyncService` is @MainActor, so its default can't be evaluated as a
     // parameter default (those are evaluated in a nonisolated context) — it has
     // to be constructed inside this (already MainActor-isolated) init body instead.
-    init(syncService: ShiftSyncService? = nil, credentialResolver: InstanceCredentialResolver? = nil) {
+    init(
+        syncService: ShiftSyncService? = nil,
+        credentialResolver: InstanceCredentialResolver? = nil,
+        notificationScheduler: NotificationScheduler = NotificationScheduler()
+    ) {
         self.syncService = syncService ?? ShiftSyncService()
         self.credentialResolver = credentialResolver ?? InstanceCredentialResolver()
+        self.notificationScheduler = notificationScheduler
     }
 
     func refresh(instance: Instance, in modelContext: ModelContext) async {
@@ -25,7 +31,10 @@ final class ShiftsViewModel {
         defer { isLoading = false }
         do {
             let credential = try credentialResolver.credential(for: instance)
-            try await syncService.sync(instance: instance, credential: credential, in: modelContext)
+            let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
+            if await notificationScheduler.requestAuthorizationIfNeeded() {
+                await notificationScheduler.syncNotifications(for: shifts)
+            }
         } catch {
             errorMessage = SyncErrorMapper.message(for: error)
         }
