@@ -34,7 +34,7 @@ final class EngelsystemClientUITests: XCTestCase {
     }
 
     @MainActor
-    func testDemoModeFlow() throws {
+    func testDemoModeNavigationFlow() throws {
         let app = XCUIApplication()
         app.launch()
 
@@ -42,8 +42,42 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
         demoButton.tap()
 
-        XCTAssertTrue(app.navigationBars["Instances"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Demo"].waitForExistence(timeout: 2))
+        // Demo mode lands on Shifts by default and syncs the sample shifts.
+        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Info Desk Shift"].waitForExistence(timeout: 5))
+
+        goBack(app)
+        let newsRow = app.staticTexts["News"]
+        XCTAssertTrue(newsRow.waitForExistence(timeout: 5))
+        newsRow.tap()
+        XCTAssertTrue(app.navigationBars["News"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Welcome to the Demo Congress!"].waitForExistence(timeout: 5))
+
+        goBack(app)
+        let profileRow = app.staticTexts["Profile"]
+        XCTAssertTrue(profileRow.waitForExistence(timeout: 5))
+        profileRow.tap()
+        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: 5))
+        // LabeledContent's value isn't exposed as a standalone exact-match static text,
+        // so match on any element whose accessibility label contains the name instead.
+        XCTAssertTrue(containingText("Demo Angel", in: app).waitForExistence(timeout: 5))
+
+        goBack(app)
+        let settingsRow = app.staticTexts["Settings"]
+        XCTAssertTrue(settingsRow.waitForExistence(timeout: 5))
+        settingsRow.tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Demo"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    private func goBack(_ app: XCUIApplication) {
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+    }
+
+    @MainActor
+    private func containingText(_ text: String, in app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", text)).firstMatch
     }
 
     @MainActor

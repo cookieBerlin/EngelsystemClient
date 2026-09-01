@@ -2,56 +2,51 @@ import SwiftUI
 import SwiftData
 import EngelsystemClientKit
 
-/// First runnable feature after InstanceSetup: manages the configured instances,
-/// including switching the active instance. `NavigationSplitView` instead of a plain
-/// TabView, so iPad gets a sidebar/detail layout (see CLAUDE.md).
-struct InstanceListView: View {
+/// Instance management, reached via the "Settings" section of `MainView`'s sidebar
+/// (CLAUDE.md multi-instance concept: "switching in Settings"). A plain pushed list
+/// rather than its own `NavigationSplitView`, since it's already hosted inside
+/// `MainView`'s `NavigationSplitView`/`NavigationStack`.
+struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage("activeInstanceID") private var activeInstanceIDString: String = ""
 
     let instances: [Instance]
 
-    @State private var selection: Instance.ID?
     @State private var isPresentingSetup = false
 
     var body: some View {
-        NavigationSplitView {
-            List(instances, selection: $selection) { instance in
-                InstanceRow(
-                    instance: instance,
-                    isActive: instance.id.uuidString == activeInstanceIDString
-                )
-                .tag(instance.id)
-            }
-            .navigationTitle("Instances")
-            .toolbar {
-                ToolbarItem {
-                    Button {
-                        isPresentingSetup = true
-                    } label: {
-                        Label("Add Instance", systemImage: "plus")
+        List {
+            Section("Instances") {
+                ForEach(instances) { instance in
+                    NavigationLink(value: instance) {
+                        InstanceRow(
+                            instance: instance,
+                            isActive: instance.id.uuidString == activeInstanceIDString
+                        )
                     }
                 }
             }
-            .sheet(isPresented: $isPresentingSetup) {
-                InstanceSetupView { activateFirstInstanceIfNeeded() }
+        }
+        .navigationTitle("Settings")
+        .toolbar {
+            ToolbarItem {
+                Button {
+                    isPresentingSetup = true
+                } label: {
+                    Label("Add Instance", systemImage: "plus")
+                }
             }
-            .onAppear { activateFirstInstanceIfNeeded() }
-        } detail: {
-            if let selectedInstance = instances.first(where: { $0.id == selection }) {
-                InstanceDetailView(
-                    instance: selectedInstance,
-                    isActive: selectedInstance.id.uuidString == activeInstanceIDString,
-                    onActivate: { activate(selectedInstance) },
-                    onDelete: { delete(selectedInstance) }
-                )
-            } else {
-                ContentUnavailableView(
-                    "No Instance Selected",
-                    systemImage: "server.rack",
-                    description: Text("Select an instance on the left.")
-                )
-            }
+        }
+        .sheet(isPresented: $isPresentingSetup) {
+            InstanceSetupView { activateFirstInstanceIfNeeded() }
+        }
+        .navigationDestination(for: Instance.self) { instance in
+            InstanceDetailView(
+                instance: instance,
+                isActive: instance.id.uuidString == activeInstanceIDString,
+                onActivate: { activate(instance) },
+                onDelete: { delete(instance) }
+            )
         }
     }
 
@@ -70,9 +65,6 @@ struct InstanceListView: View {
         try? KeychainSyncStore().deleteAPIKey(for: instance.apiKeyKeychainRef)
         try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef)
 
-        if selection == instance.id {
-            selection = nil
-        }
         if activeInstanceIDString == instance.id.uuidString {
             activeInstanceIDString = ""
         }
@@ -107,6 +99,8 @@ private struct InstanceDetailView: View {
     let onActivate: () -> Void
     let onDelete: () -> Void
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         Form {
             Section("Event") {
@@ -124,7 +118,10 @@ private struct InstanceDetailView: View {
             }
 
             Section {
-                Button("Remove Instance", role: .destructive, action: onDelete)
+                Button("Remove Instance", role: .destructive) {
+                    onDelete()
+                    dismiss()
+                }
             }
         }
         .navigationTitle(instance.name)

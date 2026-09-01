@@ -16,7 +16,7 @@ struct ContentView: View {
         if instances.isEmpty {
             InstanceSetupView(isInitialSetup: true)
         } else {
-            InstanceListView(instances: instances)
+            MainView(instances: instances)
         }
     }
 }

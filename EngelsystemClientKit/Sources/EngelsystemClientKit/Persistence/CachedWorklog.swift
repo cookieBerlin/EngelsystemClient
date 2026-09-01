@@ -45,6 +45,41 @@ public final class CachedWorklog {
     }
 }
 
+// MARK: - Mapping from the generated `Worklog` DTO
+
+public extension CachedWorklog {
+    convenience init(worklog: Worklog, instanceID: UUID) {
+        self.init(
+            serverID: worklog.id,
+            instanceID: instanceID,
+            workLogDescription: worklog.description,
+            hours: Double(worklog.hours),
+            createdByID: worklog.createdBy.id,
+            createdByName: worklog.createdBy.name,
+            workedAt: worklog.workedAt,
+            createdAt: worklog.createdAt,
+            updatedAt: worklog.updatedAt
+        )
+    }
+
+    /// Updates all fields from a freshly fetched `Worklog` DTO (used by `ProfileSyncService`
+    /// when a cached row already exists for this worklog).
+    func apply(_ worklog: Worklog) {
+        workLogDescription = worklog.description
+        hours = Double(worklog.hours)
+        createdByID = worklog.createdBy.id
+        createdByName = worklog.createdBy.name
+        workedAt = worklog.workedAt
+        createdAt = worklog.createdAt
+        updatedAt = worklog.updatedAt
+        updateCacheTimestamp()
+    }
+
+    static func uid(instanceID: UUID, serverID: Int) -> String {
+        "\(instanceID.uuidString):\(serverID)"
+    }
+}
+
 public extension CachedWorklog {
     func updateCacheTimestamp() { cachedAt = Date() }
 

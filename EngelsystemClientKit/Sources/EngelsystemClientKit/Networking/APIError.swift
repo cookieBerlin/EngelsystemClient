@@ -31,6 +31,29 @@ public enum APIError: Error, Equatable {
     }
 }
 
+public extension APIError {
+    /// User-facing English message for this error, shared by every feature that
+    /// surfaces `APIError` to the UI (Instance Setup, Shifts, News, Profile).
+    var userMessage: String {
+        switch self {
+        case .unauthorized:
+            return "API key is invalid or has expired."
+        case .forbidden:
+            return "No API access — the user needs the “API” or “Bureaucrat” group on this instance."
+        case .notFound:
+            return "This resource could not be found (404)."
+        case .invalidBaseURL:
+            return "Please enter a valid server URL."
+        case let .server(statusCode):
+            return "Server responded with error \(statusCode)."
+        case let .network(description):
+            return "Connection failed: \(description)"
+        case let .decoding(description):
+            return "Could not read the API response: \(description)"
+        }
+    }
+}
+
 extension APIError {
     init(_ error: Error) {
         if let apiError = error as? APIError {

@@ -76,3 +76,52 @@ public extension CachedUser {
 
     func updateCacheTimestamp() { cachedAt = Date() }
 }
+
+// MARK: - Mapping from the generated `UsersIdGet200ResponseData` DTO (own profile)
+
+public extension CachedUser {
+    convenience init(profile: UsersIdGet200ResponseData, instanceID: UUID) {
+        self.init(
+            serverID: profile.id,
+            instanceID: instanceID,
+            name: profile.name,
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            pronoun: profile.pronoun,
+            dect: profile.contact.dect,
+            mobile: profile.contact.mobile,
+            url: profile.url,
+            email: profile.email,
+            tshirtSize: profile.tshirtSize,
+            language: profile.language,
+            arrived: profile.arrived,
+            plannedArrival: profile.dates.plannedArrival,
+            plannedDeparture: profile.dates.plannedDeparture,
+            arrivalDate: profile.dates.arrival
+        )
+    }
+
+    /// Updates all fields from a freshly fetched profile DTO (used by `ProfileSyncService`
+    /// when a cached row already exists for this user).
+    func apply(_ profile: UsersIdGet200ResponseData) {
+        name = profile.name
+        firstName = profile.firstName
+        lastName = profile.lastName
+        pronoun = profile.pronoun
+        dect = profile.contact.dect
+        mobile = profile.contact.mobile
+        url = profile.url
+        email = profile.email
+        tshirtSize = profile.tshirtSize
+        language = profile.language
+        arrived = profile.arrived
+        plannedArrival = profile.dates.plannedArrival
+        plannedDeparture = profile.dates.plannedDeparture
+        arrivalDate = profile.dates.arrival
+        updateCacheTimestamp()
+    }
+
+    static func uid(instanceID: UUID, serverID: Int) -> String {
+        "\(instanceID.uuidString):\(serverID)"
+    }
+}

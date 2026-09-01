@@ -48,6 +48,43 @@ public final class CachedNews {
     }
 }
 
+// MARK: - Mapping from the generated `News` DTO
+
+public extension CachedNews {
+    convenience init(news: News, instanceID: UUID) {
+        self.init(
+            serverID: news.id,
+            instanceID: instanceID,
+            title: news.name,
+            text: news.text,
+            isMeeting: news.isMeeting,
+            isPinned: news.isPinned,
+            isHighlighted: news.isHighlighted,
+            createdAt: news.createdAt,
+            updatedAt: news.updatedAt,
+            url: news.url
+        )
+    }
+
+    /// Updates all fields from a freshly fetched `News` DTO (used by `NewsSyncService`
+    /// when a cached row already exists for this news item).
+    func apply(_ news: News) {
+        title = news.name
+        text = news.text
+        isMeeting = news.isMeeting
+        isPinned = news.isPinned
+        isHighlighted = news.isHighlighted
+        createdAt = news.createdAt
+        updatedAt = news.updatedAt
+        url = news.url
+        updateCacheTimestamp()
+    }
+
+    static func uid(instanceID: UUID, serverID: Int) -> String {
+        "\(instanceID.uuidString):\(serverID)"
+    }
+}
+
 public extension CachedNews {
     func updateCacheTimestamp() { cachedAt = Date() }
 

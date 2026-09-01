@@ -181,7 +181,7 @@ Error handling centralized in `APIClient`: 401 → back to Instance Setup,
    wiring still open (see Implemented Features below)
 3. ✅ `APIClient` + `KeychainSyncStore`/`LocalKeychainStore`
 4. ✅ iOS app: `InstanceSetup` feature (first runnable feature)
-5. ⬜ iOS app: Shifts / News / Profile / Settings
+5. ✅ iOS app: Shifts / News / Profile / Settings
 6. ⬜ Watch app: `NextShiftView`, sync status display, fallback form
 7. ⬜ Watch complication
 8. ✅ Demo mode (`DemoData` provider in `APIClient` + "Try Demo" entry
@@ -221,6 +221,19 @@ exists without reading the whole diff history.
   returns static data from `DemoData` instead of touching the network.
   `DemoData` is `internal`, not `public` — it must stay contained to this
   package.
+- **Sync services**: `ShiftSyncService`, `NewsSyncService`,
+  `ProfileSyncService` (profile + worklogs) fetch via `APIClient` and
+  upsert into the matching `Cached*` SwiftData model, keyed by each
+  model's `uid(instanceID:serverID:)`. They take an already-resolved
+  `EventCredential` rather than resolving one themselves, so they stay
+  free of Keychain side effects and are easy to unit test with the demo
+  credential. `InstanceCredentialResolver` does the actual keychain
+  lookup (tries `KeychainSyncStore` then `LocalKeychainStore`) and is
+  used by the app-target view models, not by the sync services directly.
+  Each `Cached*` model has a `DTO`-mapping `init(dto:instanceID:)` and an
+  `apply(_ dto:)` updater (e.g. `CachedShift.init(shift:instanceID:)` /
+  `CachedShift.apply(_:)`) so the "insert new" and "update existing"
+  paths in the sync services share field-mapping code.
 
 ### iOS/iPadOS app
 
@@ -229,16 +242,43 @@ exists without reading the whole diff history.
   against `GET /info` before saving; only creates the `Instance` and
   stores the API key in the keychain on success. Shown automatically as
   the app's entry point whenever no instance is configured yet.
-- **Instance management** (`Features/Settings/InstanceListView`): a
-  `NavigationSplitView` listing all configured instances; switch the
-  active instance (its ID stored in `@AppStorage`, not the key itself),
-  view an instance's name/server/active status, remove an instance
-  (cleans up both keychain stores, since which one was used at creation
-  time isn't persisted). The first instance created is activated
-  automatically.
 - **Demo mode entry point**: a "Try Demo Mode" button on `InstanceSetup`
   creates an `Instance` with `Instance.demoBaseURL` and goes through the
   normal save flow — no separate demo UI anywhere else.
+- **Main navigation** (`Features/Main/MainView`): the root view once at
+  least one instance exists. A single `NavigationSplitView` with a
+  sidebar of four sections (Shifts/News/Profile/Settings) — not a plain
+  `TabView`, per the iPad requirement above; collapses to stack
+  navigation on iPhone automatically. Resolves the active instance from
+  `@AppStorage` (falling back to the first instance) and passes it to
+  whichever section is selected; defaults to Shifts on launch.
+- **Shifts** (`Features/Shifts`): lists the signed-in user's shifts for
+  the active instance. `ShiftsViewModel` resolves the instance's
+  credential and calls `ShiftSyncService`; the view itself reads from
+  `CachedShift` via `@Query` filtered on `instanceID`, so it's populated
+  from whatever was last synced even before a refresh completes.
+  Pull-to-refresh and an initial `.task` both trigger a sync.
+- **News** (`Features/News`): same pattern via `NewsSyncService`/
+  `CachedNews`; pinned items sort first, meeting items get a badge, body
+  text renders through `AttributedString(markdown:)` since the API docs
+  say news text may contain markdown.
+- **Profile** (`Features/Profile`): same pattern via `ProfileSyncService`
+  (profile + worklogs in one refresh)/`CachedUser`+`CachedWorklog`; shows
+  profile fields (pronoun, T-shirt size, arrived) and a worklog list with
+  a summed total.
+- **Instance management** (`Features/Settings/SettingsView`): reached via
+  the sidebar's Settings section. A plain pushed list (not its own
+  `NavigationSplitView`, since it's already hosted inside `MainView`'s)
+  of configured instances; switch the active instance (its ID stored in
+  `@AppStorage`, not the key itself), view an instance's name/server/
+  active status, remove an instance (cleans up both keychain stores,
+  since which one was used at creation time isn't persisted). The first
+  instance created is activated automatically.
+- **Shared feature helpers** (`Features/Shared`): `ErrorBanner` (inline
+  red banner for sync errors) and `SyncErrorMapper` (maps `APIError`/
+  `InstanceCredentialError` to the same user-facing English message
+  across Shifts/News/Profile), so the three nearly-identical view models
+  don't each re-implement error-message switch statements.
 
 ### watchOS app
 
@@ -249,9 +289,6 @@ exists without reading the whole diff history.
 
 ### Not yet implemented
 
-- Shifts / News / Profile / Worklogs screens on iOS (step 5) —
-  `APIClient` already supports fetching this data, but there is no UI or
-  sync service populating the cache models yet.
 - Local shift-start notifications.
 - CloudKit sync (iOS + Watch entitlements not configured yet — requires
   an Apple Developer team, see Entitlements above).

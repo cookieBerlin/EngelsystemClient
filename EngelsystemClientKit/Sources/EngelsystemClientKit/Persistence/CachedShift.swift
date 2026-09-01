@@ -66,6 +66,47 @@ public final class CachedShift {
     }
 }
 
+// MARK: - Mapping from the generated `Shift` DTO
+
+public extension CachedShift {
+    convenience init(shift: Shift, instanceID: UUID) {
+        self.init(
+            serverID: shift.id,
+            instanceID: instanceID,
+            title: shift.name,
+            shiftDescription: shift.description,
+            startsAt: shift.startsAt,
+            endsAt: shift.endsAt,
+            locationID: shift.location.id,
+            locationName: shift.location.name,
+            shiftTypeID: shift.shiftType.id,
+            shiftTypeName: shift.shiftType.name,
+            url: shift.url,
+            scheduleGuid: shift.scheduleGuid?.uuidString
+        )
+    }
+
+    /// Updates all fields from a freshly fetched `Shift` DTO (used by `ShiftSyncService`
+    /// when a cached row already exists for this shift).
+    func apply(_ shift: Shift) {
+        title = shift.name
+        shiftDescription = shift.description
+        startsAt = shift.startsAt
+        endsAt = shift.endsAt
+        locationID = shift.location.id
+        locationName = shift.location.name
+        shiftTypeID = shift.shiftType.id
+        shiftTypeName = shift.shiftType.name
+        url = shift.url
+        scheduleGuid = shift.scheduleGuid?.uuidString
+        updateCacheTimestamp()
+    }
+
+    static func uid(instanceID: UUID, serverID: Int) -> String {
+        "\(instanceID.uuidString):\(serverID)"
+    }
+}
+
 // MARK: - Time status
 
 public extension CachedShift {
