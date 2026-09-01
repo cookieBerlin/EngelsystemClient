@@ -12,10 +12,10 @@ final class InstanceSetupViewModel {
     var isTesting = false
     var errorMessage: String?
 
-    private let apiClient: APIClient
+    private let setupService: InstanceSetupService
 
-    init(apiClient: APIClient = .shared) {
-        self.apiClient = apiClient
+    init(setupService: InstanceSetupService = InstanceSetupService()) {
+        self.setupService = setupService
     }
 
     var canSubmit: Bool {
@@ -32,31 +32,20 @@ final class InstanceSetupViewModel {
         isTesting = true
         defer { isTesting = false }
 
-        let instance = Instance(
-            name: name.trimmingCharacters(in: .whitespaces),
-            baseURL: baseURL.trimmingCharacters(in: .whitespaces),
-            apiKeyKeychainRef: UUID().uuidString
-        )
-
-        let credential = EventCredential(baseURL: instance.apiBasePath, apiKey: apiKey)
-
-        do {
-            _ = try await apiClient.fetchInfo(credential)
-        } catch {
-            errorMessage = Self.message(for: error)
-            return false
-        }
-
         let store: APIKeyStore = ICloudAvailability.isAvailable ? KeychainSyncStore() : LocalKeychainStore()
         do {
-            try store.save(apiKey: apiKey, for: instance.apiKeyKeychainRef)
+            let instance = try await setupService.createInstance(
+                name: name.trimmingCharacters(in: .whitespaces),
+                baseURL: baseURL.trimmingCharacters(in: .whitespaces),
+                apiKey: apiKey,
+                store: store
+            )
+            modelContext.insert(instance)
+            return true
         } catch {
-            errorMessage = "Could not save the API key to the keychain."
+            errorMessage = SyncErrorMapper.message(for: error)
             return false
         }
-
-        modelContext.insert(instance)
-        return true
     }
 
     /// Creates a demo instance (see `Instance.demoBaseURL`) so the app can be tried
@@ -67,27 +56,5 @@ final class InstanceSetupViewModel {
         baseURL = Instance.demoBaseURL
         apiKey = "demo"
         return await testAndSave(in: modelContext)
-    }
-
-    private static func message(for error: Error) -> String {
-        guard let apiError = error as? APIError else {
-            return "Connection failed: \(error.localizedDescription)"
-        }
-        switch apiError {
-        case .unauthorized:
-            return "API key is invalid or has expired."
-        case .forbidden:
-            return "No API access — the user needs the “API” or “Bureaucrat” group on this instance."
-        case .notFound:
-            return "The instance URL doesn't seem to provide an Engelsystem API (404 on /info)."
-        case .invalidBaseURL:
-            return "Please enter a valid server URL."
-        case let .server(statusCode):
-            return "Server responded with error \(statusCode)."
-        case let .network(description):
-            return "Connection failed: \(description)"
-        case let .decoding(description):
-            return "Could not read the API response: \(description)"
-        }
     }
 }

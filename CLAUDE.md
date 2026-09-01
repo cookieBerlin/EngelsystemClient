@@ -182,7 +182,7 @@ Error handling centralized in `APIClient`: 401 → back to Instance Setup,
 3. ✅ `APIClient` + `KeychainSyncStore`/`LocalKeychainStore`
 4. ✅ iOS app: `InstanceSetup` feature (first runnable feature)
 5. ✅ iOS app: Shifts / News / Profile / Settings
-6. ⬜ Watch app: `NextShiftView`, sync status display, fallback form
+6. ✅ Watch app: `NextShiftView`, sync status display, fallback form
 7. ⬜ Watch complication
 8. ✅ Demo mode (`DemoData` provider in `APIClient` + "Try Demo" entry
    point on `InstanceSetup`)
@@ -234,6 +234,10 @@ exists without reading the whole diff history.
   `apply(_ dto:)` updater (e.g. `CachedShift.init(shift:instanceID:)` /
   `CachedShift.apply(_:)`) so the "insert new" and "update existing"
   paths in the sync services share field-mapping code.
+- **InstanceSetupService**: the "test the connection, then save the API
+  key and return a new `Instance`" logic shared by the iOS app's
+  InstanceSetup feature and the Watch app's fallback entry form, so
+  neither target re-implements it.
 
 ### iOS/iPadOS app
 
@@ -294,16 +298,36 @@ exists without reading the whole diff history.
 
 ### watchOS app
 
-- Still the unmodified Xcode template (`ContentView` shows "Hello,
-  world!"). No real feature built yet — `NextShiftView`, the sync-status
-  display, and the fallback entry form (see Watch App Scope above) are
-  still open.
+- **Own local setup** (`Setup/WatchSetupView`): the Watch app's fallback
+  entry form (name, server URL, API key, plus a "Try Demo Mode" button),
+  using the same `InstanceSetupService` as the iOS app. Currently this is
+  the *only* way to configure the Watch app, not just the iCloud-
+  unavailable fallback — CloudKit sync between the two targets isn't
+  wired up yet (see Entitlements above), so the Watch always saves to its
+  own `LocalKeychainStore` and its own local-only `Instance`/`CachedShift`
+  SwiftData container (schema deliberately excludes `CachedNews`/
+  `CachedUser`/`CachedWorklog` — the Watch never needs them per its
+  minimal scope). No instance switcher, unlike the iOS app: `ContentView`
+  just uses the first (only) `Instance` it finds.
+- **Next Shift** (`Views/NextShiftView`): shows only the next upcoming
+  shift (title, time range, location) via the same `ShiftSyncService`
+  the iOS Shifts screen uses, plus a sync-status line ("Updated HH:mm")
+  and schedules the same local notification for it via
+  `NotificationScheduler`. No full shift catalog, no news, per the Watch
+  App Scope above.
+- watchOS UI Testing has proven unreliable in this dev environment
+  (`EngelsystemClient_Watch_App_Watch_AppUITests.testDemoModeShowsNextShift`
+  fails on a different assertion nearly every run despite each run using
+  a fresh install) — treat a red run there as a tooling-flakiness signal
+  first, and cross-check against a manual simulator screenshot and the
+  EngelsystemClientKit unit tests (which cover the actual business logic
+  the Watch views call into) before assuming an app regression.
 
 ### Not yet implemented
 
 - CloudKit sync (iOS + Watch entitlements not configured yet — requires
   an Apple Developer team, see Entitlements above).
-- Watch app functionality and complication (steps 6-7).
+- Watch complication (step 7).
 
 ## Testing
 

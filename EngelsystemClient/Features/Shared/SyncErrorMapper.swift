@@ -12,6 +12,9 @@ enum SyncErrorMapper {
         if error is InstanceCredentialError {
             return "No API key found for this instance. Try adding it again in Settings."
         }
+        if error is KeychainError {
+            return "Could not save the API key to the keychain."
+        }
         return error.localizedDescription
     }
 }
