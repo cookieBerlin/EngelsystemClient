@@ -14,6 +14,15 @@ public final class Instance {
     @Relationship(deleteRule: .cascade, inverse: \CachedShift.instance)
     public var cachedShifts: [CachedShift]?
 
+    @Relationship(deleteRule: .cascade, inverse: \CachedNews.instance)
+    public var cachedNews: [CachedNews]?
+
+    @Relationship(deleteRule: .cascade, inverse: \CachedUser.instance)
+    public var cachedUsers: [CachedUser]?
+
+    @Relationship(deleteRule: .cascade, inverse: \CachedWorklog.instance)
+    public var cachedWorklogs: [CachedWorklog]?
+
     public init(
         id: UUID = UUID(),
         name: String,
@@ -27,6 +36,9 @@ public final class Instance {
         self.createdAt = Date()
         self.updatedAt = Date()
         self.cachedShifts = []
+        self.cachedNews = []
+        self.cachedUsers = []
+        self.cachedWorklogs = []
     }
 }
 

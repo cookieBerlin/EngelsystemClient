@@ -14,7 +14,10 @@ let package = Package(
     targets: [
         .target(
             name: "EngelsystemClientKit",
-            path: "Sources/EngelsystemClientKit"
+            path: "Sources/EngelsystemClientKit",
+            // The generated OpenAPI client (Generated/) uses swift5 codegen templates
+            // that aren't Swift 6 concurrency-safe (nonisolated global mutable state).
+            swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
             name: "EngelsystemClientKitTests",
