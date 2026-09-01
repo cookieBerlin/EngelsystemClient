@@ -4,7 +4,4 @@
    <FileRef
       location = "self:">
    </FileRef>
-   <FileRef
-      location = "group:setup_package.sh">
-   </FileRef>
 </Workspace>
