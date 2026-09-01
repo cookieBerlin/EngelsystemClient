@@ -1,0 +1,109 @@
+import Foundation
+import SwiftData
+
+@Model
+public final class CachedShift {
+    // Composite unique key prevents collision across instances with the same server-assigned ID
+    @Attribute(.unique) public var uid: String
+    public var serverID: Int
+    public var instanceID: UUID
+
+    public var title: String
+    public var shiftDescription: String
+    public var startsAt: Date
+    public var endsAt: Date
+
+    // Flattened from API's location Reference
+    public var locationID: Int
+    public var locationName: String?
+
+    // Flattened from API's shift_type Reference
+    public var shiftTypeID: Int
+    public var shiftTypeName: String?
+
+    // Angel type the current user is signed up for, extracted from needed_angel_types
+    public var angelTypeID: Int?
+    public var angelTypeName: String?
+
+    public var url: String
+    public var scheduleGuid: String?
+    public var cachedAt: Date
+
+    @Relationship public var instance: Instance?
+
+    public init(
+        serverID: Int,
+        instanceID: UUID,
+        title: String,
+        shiftDescription: String = "",
+        startsAt: Date,
+        endsAt: Date,
+        locationID: Int,
+        locationName: String? = nil,
+        shiftTypeID: Int,
+        shiftTypeName: String? = nil,
+        angelTypeID: Int? = nil,
+        angelTypeName: String? = nil,
+        url: String,
+        scheduleGuid: String? = nil
+    ) {
+        self.uid = "\(instanceID.uuidString):\(serverID)"
+        self.serverID = serverID
+        self.instanceID = instanceID
+        self.title = title
+        self.shiftDescription = shiftDescription
+        self.startsAt = startsAt
+        self.endsAt = endsAt
+        self.locationID = locationID
+        self.locationName = locationName
+        self.shiftTypeID = shiftTypeID
+        self.shiftTypeName = shiftTypeName
+        self.angelTypeID = angelTypeID
+        self.angelTypeName = angelTypeName
+        self.url = url
+        self.scheduleGuid = scheduleGuid
+        self.cachedAt = Date()
+    }
+}
+
+// MARK: - Time status
+
+public extension CachedShift {
+    var duration: TimeInterval { endsAt.timeIntervalSince(startsAt) }
+    var durationInHours: Double { duration / 3600.0 }
+
+    var isFuture: Bool { startsAt > Date() }
+    var isOngoing: Bool { let now = Date(); return startsAt <= now && now <= endsAt }
+    var isPast: Bool { endsAt < Date() }
+
+    func notificationDate(minutesBefore: Int = 15) -> Date? {
+        let date = startsAt.addingTimeInterval(-TimeInterval(minutesBefore * 60))
+        return date > Date() ? date : nil
+    }
+
+    func formattedTimeRange() -> String {
+        let f = DateFormatter()
+        f.dateStyle = .none
+        f.timeStyle = .short
+        return "\(f.string(from: startsAt)) – \(f.string(from: endsAt))"
+    }
+
+    func updateCacheTimestamp() { cachedAt = Date() }
+}
+
+// MARK: - Sorting & filtering
+
+public extension CachedShift {
+    static func sortedByStartTime(_ shifts: [CachedShift]) -> [CachedShift] {
+        shifts.sorted { $0.startsAt < $1.startsAt }
+    }
+
+    static func upcomingShifts(from shifts: [CachedShift]) -> [CachedShift] {
+        shifts.filter { $0.isFuture }.sorted { $0.startsAt < $1.startsAt }
+    }
+
+    /// Next upcoming shift — primarily for the Watch app
+    static func nextShift(from shifts: [CachedShift]) -> CachedShift? {
+        upcomingShifts(from: shifts).first
+    }
+}
