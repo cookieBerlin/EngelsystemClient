@@ -7,12 +7,17 @@
 
 import SwiftUI
 import SwiftData
+import EngelsystemClientKit
 
 @main
 struct EngelsystemClientApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Instance.self,
+            CachedShift.self,
+            CachedNews.self,
+            CachedUser.self,
+            CachedWorklog.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
