@@ -20,6 +20,8 @@ official REST API of the respective Engelsystem instance.
   time, switching in Settings)
 - Watch app: standalone (its own network call, no WatchConnectivity relay),
   shows only the next shift + complication
+- Demo mode: try the app without a real Engelsystem server or API key
+  (see "Demo Mode" below)
 
 ## Phase 2 (later, requires backend extension — DO NOT implement now)
 
@@ -48,6 +50,25 @@ official REST API of the respective Engelsystem instance.
   - `/openapi`
 - `{id}` can also be the string `self` on user endpoints (own account)
 - No server-side push/webhook mechanism exists
+
+## Demo mode (for testing without a real server)
+
+- **Purpose:** let the app (and reviewers/testers without an Engelsystem
+  account) be tried out end-to-end without a live server or API key.
+- **Approach:** a sentinel base URL (e.g. `demo://engelsystem.local`)
+  recognized by `Instance`/`EventCredential`. When active, `APIClient`
+  returns static, realistic mock data (a `DemoData` provider inside
+  `EngelsystemClientKit`) instead of making real HTTP requests — **no**
+  mock server process, no extra networking stack, no separate code path
+  in views/view models.
+- **Entry point:** a "Try Demo" action on the `InstanceSetup` screen
+  creates a normal `Instance` with the demo sentinel URL. From then on it
+  behaves exactly like any other instance (shows up in `InstanceListView`,
+  can be switched to/removed, etc.) — no demo-specific UI anywhere else.
+- **Constraint:** demo data lives only in `EngelsystemClientKit`'s
+  networking layer (`APIClient`/`DemoData`) — never as hardcoded fallbacks
+  inside views or view models, so the demo and real code paths stay
+  identical except for where `APIClient` gets its data from.
 
 ## Tech stack (final, binding)
 
@@ -163,6 +184,9 @@ Error handling centralized in `APIClient`: 401 → back to Instance Setup,
 5. ⬜ iOS app: Shifts / News / Profile / Settings
 6. ⬜ Watch app: `NextShiftView`, sync status display, fallback form
 7. ⬜ Watch complication
+8. ⬜ Demo mode (`DemoData` provider in `APIClient` + "Try Demo" entry
+   point on `InstanceSetup`) — can be built independently of steps 5-7,
+   at any point once `APIClient` supports the endpoints being demoed
 
 ## Implemented features (current state)
 
@@ -225,6 +249,7 @@ exists without reading the whole diff history.
 - CloudKit sync (iOS + Watch entitlements not configured yet — requires
   an Apple Developer team, see Entitlements above).
 - Watch app functionality and complication (steps 6-7).
+- Demo mode (step 8) — see "Demo mode" above for the intended design.
 
 ## Important constraints that apply to every implementation step
 
