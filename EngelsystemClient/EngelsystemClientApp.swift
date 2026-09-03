@@ -18,6 +18,7 @@ struct EngelsystemClientApp: App {
             CachedNews.self,
             CachedUser.self,
             CachedWorklog.self,
+            CachedAngelTypeMembership.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

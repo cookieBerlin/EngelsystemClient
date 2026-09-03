@@ -23,6 +23,9 @@ public final class Instance {
     @Relationship(deleteRule: .cascade, inverse: \CachedWorklog.instance)
     public var cachedWorklogs: [CachedWorklog]?
 
+    @Relationship(deleteRule: .cascade, inverse: \CachedAngelTypeMembership.instance)
+    public var cachedAngelTypeMemberships: [CachedAngelTypeMembership]?
+
     public init(
         id: UUID = UUID(),
         name: String,
@@ -39,6 +42,7 @@ public final class Instance {
         self.cachedNews = []
         self.cachedUsers = []
         self.cachedWorklogs = []
+        self.cachedAngelTypeMemberships = []
     }
 }
 

@@ -5,7 +5,10 @@ import Testing
 
 @MainActor
 private func makeInMemoryContext() throws -> ModelContext {
-    let schema = Schema([Instance.self, CachedShift.self, CachedNews.self, CachedUser.self, CachedWorklog.self])
+    let schema = Schema([
+        Instance.self, CachedShift.self, CachedNews.self, CachedUser.self,
+        CachedWorklog.self, CachedAngelTypeMembership.self,
+    ])
     let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
     let container = try ModelContainer(for: schema, configurations: [config])
     return ModelContext(container)
@@ -57,6 +60,12 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     #expect(worklogs.count == 1)
     _ = try await service.syncWorklogs(instance: instance, credential: demoCredential, in: context)
     #expect(try context.fetch(FetchDescriptor<CachedWorklog>()).count == 1)
+
+    let angelTypes = try await service.syncAngelTypes(instance: instance, credential: demoCredential, in: context)
+    #expect(angelTypes.count == 1)
+    #expect(angelTypes.first?.angelTypeName == "Engel")
+    _ = try await service.syncAngelTypes(instance: instance, credential: demoCredential, in: context)
+    #expect(try context.fetch(FetchDescriptor<CachedAngelTypeMembership>()).count == 1)
 }
 
 @Test func instanceCredentialResolverThrowsWhenNoKeyIsStored() {

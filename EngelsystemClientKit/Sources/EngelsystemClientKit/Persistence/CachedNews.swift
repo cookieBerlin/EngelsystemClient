@@ -56,7 +56,7 @@ public extension CachedNews {
             serverID: news.id,
             instanceID: instanceID,
             title: news.name,
-            text: news.text,
+            text: Self.sanitizedText(from: news.text),
             isMeeting: news.isMeeting,
             isPinned: news.isPinned,
             isHighlighted: news.isHighlighted,
@@ -70,7 +70,7 @@ public extension CachedNews {
     /// when a cached row already exists for this news item).
     func apply(_ news: News) {
         title = news.name
-        text = news.text
+        text = Self.sanitizedText(from: news.text)
         isMeeting = news.isMeeting
         isPinned = news.isPinned
         isHighlighted = news.isHighlighted
@@ -82,6 +82,16 @@ public extension CachedNews {
 
     static func uid(instanceID: UUID, serverID: Int) -> String {
         "\(instanceID.uuidString):\(serverID)"
+    }
+
+    /// The API docs say the text "might include a `[more]` tag to be used as a
+    /// separator which must be removed from the text when shown" — since we always
+    /// show the full text (no truncated preview), simply removing the marker satisfies
+    /// that. Also trims the whitespace/newlines the tag typically sits between.
+    static func sanitizedText(from rawText: String) -> String {
+        rawText
+            .replacingOccurrences(of: "[more]", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

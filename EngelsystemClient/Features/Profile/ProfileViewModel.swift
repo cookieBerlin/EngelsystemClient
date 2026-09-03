@@ -27,6 +27,7 @@ final class ProfileViewModel {
             let credential = try credentialResolver.credential(for: instance)
             try await syncService.syncProfile(instance: instance, credential: credential, in: modelContext)
             try await syncService.syncWorklogs(instance: instance, credential: credential, in: modelContext)
+            try await syncService.syncAngelTypes(instance: instance, credential: credential, in: modelContext)
         } catch {
             errorMessage = SyncErrorMapper.message(for: error)
         }

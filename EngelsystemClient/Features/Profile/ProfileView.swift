@@ -9,6 +9,7 @@ struct ProfileView: View {
     @State private var viewModel = ProfileViewModel()
     @Query private var users: [CachedUser]
     @Query private var worklogs: [CachedWorklog]
+    @Query private var angelTypeMemberships: [CachedAngelTypeMembership]
 
     init(instance: Instance) {
         self.instance = instance
@@ -19,6 +20,7 @@ struct ProfileView: View {
             sort: \CachedWorklog.workedAt,
             order: .reverse
         )
+        _angelTypeMemberships = Query(filter: #Predicate<CachedAngelTypeMembership> { $0.instanceID == instanceID })
     }
 
     private var profile: CachedUser? { users.first }
@@ -47,6 +49,17 @@ struct ProfileView: View {
                 }
             }
 
+            Section("Angel Types") {
+                if angelTypeMemberships.isEmpty {
+                    Text("No angel types yet.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(CachedAngelTypeMembership.sortedByName(angelTypeMemberships)) { membership in
+                        AngelTypeRow(membership: membership)
+                    }
+                }
+            }
+
             Section("Worklogs") {
                 if worklogs.isEmpty {
                     Text("No worklogs yet.")
@@ -71,6 +84,26 @@ struct ProfileView: View {
         }
         .refreshable { await viewModel.refresh(instance: instance, in: modelContext) }
         .task { await viewModel.refresh(instance: instance, in: modelContext) }
+    }
+}
+
+private struct AngelTypeRow: View {
+    let membership: CachedAngelTypeMembership
+
+    var body: some View {
+        HStack {
+            Text(membership.angelTypeName ?? "Unknown")
+            Spacer()
+            if membership.supporter {
+                Text("Supporter")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if !membership.confirmed {
+                Text("Unconfirmed")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
     }
 }
 

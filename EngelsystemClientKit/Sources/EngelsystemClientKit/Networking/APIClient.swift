@@ -78,6 +78,18 @@ public final class APIClient {
         }
     }
 
+    /// The signed-in user's own angel type memberships (`GET /users/{id}/angeltypes`) —
+    /// not to be confused with `fetchAngelTypes`, which lists the instance-wide catalog.
+    public func fetchOwnAngelTypes(_ credential: EventCredential) async throws -> [UserAngelType] {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return DemoData.ownAngelTypes
+        }
+        return try await withCredentialList(credential) {
+            try await UserAPI.usersIdAngeltypesGet(id: UserReference.me.parameter).data ?? []
+        }
+    }
+
     public func fetchLocations(_ credential: EventCredential) async throws -> [Location] {
         if credential.isDemo {
             await DemoData.simulateLatency()

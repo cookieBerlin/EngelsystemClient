@@ -24,6 +24,12 @@ public struct ProfileSyncService {
         return try upsertWorklogs(worklogs, instanceID: instance.id, instance: instance, in: modelContext)
     }
 
+    @discardableResult
+    public func syncAngelTypes(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> [CachedAngelTypeMembership] {
+        let memberships = try await apiClient.fetchOwnAngelTypes(credential)
+        return try upsertAngelTypes(memberships, instanceID: instance.id, instance: instance, in: modelContext)
+    }
+
     private func upsertProfile(_ profile: UsersIdGet200ResponseData, instanceID: UUID, instance: Instance, in modelContext: ModelContext) throws -> CachedUser {
         let uid = CachedUser.uid(instanceID: instanceID, serverID: profile.id)
         var descriptor = FetchDescriptor<CachedUser>(predicate: #Predicate { $0.uid == uid })
@@ -55,6 +61,28 @@ public struct ProfileSyncService {
                 result.append(existing)
             } else {
                 let cached = CachedWorklog(worklog: worklog, instanceID: instanceID)
+                cached.instance = instance
+                modelContext.insert(cached)
+                result.append(cached)
+            }
+        }
+        return result
+    }
+
+    @discardableResult
+    private func upsertAngelTypes(_ memberships: [UserAngelType], instanceID: UUID, instance: Instance, in modelContext: ModelContext) throws -> [CachedAngelTypeMembership] {
+        var result: [CachedAngelTypeMembership] = []
+        for membership in memberships {
+            let uid = CachedAngelTypeMembership.uid(instanceID: instanceID, serverID: membership.angeltype.id)
+            var descriptor = FetchDescriptor<CachedAngelTypeMembership>(predicate: #Predicate { $0.uid == uid })
+            descriptor.fetchLimit = 1
+
+            if let existing = try modelContext.fetch(descriptor).first {
+                existing.apply(membership)
+                existing.instance = instance
+                result.append(existing)
+            } else {
+                let cached = CachedAngelTypeMembership(membership: membership, instanceID: instanceID)
                 cached.instance = instance
                 modelContext.insert(cached)
                 result.append(cached)

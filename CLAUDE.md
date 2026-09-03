@@ -92,7 +92,7 @@ official REST API of the respective Engelsystem instance.
   `apiKeyKeychainRef`
 - Active instance ID in `@AppStorage`/UserDefaults, not the key itself
 - All cache models (`CachedShift`, `CachedNews`, `CachedUser`,
-  `CachedWorklog`) reference an `Instance`
+  `CachedWorklog`, `CachedAngelTypeMembership`) reference an `Instance`
 
 ## Sync strategy (iOS ↔ Watch), binding
 
@@ -209,11 +209,11 @@ exists without reading the whole diff history.
 ### EngelsystemClientKit (shared package)
 
 - **Persistence (SwiftData)**: `Instance`, `CachedShift`, `CachedNews`,
-  `CachedUser`, `CachedWorklog` models exist, with cascade-delete
-  relationships from `Instance` to all four cache models. **Not yet
-  CloudKit-backed** — the app's `ModelConfiguration` is local-only for
-  now; CloudKit needs to be wired up once the entitlements below are
-  configured.
+  `CachedUser`, `CachedWorklog`, `CachedAngelTypeMembership` models exist,
+  with cascade-delete relationships from `Instance` to all five cache
+  models. **Not yet CloudKit-backed** — the app's `ModelConfiguration` is
+  local-only for now; CloudKit needs to be wired up once the entitlements
+  below are configured.
 - **Generated OpenAPI client** (`Generated/`): DTOs and API classes for
   every GET endpoint in `openapi.yml`, produced by
   `Scripts/generate-api.sh`. Regenerate with that script whenever
@@ -279,11 +279,19 @@ exists without reading the whole diff history.
 - **News** (`Features/News`): same pattern via `NewsSyncService`/
   `CachedNews`; pinned items sort first, meeting items get a badge, body
   text renders through `AttributedString(markdown:)` since the API docs
-  say news text may contain markdown.
+  say news text may contain markdown. `CachedNews.sanitizedText(from:)`
+  strips the `[more]` separator tag the API docs mention (and trims the
+  whitespace it typically sits between) before storing — we always show
+  the full text, so removing the marker is enough, no truncation needed.
 - **Profile** (`Features/Profile`): same pattern via `ProfileSyncService`
-  (profile + worklogs in one refresh)/`CachedUser`+`CachedWorklog`; shows
-  profile fields (pronoun, T-shirt size, arrived) and a worklog list with
-  a summed total.
+  (profile + worklogs + angel type memberships in one refresh)/
+  `CachedUser`+`CachedWorklog`+`CachedAngelTypeMembership`; shows profile
+  fields (pronoun, T-shirt size, arrived), the user's own angel types
+  (`GET /users/{id}/angeltypes` — distinct from `APIClient.fetchAngelTypes`,
+  which is the instance-wide catalog) with a supporter/unconfirmed badge,
+  and a worklog list with a summed total. Angel types were the one part
+  of Phase 1's "profile, angel types, worklogs" scope missed when this
+  screen was first built — added afterward once noticed.
 - **Instance management** (`Features/Settings/SettingsView`): reached via
   the sidebar's Settings section. A plain pushed list (not its own
   `NavigationSplitView`, since it's already hosted inside `MainView`'s)

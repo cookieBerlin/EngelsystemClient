@@ -101,6 +101,10 @@ enum DemoData {
         ]
     }
 
+    static let ownAngelTypes: [UserAngelType] = [
+        UserAngelType(confirmed: true, supporter: false, angeltype: Reference(id: 1, name: "Engel")),
+    ]
+
     static var ownProfile: UsersIdGet200ResponseData {
         UsersIdGet200ResponseData(
             id: 1, name: "demo", firstName: "Demo", lastName: "Angel", pronoun: "they/them",

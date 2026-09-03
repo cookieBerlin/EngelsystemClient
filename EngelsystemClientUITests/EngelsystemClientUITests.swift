@@ -61,6 +61,7 @@ final class EngelsystemClientUITests: XCTestCase {
         // LabeledContent's value isn't exposed as a standalone exact-match static text,
         // so match on any element whose accessibility label contains the name instead.
         XCTAssertTrue(containingText("Demo Angel", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Engel"].waitForExistence(timeout: 5))
 
         goBack(app)
         let settingsRow = app.staticTexts["Settings"]

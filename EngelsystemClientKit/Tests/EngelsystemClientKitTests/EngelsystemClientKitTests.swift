@@ -18,6 +18,14 @@ import Testing
     #expect(instance.apiBasePath == "https://engelsystem.example.org/api/v0-beta")
 }
 
+// MARK: - CachedNews text sanitization
+
+@Test func cachedNewsSanitizedTextRemovesMoreTagAndTrims() {
+    #expect(CachedNews.sanitizedText(from: "Intro text.\n[more]\nRest of the story.") == "Intro text.\n\nRest of the story.")
+    #expect(CachedNews.sanitizedText(from: "  No tag here.  ") == "No tag here.")
+    #expect(CachedNews.sanitizedText(from: "[more]") == "")
+}
+
 @Test func eventCredentialDetectsDemoBaseURL() {
     let demo = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
     #expect(demo.isDemo)
@@ -56,6 +64,7 @@ import Testing
     #expect(try await client.fetchLocations(credential).count == 2)
     #expect(try await client.fetchShiftTypes(credential).count == 3)
     #expect(try await client.fetchAngelTypes(credential).count == 1)
+    #expect(try await client.fetchOwnAngelTypes(credential).count == 1)
     #expect(try await client.fetchShifts(for: .me, credential).count == 2)
     #expect(try await client.fetchWorklogs(for: .me, credential).count == 1)
 
