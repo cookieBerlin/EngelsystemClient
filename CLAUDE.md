@@ -128,8 +128,11 @@ Engelsystem.xcodeproj
 │   │   ├── Generated/             ← OpenAPI Generator output
 │   │   ├── Persistence/           ← Instance, CachedShift, CachedNews, ...
 │   │   ├── Networking/            ← APIClient, APIEndpoint, APIError
-│   │   └── Services/              ← ShiftSyncService, NotificationScheduler,
-│   │                                 KeychainSyncStore, LocalKeychainStore
+│   │   └── Services/              ← ShiftSyncService, NewsSyncService,
+│   │                                 ProfileSyncService, NotificationScheduler,
+│   │                                 InstanceSetupService, InstanceCredentialResolver,
+│   │                                 NextShiftSnapshotStore, KeychainSyncStore,
+│   │                                 LocalKeychainStore
 │   └── Resources/openapi.yml
 ├── EngelsystemClient/             ← iOS/iPadOS target
 │   └── Features/
@@ -138,10 +141,11 @@ Engelsystem.xcodeproj
 │       ├── News/
 │       ├── Profile/
 │       └── Settings/
-└── EngelsystemClient Watch App/   ← watchOS target
-    ├── Views/NextShiftView.swift
-    ├── Complications/
-    └── Sync status/fallback entry UI
+├── EngelsystemClient Watch App/   ← watchOS target
+│   ├── Views/NextShiftView.swift, NextShiftViewModel.swift
+│   └── Setup/WatchSetupView.swift, WatchSetupViewModel.swift (fallback entry UI)
+└── EngelsystemComplication/       ← watchOS Widget Extension (embedded in the
+                                      Watch app target above), the complication
 ```
 
 `Package.swift` note: `platforms` must come directly after `name`, before
@@ -154,6 +158,16 @@ Engelsystem.xcodeproj
   `$(AppIdentifierPrefix)de.engelsystem.shared`
 - Background Modes (iOS target only): Background fetch, Background processing
 - **No** push-notification entitlement needed (local notifications only)
+- **App Group** `group.de.engelsystem.shared` (Watch app + `EngelsystemComplication`
+  extension only, not iOS): shares the next-shift snapshot with the complication
+  process (see Watch App Scope / Implemented Features below). Confirmed working
+  for local simulator builds with the free/personal team already configured in
+  this project (`DEVELOPMENT_TEAM = TYG73A374P`) — **unlike CloudKit containers,
+  App Groups and Keychain Sharing don't require a paid Apple Developer Program
+  membership**, only automatic signing with any team. Update the earlier
+  assumption in this doc accordingly if you're revisiting the CloudKit/Keychain
+  Sharing gap: CloudKit specifically is the one blocked on a paid account, not
+  entitlements in general.
 
 ## Data/code flow
 
@@ -183,7 +197,7 @@ Error handling centralized in `APIClient`: 401 → back to Instance Setup,
 4. ✅ iOS app: `InstanceSetup` feature (first runnable feature)
 5. ✅ iOS app: Shifts / News / Profile / Settings
 6. ✅ Watch app: `NextShiftView`, sync status display, fallback form
-7. ⬜ Watch complication
+7. ✅ Watch complication
 8. ✅ Demo mode (`DemoData` provider in `APIClient` + "Try Demo" entry
    point on `InstanceSetup`)
 
@@ -314,20 +328,35 @@ exists without reading the whole diff history.
   the iOS Shifts screen uses, plus a sync-status line ("Updated HH:mm")
   and schedules the same local notification for it via
   `NotificationScheduler`. No full shift catalog, no news, per the Watch
-  App Scope above.
-- watchOS UI Testing has proven unreliable in this dev environment
-  (`EngelsystemClient_Watch_App_Watch_AppUITests.testDemoModeShowsNextShift`
-  fails on a different assertion nearly every run despite each run using
-  a fresh install) — treat a red run there as a tooling-flakiness signal
-  first, and cross-check against a manual simulator screenshot and the
-  EngelsystemClientKit unit tests (which cover the actual business logic
-  the Watch views call into) before assuming an app regression.
+  App Scope above. After every sync it also writes a `NextShiftSnapshot`
+  to the shared App Group (see `EngelsystemComplication` below) and calls
+  `WidgetCenter.shared.reloadAllTimelines()`.
+- watchOS UI Testing needs generous timeouts and a scroll-until-visible
+  loop to be reliable — the simulator's cold launch is slow, and a
+  `Form`'s later sections aren't materialized in the accessibility tree
+  until scrolled into view. `EngelsystemClient_Watch_App_Watch_AppUITests`
+  accounts for both; if a run there fails anyway, cross-check against a
+  manual simulator screenshot and EngelsystemClientKit's unit tests
+  before assuming an app regression.
+- **Complication** (`EngelsystemComplication/`, step 7): a WidgetKit
+  extension target embedded in the Watch app, added via the `xcodeproj`
+  Ruby gem (`gem install xcodeproj`) since new Xcode targets can't be
+  created through the file-system-synchronized-group mechanism the rest
+  of this project relies on — only added to *existing* targets. Reads a
+  `NextShiftSnapshot` from the `group.de.engelsystem.shared` App Group
+  (see Entitlements above) and renders `.accessoryCircular`/
+  `.accessoryRectangular`/`.accessoryInline` families; never touches the
+  network or Keychain itself (a separate process from the Watch app, no
+  access to its Keychain item). Confirmed: builds, installs, and launches
+  correctly in the watchOS Simulator. Not verified: actually adding it to
+  a watch face and seeing it render there, since that requires the
+  Watch Face editing UI (no automation available for that flow here).
 
 ### Not yet implemented
 
 - CloudKit sync (iOS + Watch entitlements not configured yet — requires
-  an Apple Developer team, see Entitlements above).
-- Watch complication (step 7).
+  a **paid** Apple Developer Program membership, see Entitlements above;
+  App Groups/Keychain Sharing are not affected by this and already work).
 
 ## Testing
 

@@ -33,15 +33,12 @@ final class EngelsystemClient_Watch_App_Watch_AppUITests: XCTestCase {
         // https://developer.apple.com/documentation/xcuiautomation
     }
 
-    // NOTE: watchOS UI Testing has proven flaky in this environment across several runs —
-    // failures land on different assertions each time despite each run using a fresh app
-    // install, which points to simulator/XCUITest infrastructure instability rather than
-    // an app defect. The Setup screen was independently confirmed by a manual screenshot,
-    // and the business logic this view exercises (InstanceSetupService, sync services,
-    // NotificationScheduler) is covered by 17 passing unit tests in EngelsystemClientKit.
-    // Keeping this test since it's correct and may run more reliably elsewhere (a real
-    // device, a different Xcode version) — don't take a single failure here as a sign the
-    // app is broken without also checking those other signals.
+    // NOTE: early runs of this test (before the timeout/scroll fixes below) failed
+    // inconsistently on different assertions each time — watchOS simulator cold-launch
+    // and lazily-materialized Form accessibility elements need real headroom. It now
+    // passes consistently; if it ever regresses, cross-check against a manual simulator
+    // screenshot and EngelsystemClientKit's unit tests (which cover the actual business
+    // logic this view exercises) before assuming an app defect vs. environment flakiness.
     @MainActor
     func testDemoModeShowsNextShift() throws {
         let app = XCUIApplication()

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import WidgetKit
 import EngelsystemClientKit
 
 @Observable
@@ -39,6 +40,16 @@ final class NextShiftViewModel {
             if await notificationScheduler.requestAuthorizationIfNeeded() {
                 await notificationScheduler.syncNotifications(for: shifts)
             }
+
+            // Publish to the App Group so the complication (a separate process with no
+            // Keychain access of its own) has something to read — see NextShiftSnapshotStore.
+            let nextShift = CachedShift.nextShift(from: shifts)
+            NextShiftSnapshotStore().save(
+                nextShift.map {
+                    NextShiftSnapshot(title: $0.title, startsAt: $0.startsAt, endsAt: $0.endsAt, locationName: $0.locationName)
+                }
+            )
+            WidgetCenter.shared.reloadAllTimelines()
         } catch {
             errorMessage = Self.message(for: error)
         }

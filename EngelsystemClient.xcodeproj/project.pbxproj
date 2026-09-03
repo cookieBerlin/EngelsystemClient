@@ -7,9 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		34F6638DC5133EB203B7D69E /* EngelsystemComplication.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CFEB438D36DA7C6A38B15A4E /* EngelsystemComplication.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		3712F1A68AE53F7F98C70741 /* EngelsystemClientKit in Frameworks */ = {isa = PBXBuildFile; productRef = B8D7E3BC7D49EDE072D3EA6E /* EngelsystemClientKit */; };
+		6922C15581605B46DFF43A99 /* EngelsystemComplicationBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F0303F72D2D5A0E2633B3DE /* EngelsystemComplicationBundle.swift */; };
 		76050573304578E0002B3D76 /* EngelsystemClient Watch App Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 76050553304578DE002B3D76 /* EngelsystemClient Watch App Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7605058230457D01002B3D76 /* EngelsystemClientKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7605058130457D01002B3D76 /* EngelsystemClientKit */; };
 		7605058430457D1A002B3D76 /* EngelsystemClientKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7605058330457D1A002B3D76 /* EngelsystemClientKit */; };
+		9D1ED95115B0E6F28BF81956 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0312D5A8B401052474C69D50 /* WidgetKit.framework */; };
+		B98784DBEA257E08C214DCFB /* NextShiftComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA9CEB5B54EE620F2955517 /* NextShiftComplication.swift */; };
+		C328061CC62698B99A9A13F8 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35F9B4ECB9F6187AF826C51C /* Foundation.framework */; };
+		E9BC27C657B579E305646363 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B472C61262F7B74C91DE270 /* SwiftUI.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +55,13 @@
 			remoteGlobalIDString = 76050552304578DE002B3D76;
 			remoteInfo = "EngelsystemClient Watch App Watch App";
 		};
+		9C2829D835B53E0CE9556CCF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7605051B30457830002B3D76 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C853458D60E65CADEF7D1687;
+			remoteInfo = EngelsystemComplication;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -62,9 +76,25 @@
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BB559827279462079AE73281 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				34F6638DC5133EB203B7D69E /* EngelsystemComplication.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0312D5A8B401052474C69D50 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		35F9B4ECB9F6187AF826C51C /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		3B472C61262F7B74C91DE270 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		3DA9CEB5B54EE620F2955517 /* NextShiftComplication.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NextShiftComplication.swift; sourceTree = "<group>"; };
+		3F0303F72D2D5A0E2633B3DE /* EngelsystemComplicationBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EngelsystemComplicationBundle.swift; sourceTree = "<group>"; };
 		7605052330457830002B3D76 /* EngelsystemClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EngelsystemClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7605053230457832002B3D76 /* EngelsystemClientTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EngelsystemClientTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7605053C30457832002B3D76 /* EngelsystemClientUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EngelsystemClientUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -72,36 +102,51 @@
 		7605055F304578E0002B3D76 /* EngelsystemClient Watch App Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "EngelsystemClient Watch App Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		76050569304578E0002B3D76 /* EngelsystemClient Watch App Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "EngelsystemClient Watch App Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		7605058530458375002B3D76 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
+		C92709D824B614CA2BE79898 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CFEB438D36DA7C6A38B15A4E /* EngelsystemComplication.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = EngelsystemComplication.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		EAD03D92779B7A496F35A439 /* EngelsystemComplication.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = EngelsystemComplication.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7605052530457830002B3D76 /* EngelsystemClient */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = EngelsystemClient;
 			sourceTree = "<group>";
 		};
 		7605053530457832002B3D76 /* EngelsystemClientTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = EngelsystemClientTests;
 			sourceTree = "<group>";
 		};
 		7605053F30457832002B3D76 /* EngelsystemClientUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = EngelsystemClientUITests;
 			sourceTree = "<group>";
 		};
 		76050554304578DE002B3D76 /* EngelsystemClient Watch App Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "EngelsystemClient Watch App Watch App";
 			sourceTree = "<group>";
 		};
 		76050562304578E0002B3D76 /* EngelsystemClient Watch App Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "EngelsystemClient Watch App Watch AppTests";
 			sourceTree = "<group>";
 		};
 		7605056C304578E0002B3D76 /* EngelsystemClient Watch App Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "EngelsystemClient Watch App Watch AppUITests";
 			sourceTree = "<group>";
 		};
@@ -152,9 +197,40 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DD2E40F0D02C04E328A44DE5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C328061CC62698B99A9A13F8 /* Foundation.framework in Frameworks */,
+				9D1ED95115B0E6F28BF81956 /* WidgetKit.framework in Frameworks */,
+				E9BC27C657B579E305646363 /* SwiftUI.framework in Frameworks */,
+				3712F1A68AE53F7F98C70741 /* EngelsystemClientKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5546755079064A9F1ABF5244 /* EngelsystemComplication */ = {
+			isa = PBXGroup;
+			children = (
+				3F0303F72D2D5A0E2633B3DE /* EngelsystemComplicationBundle.swift */,
+				3DA9CEB5B54EE620F2955517 /* NextShiftComplication.swift */,
+				C92709D824B614CA2BE79898 /* Info.plist */,
+				EAD03D92779B7A496F35A439 /* EngelsystemComplication.entitlements */,
+			);
+			name = EngelsystemComplication;
+			path = EngelsystemComplication;
+			sourceTree = "<group>";
+		};
+		55AF1D8420886E7CA3FB2923 /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+				35F9B4ECB9F6187AF826C51C /* Foundation.framework */,
+			);
+			name = watchOS;
+			sourceTree = "<group>";
+		};
 		7605051A30457830002B3D76 = {
 			isa = PBXGroup;
 			children = (
@@ -167,6 +243,7 @@
 				7605056C304578E0002B3D76 /* EngelsystemClient Watch App Watch AppUITests */,
 				7605058030457D01002B3D76 /* Frameworks */,
 				7605052430457830002B3D76 /* Products */,
+				5546755079064A9F1ABF5244 /* EngelsystemComplication */,
 			);
 			sourceTree = "<group>";
 		};
@@ -179,6 +256,7 @@
 				76050553304578DE002B3D76 /* EngelsystemClient Watch App Watch App.app */,
 				7605055F304578E0002B3D76 /* EngelsystemClient Watch App Watch AppTests.xctest */,
 				76050569304578E0002B3D76 /* EngelsystemClient Watch App Watch AppUITests.xctest */,
+				CFEB438D36DA7C6A38B15A4E /* EngelsystemComplication.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -186,6 +264,9 @@
 		7605058030457D01002B3D76 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				55AF1D8420886E7CA3FB2923 /* watchOS */,
+				0312D5A8B401052474C69D50 /* WidgetKit.framework */,
+				3B472C61262F7B74C91DE270 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -235,8 +316,6 @@
 				7605053530457832002B3D76 /* EngelsystemClientTests */,
 			);
 			name = EngelsystemClientTests;
-			packageProductDependencies = (
-			);
 			productName = EngelsystemClientTests;
 			productReference = 7605053230457832002B3D76 /* EngelsystemClientTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -258,8 +337,6 @@
 				7605053F30457832002B3D76 /* EngelsystemClientUITests */,
 			);
 			name = EngelsystemClientUITests;
-			packageProductDependencies = (
-			);
 			productName = EngelsystemClientUITests;
 			productReference = 7605053C30457832002B3D76 /* EngelsystemClientUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -271,10 +348,12 @@
 				7605054F304578DE002B3D76 /* Sources */,
 				76050550304578DE002B3D76 /* Frameworks */,
 				76050551304578DE002B3D76 /* Resources */,
+				BB559827279462079AE73281 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				C46E054AB2407A5F035F781A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				76050554304578DE002B3D76 /* EngelsystemClient Watch App Watch App */,
@@ -304,8 +383,6 @@
 				76050562304578E0002B3D76 /* EngelsystemClient Watch App Watch AppTests */,
 			);
 			name = "EngelsystemClient Watch App Watch AppTests";
-			packageProductDependencies = (
-			);
 			productName = "EngelsystemClient Watch App Watch AppTests";
 			productReference = 7605055F304578E0002B3D76 /* EngelsystemClient Watch App Watch AppTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -327,11 +404,29 @@
 				7605056C304578E0002B3D76 /* EngelsystemClient Watch App Watch AppUITests */,
 			);
 			name = "EngelsystemClient Watch App Watch AppUITests";
-			packageProductDependencies = (
-			);
 			productName = "EngelsystemClient Watch App Watch AppUITests";
 			productReference = 76050569304578E0002B3D76 /* EngelsystemClient Watch App Watch AppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		C853458D60E65CADEF7D1687 /* EngelsystemComplication */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 36B3997BF5B503B6DC07DFB8 /* Build configuration list for PBXNativeTarget "EngelsystemComplication" */;
+			buildPhases = (
+				5F98873E19F084EEEB2ECCE1 /* Sources */,
+				DD2E40F0D02C04E328A44DE5 /* Frameworks */,
+				1B808A011765DD743FAF1551 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = EngelsystemComplication;
+			packageProductDependencies = (
+				B8D7E3BC7D49EDE072D3EA6E /* EngelsystemClientKit */,
+			);
+			productName = EngelsystemComplication;
+			productReference = CFEB438D36DA7C6A38B15A4E /* EngelsystemComplication.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -390,11 +485,19 @@
 				76050552304578DE002B3D76 /* EngelsystemClient Watch App Watch App */,
 				7605055E304578E0002B3D76 /* EngelsystemClient Watch App Watch AppTests */,
 				76050568304578E0002B3D76 /* EngelsystemClient Watch App Watch AppUITests */,
+				C853458D60E65CADEF7D1687 /* EngelsystemComplication */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		1B808A011765DD743FAF1551 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7605052130457830002B3D76 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -440,6 +543,15 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		5F98873E19F084EEEB2ECCE1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6922C15581605B46DFF43A99 /* EngelsystemComplicationBundle.swift in Sources */,
+				B98784DBEA257E08C214DCFB /* NextShiftComplication.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7605051F30457830002B3D76 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -510,9 +622,66 @@
 			target = 76050552304578DE002B3D76 /* EngelsystemClient Watch App Watch App */;
 			targetProxy = 76050571304578E0002B3D76 /* PBXContainerItemProxy */;
 		};
+		C46E054AB2407A5F035F781A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = EngelsystemComplication;
+			target = C853458D60E65CADEF7D1687 /* EngelsystemComplication */;
+			targetProxy = 9C2829D835B53E0CE9556CCF /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		0A4D3F02B4F90A3A7165A481 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = EngelsystemComplication/EngelsystemComplication.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TYG73A374P;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = EngelsystemComplication/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.engelsystem.EngelsystemClient.watchkitapp.complication;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Debug;
+		};
+		651EBABEB78A686EA2F78D61 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = EngelsystemComplication/EngelsystemComplication.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TYG73A374P;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = EngelsystemComplication/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.engelsystem.EngelsystemClient.watchkitapp.complication;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
 		7605054430457832002B3D76 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -787,6 +956,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "EngelsystemClient Watch App Watch App/EngelsystemClient Watch App Watch App.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TYG73A374P;
@@ -820,6 +990,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "EngelsystemClient Watch App Watch App/EngelsystemClient Watch App Watch App.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TYG73A374P;
@@ -941,6 +1112,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		36B3997BF5B503B6DC07DFB8 /* Build configuration list for PBXNativeTarget "EngelsystemComplication" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				651EBABEB78A686EA2F78D61 /* Release */,
+				0A4D3F02B4F90A3A7165A481 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		7605051E30457830002B3D76 /* Build configuration list for PBXProject "EngelsystemClient" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1020,6 +1200,11 @@
 			productName = EngelsystemClientKit;
 		};
 		7605058330457D1A002B3D76 /* EngelsystemClientKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7605057F30457B31002B3D76 /* XCLocalSwiftPackageReference "EngelsystemClientKit" */;
+			productName = EngelsystemClientKit;
+		};
+		B8D7E3BC7D49EDE072D3EA6E /* EngelsystemClientKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7605057F30457B31002B3D76 /* XCLocalSwiftPackageReference "EngelsystemClientKit" */;
 			productName = EngelsystemClientKit;
