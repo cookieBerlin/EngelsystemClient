@@ -100,6 +100,7 @@ private struct InstanceDetailView: View {
     let onDelete: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var isPresentingKeyUpdate = false
 
     var body: some View {
         Form {
@@ -118,6 +119,12 @@ private struct InstanceDetailView: View {
             }
 
             Section {
+                Button("Update API Key") { isPresentingKeyUpdate = true }
+            } footer: {
+                Text("If shifts, news, or your profile stop loading with an authorization error, the API key may have expired or been revoked — update it here.")
+            }
+
+            Section {
                 Button("Remove Instance", role: .destructive) {
                     onDelete()
                     dismiss()
@@ -125,5 +132,54 @@ private struct InstanceDetailView: View {
             }
         }
         .navigationTitle(instance.name)
+        .sheet(isPresented: $isPresentingKeyUpdate) {
+            UpdateAPIKeyView(instance: instance)
+        }
+    }
+}
+
+private struct UpdateAPIKeyView: View {
+    let instance: Instance
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var viewModel = UpdateAPIKeyViewModel()
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("API Key") {
+                    SecureField("New API Key", text: $viewModel.apiKey)
+                        .autocorrectionDisabled()
+                }
+                if let errorMessage = viewModel.errorMessage {
+                    Section {
+                        Text(errorMessage).foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("Update API Key")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if viewModel.isTesting {
+                        ProgressView()
+                    } else {
+                        Button("Save") {
+                            Task {
+                                if await viewModel.update(instance: instance) {
+                                    dismiss()
+                                }
+                            }
+                        }
+                        .disabled(!viewModel.canSubmit)
+                    }
+                }
+            }
+        }
     }
 }

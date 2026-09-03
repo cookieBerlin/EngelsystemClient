@@ -4,6 +4,7 @@ import EngelsystemClientKit
 
 struct ProfileView: View {
     let instance: Instance
+    var onUnauthorized: () -> Void = {}
 
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = ProfileViewModel()
@@ -11,8 +12,9 @@ struct ProfileView: View {
     @Query private var worklogs: [CachedWorklog]
     @Query private var angelTypeMemberships: [CachedAngelTypeMembership]
 
-    init(instance: Instance) {
+    init(instance: Instance, onUnauthorized: @escaping () -> Void = {}) {
         self.instance = instance
+        self.onUnauthorized = onUnauthorized
         let instanceID = instance.id
         _users = Query(filter: #Predicate<CachedUser> { $0.instanceID == instanceID })
         _worklogs = Query(
@@ -84,6 +86,9 @@ struct ProfileView: View {
         }
         .refreshable { await viewModel.refresh(instance: instance, in: modelContext) }
         .task { await viewModel.refresh(instance: instance, in: modelContext) }
+        .onChange(of: viewModel.isUnauthorized) { _, isUnauthorized in
+            if isUnauthorized { onUnauthorized() }
+        }
     }
 }
 

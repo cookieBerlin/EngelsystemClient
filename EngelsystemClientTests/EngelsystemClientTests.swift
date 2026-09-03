@@ -6,14 +6,20 @@
 //
 
 import Testing
+import EngelsystemClientKit
 @testable import EngelsystemClient
 
-struct EngelsystemClientTests {
-
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-        // Swift Testing Documentation
-        // https://developer.apple.com/documentation/testing
+struct SyncErrorMapperTests {
+    @Test func isUnauthorizedIsTrueOnlyForAPIErrorUnauthorized() {
+        #expect(SyncErrorMapper.isUnauthorized(APIError.unauthorized))
+        #expect(!SyncErrorMapper.isUnauthorized(APIError.forbidden))
+        #expect(!SyncErrorMapper.isUnauthorized(APIError.notFound))
+        #expect(!SyncErrorMapper.isUnauthorized(InstanceCredentialError.apiKeyNotFound))
     }
 
+    @Test func messageMapsInstanceCredentialAndKeychainErrorsToReadableText() {
+        #expect(SyncErrorMapper.message(for: InstanceCredentialError.apiKeyNotFound).contains("Settings"))
+        #expect(SyncErrorMapper.message(for: KeychainError.unexpectedData).contains("keychain"))
+        #expect(SyncErrorMapper.message(for: APIError.forbidden) == APIError.forbidden.userMessage)
+    }
 }

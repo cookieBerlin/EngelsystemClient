@@ -7,6 +7,7 @@ import EngelsystemClientKit
 final class NewsViewModel {
     var isLoading = false
     var errorMessage: String?
+    var isUnauthorized = false
 
     private let syncService: NewsSyncService
     private let credentialResolver: InstanceCredentialResolver
@@ -21,6 +22,7 @@ final class NewsViewModel {
 
     func refresh(instance: Instance, in modelContext: ModelContext) async {
         errorMessage = nil
+        isUnauthorized = false
         isLoading = true
         defer { isLoading = false }
         do {
@@ -28,6 +30,7 @@ final class NewsViewModel {
             try await syncService.sync(instance: instance, credential: credential, in: modelContext)
         } catch {
             errorMessage = SyncErrorMapper.message(for: error)
+            isUnauthorized = SyncErrorMapper.isUnauthorized(error)
         }
     }
 }

@@ -185,7 +185,11 @@ SwiftData models (persistence + CloudKit sync)
 
 Error handling centralized in `APIClient`: 401 → back to Instance Setup,
 403 → show "No API access (group `API`/`Bureaucrat` required)",
-404 → show empty list instead of an error.
+404 → show empty list instead of an error. "Back to Instance Setup" is
+realized as "back to Settings" (`MainView.goToSettings`, triggered by
+each feature view model's `isUnauthorized` flag) now that Settings/
+instance management is its own screen — see Implemented Features below
+for the "Update API Key" action that closes the loop once there.
 
 ## Implementation order
 
@@ -251,7 +255,11 @@ exists without reading the whole diff history.
 - **InstanceSetupService**: the "test the connection, then save the API
   key and return a new `Instance`" logic shared by the iOS app's
   InstanceSetup feature and the Watch app's fallback entry form, so
-  neither target re-implements it.
+  neither target re-implements it. Also `updateAPIKey(for:apiKey:store:)`
+  for an *existing* `Instance` — same connection test, but overwrites the
+  key under the instance's existing `apiKeyKeychainRef` instead of
+  creating a new one. Used by the iOS app's "Update API Key" Settings
+  action (see Implemented Features below).
 
 ### iOS/iPadOS app
 
@@ -299,12 +307,21 @@ exists without reading the whole diff history.
   `@AppStorage`, not the key itself), view an instance's name/server/
   active status, remove an instance (cleans up both keychain stores,
   since which one was used at creation time isn't persisted). The first
-  instance created is activated automatically.
+  instance created is activated automatically. Also **"Update API Key"**
+  (`UpdateAPIKeyViewModel`): tests a new key against the instance's
+  existing server via `InstanceSetupService.updateAPIKey`, then writes it
+  into *both* keychain stores (not just the iCloud-vs-local one currently
+  preferred) so a stale value in whichever store `InstanceCredentialResolver`
+  happens to check first can't shadow the fresh one. If Shifts/News/Profile
+  hits a 401, `MainView` auto-switches to this screen so the key can
+  actually be fixed (see Data/code flow above).
 - **Shared feature helpers** (`Features/Shared`): `ErrorBanner` (inline
   red banner for sync errors) and `SyncErrorMapper` (maps `APIError`/
-  `InstanceCredentialError` to the same user-facing English message
-  across Shifts/News/Profile), so the three nearly-identical view models
-  don't each re-implement error-message switch statements.
+  `InstanceCredentialError`/`KeychainError` to the same user-facing
+  English message across Shifts/News/Profile/Settings, plus
+  `isUnauthorized(_:)` for the 401-triggers-navigation behavior above), so
+  the nearly-identical view models don't each re-implement the same
+  error-message switch statement.
 - **Local shift-start notifications** (`Services/NotificationScheduler`):
   after every successful Shifts sync, requests notification authorization
   if not yet determined and schedules a local reminder

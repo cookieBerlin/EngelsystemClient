@@ -7,6 +7,7 @@ import EngelsystemClientKit
 final class ProfileViewModel {
     var isLoading = false
     var errorMessage: String?
+    var isUnauthorized = false
 
     private let syncService: ProfileSyncService
     private let credentialResolver: InstanceCredentialResolver
@@ -21,6 +22,7 @@ final class ProfileViewModel {
 
     func refresh(instance: Instance, in modelContext: ModelContext) async {
         errorMessage = nil
+        isUnauthorized = false
         isLoading = true
         defer { isLoading = false }
         do {
@@ -30,6 +32,7 @@ final class ProfileViewModel {
             try await syncService.syncAngelTypes(instance: instance, credential: credential, in: modelContext)
         } catch {
             errorMessage = SyncErrorMapper.message(for: error)
+            isUnauthorized = SyncErrorMapper.isUnauthorized(error)
         }
     }
 }

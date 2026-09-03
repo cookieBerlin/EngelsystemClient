@@ -33,6 +33,18 @@ private final class FakeAPIKeyStore: APIKeyStore {
     #expect(try store.loadAPIKey(for: instance.apiKeyKeychainRef) == "demo")
 }
 
+@Test func instanceSetupServiceUpdatesAPIKeyForExistingInstance() async throws {
+    let store = FakeAPIKeyStore()
+    let instance = try await InstanceSetupService().createInstance(
+        name: "Demo", baseURL: Instance.demoBaseURL, apiKey: "old-demo-key", store: store
+    )
+
+    try await InstanceSetupService().updateAPIKey(for: instance, apiKey: "new-demo-key", store: store)
+
+    // Same keychain reference is overwritten in place — no new Instance/reference created.
+    #expect(try store.loadAPIKey(for: instance.apiKeyKeychainRef) == "new-demo-key")
+}
+
 @Test func instanceSetupServiceDoesNotSaveKeyWhenConnectionTestFails() async throws {
     // Bad percent-encoding makes URL(string:) return nil, which APIClient maps to
     // .invalidBaseURL — deterministic and offline (see apiClientRejectsEmptyBaseURLForNonDemoInstance

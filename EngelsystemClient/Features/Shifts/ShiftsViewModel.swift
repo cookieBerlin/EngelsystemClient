@@ -7,6 +7,7 @@ import EngelsystemClientKit
 final class ShiftsViewModel {
     var isLoading = false
     var errorMessage: String?
+    var isUnauthorized = false
 
     private let syncService: ShiftSyncService
     private let credentialResolver: InstanceCredentialResolver
@@ -27,6 +28,7 @@ final class ShiftsViewModel {
 
     func refresh(instance: Instance, in modelContext: ModelContext) async {
         errorMessage = nil
+        isUnauthorized = false
         isLoading = true
         defer { isLoading = false }
         do {
@@ -37,6 +39,7 @@ final class ShiftsViewModel {
             }
         } catch {
             errorMessage = SyncErrorMapper.message(for: error)
+            isUnauthorized = SyncErrorMapper.isUnauthorized(error)
         }
     }
 }

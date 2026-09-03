@@ -17,4 +17,13 @@ enum SyncErrorMapper {
         }
         return error.localizedDescription
     }
+
+    /// True for an expired/revoked API key. Per CLAUDE.md's error-handling contract
+    /// ("401 → back to Instance Setup"), Shifts/News/Profile use this to send the user
+    /// back to Settings, where "Update API Key" can fix it — adapted from the original
+    /// "back to Instance Setup" wording, written before Settings/instance management
+    /// existed as its own screen.
+    static func isUnauthorized(_ error: Error) -> Bool {
+        (error as? APIError) == .unauthorized
+    }
 }

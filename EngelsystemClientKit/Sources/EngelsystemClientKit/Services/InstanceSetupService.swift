@@ -23,4 +23,16 @@ public struct InstanceSetupService {
 
         return instance
     }
+
+    /// Tests a new API key against `instance`'s existing server and, on success,
+    /// overwrites the stored key under the same `apiKeyKeychainRef` (unlike
+    /// `createInstance`, no new `Instance`/keychain reference is created). Used when a
+    /// key has expired or been revoked (`APIError.unauthorized`) — CLAUDE.md's "401 →
+    /// back to Instance Setup" is realized as "back to Settings to fix the key" now
+    /// that Settings/instance management exists.
+    public func updateAPIKey(for instance: Instance, apiKey: String, store: APIKeyStore) async throws {
+        let credential = EventCredential(baseURL: instance.apiBasePath, apiKey: apiKey)
+        _ = try await apiClient.fetchInfo(credential)
+        try store.save(apiKey: apiKey, for: instance.apiKeyKeychainRef)
+    }
 }

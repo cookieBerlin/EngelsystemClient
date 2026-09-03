@@ -4,13 +4,15 @@ import EngelsystemClientKit
 
 struct ShiftsView: View {
     let instance: Instance
+    var onUnauthorized: () -> Void = {}
 
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = ShiftsViewModel()
     @Query private var shifts: [CachedShift]
 
-    init(instance: Instance) {
+    init(instance: Instance, onUnauthorized: @escaping () -> Void = {}) {
         self.instance = instance
+        self.onUnauthorized = onUnauthorized
         let instanceID = instance.id
         _shifts = Query(
             filter: #Predicate<CachedShift> { $0.instanceID == instanceID },
@@ -45,6 +47,9 @@ struct ShiftsView: View {
         }
         .refreshable { await viewModel.refresh(instance: instance, in: modelContext) }
         .task { await viewModel.refresh(instance: instance, in: modelContext) }
+        .onChange(of: viewModel.isUnauthorized) { _, isUnauthorized in
+            if isUnauthorized { onUnauthorized() }
+        }
     }
 }
 

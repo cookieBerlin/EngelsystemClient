@@ -4,13 +4,15 @@ import EngelsystemClientKit
 
 struct NewsView: View {
     let instance: Instance
+    var onUnauthorized: () -> Void = {}
 
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = NewsViewModel()
     @Query private var newsItems: [CachedNews]
 
-    init(instance: Instance) {
+    init(instance: Instance, onUnauthorized: @escaping () -> Void = {}) {
         self.instance = instance
+        self.onUnauthorized = onUnauthorized
         let instanceID = instance.id
         _newsItems = Query(filter: #Predicate<CachedNews> { $0.instanceID == instanceID })
     }
@@ -44,6 +46,9 @@ struct NewsView: View {
         }
         .refreshable { await viewModel.refresh(instance: instance, in: modelContext) }
         .task { await viewModel.refresh(instance: instance, in: modelContext) }
+        .onChange(of: viewModel.isUnauthorized) { _, isUnauthorized in
+            if isUnauthorized { onUnauthorized() }
+        }
     }
 }
 

@@ -52,11 +52,11 @@ struct MainView: View {
             NavigationStack {
                 switch selection ?? .shifts {
                 case .shifts:
-                    ShiftsView(instance: activeInstance)
+                    ShiftsView(instance: activeInstance, onUnauthorized: goToSettings)
                 case .news:
-                    NewsView(instance: activeInstance)
+                    NewsView(instance: activeInstance, onUnauthorized: goToSettings)
                 case .profile:
-                    ProfileView(instance: activeInstance)
+                    ProfileView(instance: activeInstance, onUnauthorized: goToSettings)
                 case .settings:
                     SettingsView(instances: instances)
                 }
@@ -68,5 +68,11 @@ struct MainView: View {
     private func activateFirstInstanceIfNeeded() {
         guard activeInstanceIDString.isEmpty, let first = instances.first else { return }
         activeInstanceIDString = first.id.uuidString
+    }
+
+    /// CLAUDE.md's error-handling contract ("401 → back to Instance Setup") realized as
+    /// "back to Settings", where "Update API Key" can actually fix an expired/revoked key.
+    private func goToSettings() {
+        selection = .settings
     }
 }
