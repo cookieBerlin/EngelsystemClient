@@ -169,6 +169,18 @@ Engelsystem.xcodeproj
   Sharing gap: CloudKit specifically is the one blocked on a paid account, not
   entitlements in general.
 
+**Bundle identifiers are unique across *all* Apple developer accounts, not just
+this project or team.** `EngelsystemComplication`'s original bundle ID
+(`de.engelsystem.EngelsystemClient.watchkitapp.complication`) failed to
+register on a real device with "cannot be registered ... because it is not
+available" — some other account already holds that exact string. Simulator
+builds never surface this, since they don't register real App IDs; it only
+shows up the first time someone actually runs on a physical device. Renamed
+to `de.engelsystem.EngelsystemClient.watchkitapp.nextshiftcomplication`,
+which worked. If you add another extension/target later and hit the same
+error on-device, just pick a more distinctive suffix and retry — it's not
+something wrong with the project's signing setup.
+
 ## Data/code flow
 
 ```
