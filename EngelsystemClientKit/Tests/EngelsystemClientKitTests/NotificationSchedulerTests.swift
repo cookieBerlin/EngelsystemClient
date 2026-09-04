@@ -64,12 +64,12 @@ private func makeShift(id: Int, hoursFromNow: Double, title: String = "Shift") -
 
 @Test func notificationSchedulerSyncSchedulesNewAndCancelsStale() async {
     let center = FakeNotificationCenter()
-    let scheduler = NotificationScheduler(center: center, minutesBefore: 15)
+    let scheduler = NotificationScheduler(center: center)
 
     let shiftA = makeShift(id: 1, hoursFromNow: 2, title: "Info Desk")
     let shiftB = makeShift(id: 2, hoursFromNow: 4, title: "Set-up")
 
-    await scheduler.syncNotifications(for: [shiftA, shiftB])
+    await scheduler.syncNotifications(for: [shiftA, shiftB], minutesBefore: 15)
     #expect(center.addedRequests.count == 2)
     #expect(Set(center.addedRequests.map(\.identifier)) == [
         NotificationScheduler.identifier(for: shiftA),
@@ -78,7 +78,7 @@ private func makeShift(id: Int, hoursFromNow: Double, title: String = "Shift") -
 
     // Re-syncing with only shiftA left should cancel shiftB's notification and not
     // re-add shiftA's (it's already scheduled).
-    await scheduler.syncNotifications(for: [shiftA])
+    await scheduler.syncNotifications(for: [shiftA], minutesBefore: 15)
     let stillPending = await center.pendingNotificationRequests()
     #expect(stillPending.map(\.identifier) == [NotificationScheduler.identifier(for: shiftA)])
     #expect(center.addedRequests.count == 2) // no duplicate add call for shiftA
@@ -86,11 +86,24 @@ private func makeShift(id: Int, hoursFromNow: Double, title: String = "Shift") -
 
 @Test func notificationSchedulerDoesNotDuplicateAnAlreadyScheduledShift() async {
     let center = FakeNotificationCenter()
-    let scheduler = NotificationScheduler(center: center, minutesBefore: 15)
+    let scheduler = NotificationScheduler(center: center)
     let shift = makeShift(id: 1, hoursFromNow: 2)
 
-    await scheduler.syncNotifications(for: [shift])
-    await scheduler.syncNotifications(for: [shift])
+    await scheduler.syncNotifications(for: [shift], minutesBefore: 15)
+    await scheduler.syncNotifications(for: [shift], minutesBefore: 15)
 
     #expect(center.addedRequests.count == 1)
+}
+
+@Test func configuredMinutesBeforeFallsBackToDefaultWhenUnset() {
+    let defaults = UserDefaults(suiteName: "net.cuccato.engelsystem.tests.\(UUID().uuidString)")!
+
+    #expect(NotificationScheduler.configuredMinutesBefore(in: defaults) == NotificationScheduler.defaultMinutesBefore)
+}
+
+@Test func configuredMinutesBeforeReflectsStoredSetting() {
+    let defaults = UserDefaults(suiteName: "net.cuccato.engelsystem.tests.\(UUID().uuidString)")!
+    defaults.set(30, forKey: NotificationScheduler.leadTimeUserDefaultsKey)
+
+    #expect(NotificationScheduler.configuredMinutesBefore(in: defaults) == 30)
 }

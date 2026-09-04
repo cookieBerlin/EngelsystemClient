@@ -9,6 +9,8 @@ import EngelsystemClientKit
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage("activeInstanceID") private var activeInstanceIDString: String = ""
+    @AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)
+    private var notificationLeadTimeMinutes: Int = NotificationScheduler.defaultMinutesBefore
 
     let instances: [Instance]
 
@@ -25,6 +27,18 @@ struct SettingsView: View {
                         )
                     }
                 }
+            }
+
+            Section {
+                Picker("Notify Before Shift", selection: $notificationLeadTimeMinutes) {
+                    ForEach(NotificationScheduler.availableLeadTimesInMinutes, id: \.self) { minutes in
+                        Text("\(minutes) min").tag(minutes)
+                    }
+                }
+            } header: {
+                Text("Notifications")
+            } footer: {
+                Text("How far in advance a local reminder is scheduled before each of your shifts starts.")
             }
         }
         .navigationTitle("Settings")

@@ -357,7 +357,10 @@ exists without reading the whole diff history.
   preferred) so a stale value in whichever store `InstanceCredentialResolver`
   happens to check first can't shadow the fresh one. If Shifts/News/Profile
   hits a 401, `MainView` auto-switches to this screen so the key can
-  actually be fixed (see Data/code flow above).
+  actually be fixed (see Data/code flow above). Also a **Notifications**
+  section: a "Notify Before Shift" picker (5/10/15/30/60 min) backed by
+  `@AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)`, applying
+  to all instances (it's a single app-wide preference, not per-instance).
 - **Shared feature helpers** (`Features/Shared`): `ErrorBanner` (inline
   red banner for sync errors) and `SyncErrorMapper` (maps `APIError`/
   `InstanceCredentialError`/`KeychainError` to the same user-facing
@@ -368,15 +371,23 @@ exists without reading the whole diff history.
 - **Local shift-start notifications** (`Services/NotificationScheduler`):
   after every successful Shifts sync, requests notification authorization
   if not yet determined and schedules a local reminder
-  (`CachedShift.notificationDate(minutesBefore:)`, default 15 minutes
-  before start) for each upcoming shift, keyed by a stable identifier
-  (`shift-notification-<uid>`) so re-syncing updates in place instead of
-  duplicating. Also cancels any previously scheduled shift notification
-  that's no longer in the synced/upcoming set. Goes through a thin
-  `NotificationCenterScheduling` protocol over `UNUserNotificationCenter`
-  so the scheduling logic is unit-testable with a fake center — no
-  simulator or real permission prompt needed for that. No server push
-  involved, per the "no server-side push" constraint.
+  (`CachedShift.notificationDate(minutesBefore:)`) for each upcoming
+  shift, keyed by a stable identifier (`shift-notification-<uid>`) so
+  re-syncing updates in place instead of duplicating. Also cancels any
+  previously scheduled shift notification that's no longer in the
+  synced/upcoming set. Goes through a thin `NotificationCenterScheduling`
+  protocol over `UNUserNotificationCenter` so the scheduling logic is
+  unit-testable with a fake center — no simulator or real permission
+  prompt needed for that. No server push involved, per the "no
+  server-side push" constraint. **The lead time is user-configurable**:
+  `minutesBefore` is a per-call parameter of `syncNotifications(for:
+  minutesBefore:)` (not fixed at init) so a change to the Settings picker
+  takes effect on the very next sync without recreating the scheduler;
+  `NotificationScheduler.configuredMinutesBefore()` reads the value the
+  iOS Settings screen writes via `@AppStorage`, falling back to
+  `defaultMinutesBefore` (15) if unset. The Watch app has no settings UI
+  of its own for this (deliberately minimal scope) and always passes
+  `defaultMinutesBefore` explicitly.
 
 ### watchOS app
 

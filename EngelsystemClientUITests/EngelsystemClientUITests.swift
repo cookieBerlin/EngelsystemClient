@@ -69,6 +69,21 @@ final class EngelsystemClientUITests: XCTestCase {
         settingsRow.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Demo"].waitForExistence(timeout: 5))
+
+        // Notification lead-time picker defaults to 15 min and can be changed.
+        // Its exact accessibility element type/label depend on the system-rendered
+        // Picker style (menu vs. pushed list), so match loosely by contained text
+        // rather than assuming a specific element kind or exact label.
+        let leadTimeRow = containingText("Notify Before Shift", in: app)
+        XCTAssertTrue(leadTimeRow.waitForExistence(timeout: 5))
+        XCTAssertTrue(containingText("15 min", in: app).waitForExistence(timeout: 5))
+        // The row's own label isn't the hittable element (the Picker control overlays
+        // it), so tap by coordinate instead of `.tap()` on the label element itself.
+        leadTimeRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let thirtyMinOption = containingText("30 min", in: app)
+        XCTAssertTrue(thirtyMinOption.waitForExistence(timeout: 5))
+        thirtyMinOption.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(containingText("30 min", in: app).waitForExistence(timeout: 5))
     }
 
     @MainActor

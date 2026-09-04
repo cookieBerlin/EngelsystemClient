@@ -35,7 +35,8 @@ final class ShiftsViewModel {
             let credential = try credentialResolver.credential(for: instance)
             let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
             if await notificationScheduler.requestAuthorizationIfNeeded() {
-                await notificationScheduler.syncNotifications(for: shifts)
+                let minutesBefore = NotificationScheduler.configuredMinutesBefore()
+                await notificationScheduler.syncNotifications(for: shifts, minutesBefore: minutesBefore)
             }
         } catch {
             errorMessage = SyncErrorMapper.message(for: error)
