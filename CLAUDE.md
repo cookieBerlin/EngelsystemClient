@@ -84,7 +84,7 @@ official REST API of the respective Engelsystem instance.
   generated DTOs |
 | Auth storage | Keychain, iCloud-synced |
 | Notifications | local only (`UNUserNotificationCenter`), no APNs |
-| Organization identifier | `net.cuccato.engelsystem` |
+| Organization identifier | `net.cuccato.engelsystem.de` |
 
 ## Multi-instance concept
 
@@ -153,12 +153,12 @@ Engelsystem.xcodeproj
 
 ## Entitlements (both targets: iOS app + Watch app)
 
-- iCloud → CloudKit, same container: `iCloud.net.cuccato.engelsystem`
+- iCloud → CloudKit, same container: `iCloud.net.cuccato.engelsystem.de`
 - Keychain Sharing, same access group:
-  `$(AppIdentifierPrefix)net.cuccato.engelsystem.shared`
+  `$(AppIdentifierPrefix)net.cuccato.engelsystem.de.shared`
 - Background Modes (iOS target only): Background fetch, Background processing
 - **No** push-notification entitlement needed (local notifications only)
-- **App Group** `group.net.cuccato.engelsystem.shared` (Watch app + `EngelsystemComplication`
+- **App Group** `group.net.cuccato.engelsystem.de.shared` (Watch app + `EngelsystemComplication`
   extension only, not iOS): shares the next-shift snapshot with the complication
   process (see Watch App Scope / Implemented Features below). Confirmed working
   for local simulator builds with the free/personal team already configured in
@@ -180,7 +180,7 @@ to `...watchkitapp.nextshiftcomplication`, which worked. If you add
 another extension/target later and hit the same error on-device, just
 pick a more distinctive suffix and retry — it's not something wrong with
 the project's signing setup. (The base namespace shown here has since
-moved to `net.cuccato.engelsystem.*` — see the note below.)
+moved to `net.cuccato.engelsystem.de.*` — see the note below.)
 
 **Namespace base changed from `de.engelsystem.*` to
 `net.cuccato.engelsystem.*`** across every bundle identifier, the App
@@ -211,6 +211,20 @@ registered and unaffected, so the iPhone app can still be built/run
 independently even while a newer target (like the complication) is
 blocked — only targets whose bundle ID changed *after* the quota was hit
 are stuck until the 7-day window rolls over.
+
+**Namespace base changed again, same day, from `net.cuccato.engelsystem.*`
+to `net.cuccato.engelsystem.de.*`** — across every bundle identifier, the
+App Group, and the Keychain Sharing/CloudKit identifiers, same scope as
+the rename above. This one came right after the App ID quota above was
+hit and documented, which would normally mean staying put — but the user
+switched to a different Apple ID/team in Xcode for this project, so the
+rename targets a separate quota pool rather than the one that was just
+exhausted. If real-device signing still hits "maximum App ID limit"
+after this change, the *new* account's own quota is what's being hit,
+not a carryover from the old one. `KeychainSyncStore`/`LocalKeychainStore`'s
+`kSecAttrService` strings changed again too, for the same reason as
+last time — any previously saved API key becomes unreachable under the
+old service string and must be re-entered.
 
 ## Data/code flow
 
@@ -422,7 +436,7 @@ exists without reading the whole diff history.
   Ruby gem (`gem install xcodeproj`) since new Xcode targets can't be
   created through the file-system-synchronized-group mechanism the rest
   of this project relies on — only added to *existing* targets. Reads a
-  `NextShiftSnapshot` from the `group.net.cuccato.engelsystem.shared` App Group
+  `NextShiftSnapshot` from the `group.net.cuccato.engelsystem.de.shared` App Group
   (see Entitlements above) and renders `.accessoryCircular`/
   `.accessoryRectangular`/`.accessoryInline` families; never touches the
   network or Keychain itself (a separate process from the Watch app, no

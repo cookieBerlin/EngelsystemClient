@@ -6,7 +6,7 @@ import Security
 /// `kSecAttrSynchronizable` and with its own service name, so both stores
 /// can exist independently side by side without overwriting each other.
 public struct LocalKeychainStore: APIKeyStore {
-    private let service = "net.cuccato.engelsystem.apikey.local"
+    private let service = "net.cuccato.engelsystem.de.apikey.local"
 
     public init() {}
 

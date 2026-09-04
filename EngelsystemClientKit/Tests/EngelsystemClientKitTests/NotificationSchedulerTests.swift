@@ -96,13 +96,13 @@ private func makeShift(id: Int, hoursFromNow: Double, title: String = "Shift") -
 }
 
 @Test func configuredMinutesBeforeFallsBackToDefaultWhenUnset() {
-    let defaults = UserDefaults(suiteName: "net.cuccato.engelsystem.tests.\(UUID().uuidString)")!
+    let defaults = UserDefaults(suiteName: "net.cuccato.engelsystem.de.tests.\(UUID().uuidString)")!
 
     #expect(NotificationScheduler.configuredMinutesBefore(in: defaults) == NotificationScheduler.defaultMinutesBefore)
 }
 
 @Test func configuredMinutesBeforeReflectsStoredSetting() {
-    let defaults = UserDefaults(suiteName: "net.cuccato.engelsystem.tests.\(UUID().uuidString)")!
+    let defaults = UserDefaults(suiteName: "net.cuccato.engelsystem.de.tests.\(UUID().uuidString)")!
     defaults.set(30, forKey: NotificationScheduler.leadTimeUserDefaultsKey)
 
     #expect(NotificationScheduler.configuredMinutesBefore(in: defaults) == 30)
