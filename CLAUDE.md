@@ -277,6 +277,24 @@ each feature view model's `isUnauthorized` flag) now that Settings/
 instance management is its own screen — see Implemented Features below
 for the "Update API Key" action that closes the loop once there.
 
+**`CancellationError` is never surfaced as a user-facing error.** Bug
+report: opening News sometimes showed a red "Connection failed: The
+operation couldn't be completed. (Swift.CancellationError error 1.)"
+banner. Root cause: `APIClient.withCredential`'s generic `catch` wrapped
+*any* thrown error — including `CancellationError`, thrown when a
+SwiftUI `.task` is cancelled because the view it's attached to
+disappeared before the fetch finished — into `APIError.network(...)`,
+which then rendered as a "Connection failed" message even though nothing
+had actually failed. Fixed at two layers: `APIClient.withCredential`
+rethrows a `CancellationError` as-is instead of wrapping it, and
+`Shifts`/`News`/`ProfileViewModel` (via a new
+`SyncErrorMapper.isCancellation(_:)`) and the Watch app's
+`NextShiftViewModel` all early-return from their sync `catch` block
+without touching `errorMessage`/`isUnauthorized` when the error is a
+cancellation. If you add another view model that syncs via one of the
+`EngelsystemClientKit` sync services, give its `catch` block the same
+guard — this class of bug will otherwise reappear on that screen too.
+
 ## Implementation order
 
 1. ✅ Finish `EngelsystemClientKit` package + codegen setup

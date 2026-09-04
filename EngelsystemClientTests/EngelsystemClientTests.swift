@@ -22,4 +22,10 @@ struct SyncErrorMapperTests {
         #expect(SyncErrorMapper.message(for: KeychainError.unexpectedData).contains("keychain"))
         #expect(SyncErrorMapper.message(for: APIError.forbidden) == APIError.forbidden.userMessage)
     }
+
+    @Test func isCancellationIsTrueOnlyForCancellationError() {
+        #expect(SyncErrorMapper.isCancellation(CancellationError()))
+        #expect(!SyncErrorMapper.isCancellation(APIError.network("offline")))
+        #expect(!SyncErrorMapper.isCancellation(InstanceCredentialError.apiKeyNotFound))
+    }
 }

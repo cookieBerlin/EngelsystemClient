@@ -39,6 +39,7 @@ final class ShiftsViewModel {
                 await notificationScheduler.syncNotifications(for: shifts, minutesBefore: minutesBefore)
             }
         } catch {
+            guard !SyncErrorMapper.isCancellation(error) else { return }
             errorMessage = SyncErrorMapper.message(for: error)
             isUnauthorized = SyncErrorMapper.isUnauthorized(error)
         }

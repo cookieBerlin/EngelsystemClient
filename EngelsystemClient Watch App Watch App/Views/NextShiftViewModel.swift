@@ -52,6 +52,9 @@ final class NextShiftViewModel {
             )
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
+            // Cancellation (e.g. a `.task` cancelled because the view disappeared) isn't
+            // a real failure — don't show it as a "Connection failed" error.
+            guard !(error is CancellationError) else { return }
             errorMessage = Self.message(for: error)
         }
     }

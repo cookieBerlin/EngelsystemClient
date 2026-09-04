@@ -168,6 +168,13 @@ public final class APIClient {
             return result
         } catch {
             await gate.unlock()
+            // Cancellation isn't an API/network failure (e.g. a SwiftUI `.task` cancelled
+            // because the view it was attached to disappeared) — rethrow it as-is rather
+            // than disguising it as `APIError.network(...)`, so callers can tell the two
+            // apart and skip showing a "Connection failed" error for it.
+            if error is CancellationError {
+                throw error
+            }
             throw APIError(error)
         }
     }

@@ -29,6 +29,7 @@ final class NewsViewModel {
             let credential = try credentialResolver.credential(for: instance)
             try await syncService.sync(instance: instance, credential: credential, in: modelContext)
         } catch {
+            guard !SyncErrorMapper.isCancellation(error) else { return }
             errorMessage = SyncErrorMapper.message(for: error)
             isUnauthorized = SyncErrorMapper.isUnauthorized(error)
         }

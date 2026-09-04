@@ -31,6 +31,7 @@ final class ProfileViewModel {
             try await syncService.syncWorklogs(instance: instance, credential: credential, in: modelContext)
             try await syncService.syncAngelTypes(instance: instance, credential: credential, in: modelContext)
         } catch {
+            guard !SyncErrorMapper.isCancellation(error) else { return }
             errorMessage = SyncErrorMapper.message(for: error)
             isUnauthorized = SyncErrorMapper.isUnauthorized(error)
         }

@@ -18,6 +18,14 @@ enum SyncErrorMapper {
         return error.localizedDescription
     }
 
+    /// True when `error` is a `CancellationError` (e.g. a SwiftUI `.task` cancelled
+    /// because its view disappeared before the sync finished) — not a real failure, so
+    /// callers should skip showing an error message/banner for it entirely rather than
+    /// mapping it through `message(for:)`.
+    static func isCancellation(_ error: Error) -> Bool {
+        error is CancellationError
+    }
+
     /// True for an expired/revoked API key. Per CLAUDE.md's error-handling contract
     /// ("401 → back to Instance Setup"), Shifts/News/Profile use this to send the user
     /// back to Settings, where "Update API Key" can fix it — adapted from the original
