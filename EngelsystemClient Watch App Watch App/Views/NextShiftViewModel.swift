@@ -36,6 +36,7 @@ final class NextShiftViewModel {
         do {
             let credential = try credentialResolver.credential(for: instance)
             let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
+            print("[NextShiftViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
             lastUpdated = Date()
             if await notificationScheduler.requestAuthorizationIfNeeded() {
                 let minutesBefore = NotificationScheduler.configuredMinutesBefore()
@@ -52,6 +53,7 @@ final class NextShiftViewModel {
             )
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
+            print("[NextShiftViewModel] refresh failed: \(error)")
             // Cancellation (e.g. a `.task` cancelled because the view disappeared) isn't
             // a real failure — don't show it as a "Connection failed" error.
             guard !(error is CancellationError) else { return }

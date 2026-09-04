@@ -27,8 +27,10 @@ final class NewsViewModel {
         defer { isLoading = false }
         do {
             let credential = try credentialResolver.credential(for: instance)
-            try await syncService.sync(instance: instance, credential: credential, in: modelContext)
+            let news = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
+            print("[NewsViewModel] synced \(news.count) news item(s) from \(credential.baseURL)")
         } catch {
+            print("[NewsViewModel] refresh failed: \(error)")
             guard !SyncErrorMapper.isCancellation(error) else { return }
             errorMessage = SyncErrorMapper.message(for: error)
             isUnauthorized = SyncErrorMapper.isUnauthorized(error)

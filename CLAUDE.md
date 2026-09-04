@@ -295,7 +295,32 @@ cancellation. If you add another view model that syncs via one of the
 `EngelsystemClientKit` sync services, give its `catch` block the same
 guard — this class of bug will otherwise reappear on that screen too.
 
-## Implementation order
+**Debug logging via `print` in `Shifts`/`News`/`ProfileViewModel` and the
+Watch app's `NextShiftViewModel`** (each `refresh()`'s success path logs
+the synced item count + server base URL, the catch block logs the raw
+error before any mapping/cancellation check) — added while investigating
+an open bug (see below) and worth keeping permanently for the same
+reason: these are the only points where a sync silently succeeding with
+zero items vs. actually failing can be told apart, and the UI alone
+can't show that distinction. No sensitive data logged (no API keys).
+
+**Open bug, unresolved: on a real (non-demo) server, Shifts and Profile
+show empty with no error, while News loads fine.** Reported 2026-09-05.
+Confirmed present *before* the `CancellationError` fix above too, so
+it's an independent issue, not a side effect of that fix. Prime
+suspect, not yet confirmed: Shifts (`/users/{id}/shifts`) and Profile's
+three calls (`/users/{id}`, `/users/{id}/worklogs`,
+`/users/{id}/angeltypes`) all pass `id = "self"` via `UserReference.me`
+— News (`/news`) is the only synced feature whose endpoint has no `{id}`
+path parameter at all, and it's the only one that works. If this
+instance's actual Engelsystem server doesn't support the literal `self`
+value for `{id}` (despite `openapi.yml`'s `oneOf: [string, integer]` /
+"User identifier or `self`" description — the *spec* allowing it doesn't
+guarantee this specific server implements it), that would explain
+exactly this pattern. Not yet confirmed because it needs the user's
+Xcode console output from a real reproduction to see the actual
+per-endpoint error/item-count now that the debug logging above exists —
+pick this back up from there rather than re-guessing at the cause.
 
 1. ✅ Finish `EngelsystemClientKit` package + codegen setup
 2. ✅ SwiftData models (`Instance`, `CachedShift`, `CachedNews`, `CachedUser`,

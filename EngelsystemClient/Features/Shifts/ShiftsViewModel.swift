@@ -34,11 +34,13 @@ final class ShiftsViewModel {
         do {
             let credential = try credentialResolver.credential(for: instance)
             let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
+            print("[ShiftsViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
             if await notificationScheduler.requestAuthorizationIfNeeded() {
                 let minutesBefore = NotificationScheduler.configuredMinutesBefore()
                 await notificationScheduler.syncNotifications(for: shifts, minutesBefore: minutesBefore)
             }
         } catch {
+            print("[ShiftsViewModel] refresh failed: \(error)")
             guard !SyncErrorMapper.isCancellation(error) else { return }
             errorMessage = SyncErrorMapper.message(for: error)
             isUnauthorized = SyncErrorMapper.isUnauthorized(error)
