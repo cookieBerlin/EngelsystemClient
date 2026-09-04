@@ -21,9 +21,12 @@ struct ShiftsView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        List {
             if let errorMessage = viewModel.errorMessage {
-                ErrorBanner(message: errorMessage)
+                Section {
+                    ErrorBanner(message: errorMessage)
+                }
+                .listRowInsets(EdgeInsets())
             }
 
             if shifts.isEmpty && !viewModel.isLoading {
@@ -33,12 +36,12 @@ struct ShiftsView: View {
                     description: Text("You don't have any shifts yet.")
                 )
             } else {
-                List(shifts) { shift in
+                ForEach(shifts) { shift in
                     ShiftRow(shift: shift)
                 }
-                .listStyle(.plain)
             }
         }
+        .listStyle(.plain)
         .navigationTitle("Shifts")
         .toolbar {
             if viewModel.isLoading {

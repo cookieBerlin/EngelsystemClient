@@ -20,9 +20,12 @@ struct NewsView: View {
     private var sortedNews: [CachedNews] { CachedNews.sortedByRecency(newsItems) }
 
     var body: some View {
-        VStack(spacing: 0) {
+        List {
             if let errorMessage = viewModel.errorMessage {
-                ErrorBanner(message: errorMessage)
+                Section {
+                    ErrorBanner(message: errorMessage)
+                }
+                .listRowInsets(EdgeInsets())
             }
 
             if newsItems.isEmpty && !viewModel.isLoading {
@@ -32,12 +35,12 @@ struct NewsView: View {
                     description: Text("There's no news yet.")
                 )
             } else {
-                List(sortedNews) { item in
+                ForEach(sortedNews) { item in
                     NewsRow(item: item)
                 }
-                .listStyle(.plain)
             }
         }
+        .listStyle(.plain)
         .navigationTitle("News")
         .toolbar {
             if viewModel.isLoading {
