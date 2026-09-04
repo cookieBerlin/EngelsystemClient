@@ -156,7 +156,7 @@ private struct WatchEditInstanceView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Event") {
+                Section("Name") {
                     TextField("Name", text: $viewModel.name)
                 }
                 Section("Server") {
