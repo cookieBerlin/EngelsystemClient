@@ -110,43 +110,31 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7605052530457830002B3D76 /* EngelsystemClient */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = EngelsystemClient;
 			sourceTree = "<group>";
 		};
 		7605053530457832002B3D76 /* EngelsystemClientTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = EngelsystemClientTests;
 			sourceTree = "<group>";
 		};
 		7605053F30457832002B3D76 /* EngelsystemClientUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = EngelsystemClientUITests;
 			sourceTree = "<group>";
 		};
 		76050554304578DE002B3D76 /* EngelsystemClient Watch App Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "EngelsystemClient Watch App Watch App";
 			sourceTree = "<group>";
 		};
 		76050562304578E0002B3D76 /* EngelsystemClient Watch App Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "EngelsystemClient Watch App Watch AppTests";
 			sourceTree = "<group>";
 		};
 		7605056C304578E0002B3D76 /* EngelsystemClient Watch App Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "EngelsystemClient Watch App Watch AppUITests";
 			sourceTree = "<group>";
 		};
@@ -219,7 +207,6 @@
 				C92709D824B614CA2BE79898 /* Info.plist */,
 				EAD03D92779B7A496F35A439 /* EngelsystemComplication.entitlements */,
 			);
-			name = EngelsystemComplication;
 			path = EngelsystemComplication;
 			sourceTree = "<group>";
 		};
@@ -965,6 +952,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "EngelsystemClient Watch App";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = net.cuccato.engelsystem.EngelsystemClient;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -999,6 +987,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "EngelsystemClient Watch App";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = net.cuccato.engelsystem.EngelsystemClient;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

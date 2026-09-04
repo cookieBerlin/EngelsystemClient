@@ -195,6 +195,23 @@ change — note that this means any previously saved API key in a local
 simulator/device install becomes unreachable under the old service
 string and must be re-entered once.
 
+**Free/personal Apple Developer accounts can only register 10 new App IDs
+per rolling 7-day window** — real-device signing hit "Your maximum App ID
+limit has been reached" after the bundle-ID collision fix and the
+namespace-base change above, since *every* target (app, Watch app,
+complication, both test targets, ×2 renames) needs its own freshly
+registered App ID each time its bundle identifier changes. This is an
+Apple-side quota, not something fixable by clearing caches or
+provisioning profiles locally. **Avoid further bundle-identifier churn
+in this project for a while** — treat `net.cuccato.engelsystem.*` as
+settled unless there's a strong reason to change it again, since each
+change burns through the quota across every target at once. If you hit
+this again: the iOS app target's own App ID is typically already
+registered and unaffected, so the iPhone app can still be built/run
+independently even while a newer target (like the complication) is
+blocked — only targets whose bundle ID changed *after* the quota was hit
+are stuck until the 7-day window rolls over.
+
 ## Data/code flow
 
 ```
