@@ -80,13 +80,13 @@ public final class APIClient {
 
     /// The signed-in user's own angel type memberships (`GET /users/{id}/angeltypes`) —
     /// not to be confused with `fetchAngelTypes`, which lists the instance-wide catalog.
-    public func fetchOwnAngelTypes(_ credential: EventCredential) async throws -> [UserAngelType] {
+    public func fetchOwnAngelTypes(for user: UserReference, _ credential: EventCredential) async throws -> [UserAngelType] {
         if credential.isDemo {
             await DemoData.simulateLatency()
             return DemoData.ownAngelTypes
         }
         return try await withCredentialList(credential) {
-            try await UserAPI.usersIdAngeltypesGet(id: UserReference.me.parameter).data ?? []
+            try await UserAPI.usersIdAngeltypesGet(id: user.parameter).data ?? []
         }
     }
 
@@ -130,14 +130,14 @@ public final class APIClient {
         }
     }
 
-    public func fetchOwnProfile(_ credential: EventCredential) async throws -> UsersIdGet200ResponseData {
+    public func fetchOwnProfile(for user: UserReference, _ credential: EventCredential) async throws -> UsersIdGet200ResponseData {
         if credential.isDemo {
             await DemoData.simulateLatency()
             return DemoData.ownProfile
         }
         return try await withCredential(credential) {
-            guard let data = try await UserAPI.usersIdGet(id: UserReference.me.parameter).data else {
-                throw APIError.decoding("Missing data in /users/self response")
+            guard let data = try await UserAPI.usersIdGet(id: user.parameter).data else {
+                throw APIError.decoding("Missing data in /users/{id} response")
             }
             return data
         }

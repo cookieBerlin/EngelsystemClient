@@ -18,6 +18,30 @@ import Testing
     #expect(instance.apiBasePath == "https://engelsystem.example.org/api/v0-beta")
 }
 
+// Some real Engelsystem servers 404 on the documented `self` path-parameter alias
+// (confirmed on at least one deployment) — `userID` is the fallback for those.
+@Test func instanceUserReferenceDefaultsToMeWhenUserIDIsUnset() {
+    let instance = Instance(name: "Real", baseURL: "https://engelsystem.example.org", apiKeyKeychainRef: "ref")
+    guard case .me = instance.userReference else {
+        Issue.record("Expected .me, got \(instance.userReference)")
+        return
+    }
+}
+
+@Test func instanceUserReferenceUsesNumericFallbackWhenUserIDIsSet() {
+    let instance = Instance(
+        name: "Real",
+        baseURL: "https://engelsystem.example.org",
+        apiKeyKeychainRef: "ref",
+        userID: 42
+    )
+    guard case let .id(id) = instance.userReference else {
+        Issue.record("Expected .id, got \(instance.userReference)")
+        return
+    }
+    #expect(id == 42)
+}
+
 // MARK: - CachedNews text sanitization
 
 @Test func cachedNewsSanitizedTextRemovesMoreTagAndTrims() {
@@ -64,11 +88,11 @@ import Testing
     #expect(try await client.fetchLocations(credential).count == 2)
     #expect(try await client.fetchShiftTypes(credential).count == 3)
     #expect(try await client.fetchAngelTypes(credential).count == 1)
-    #expect(try await client.fetchOwnAngelTypes(credential).count == 1)
+    #expect(try await client.fetchOwnAngelTypes(for: .me, credential).count == 1)
     #expect(try await client.fetchShifts(for: .me, credential).count == 2)
     #expect(try await client.fetchWorklogs(for: .me, credential).count == 1)
 
-    let profile = try await client.fetchOwnProfile(credential)
+    let profile = try await client.fetchOwnProfile(for: .me, credential)
     #expect(profile.name == "demo")
 }
 

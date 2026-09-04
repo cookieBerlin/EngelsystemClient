@@ -14,8 +14,8 @@ public struct InstanceSetupService {
     /// `store` and returns a new `Instance` ready to be inserted into a `ModelContext`.
     /// Throws the `APIError` from the connection test, or a `KeychainError` if saving
     /// the key fails — neither creates the `Instance`.
-    public func createInstance(name: String, baseURL: String, apiKey: String, store: APIKeyStore) async throws -> Instance {
-        let instance = Instance(name: name, baseURL: baseURL, apiKeyKeychainRef: UUID().uuidString)
+    public func createInstance(name: String, baseURL: String, apiKey: String, store: APIKeyStore, userID: Int? = nil) async throws -> Instance {
+        let instance = Instance(name: name, baseURL: baseURL, apiKeyKeychainRef: UUID().uuidString, userID: userID)
         let credential = EventCredential(baseURL: instance.apiBasePath, apiKey: apiKey)
 
         _ = try await apiClient.fetchInfo(credential)
@@ -42,12 +42,15 @@ public struct InstanceSetupService {
     /// the name changed: cheap, and it doubles as a health check confirming the
     /// server/key combination is still valid. Mutating `instance` directly (rather
     /// than returning a value to apply) matches how sync services update existing
-    /// `Cached*` models already fetched from a `ModelContext`.
-    public func updateServerDetails(for instance: Instance, name: String, baseURL: String, apiKey: String) async throws {
+    /// `Cached*` models already fetched from a `ModelContext`. `userID` isn't part of
+    /// the connection test (no `/users/{id}`-shaped endpoint is called here) — it's
+    /// just saved alongside, see `Instance.userID`/`userReference`.
+    public func updateServerDetails(for instance: Instance, name: String, baseURL: String, apiKey: String, userID: Int?) async throws {
         let credential = EventCredential(baseURL: Instance.apiBasePath(for: baseURL), apiKey: apiKey)
         _ = try await apiClient.fetchInfo(credential)
         instance.name = name
         instance.baseURL = baseURL
+        instance.userID = userID
         instance.touch()
     }
 }

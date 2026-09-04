@@ -19,6 +19,13 @@ struct WatchSetupView: View {
                 SecureField("API Key", text: $viewModel.apiKey)
             }
 
+            Section {
+                TextField("User ID (optional)", text: $viewModel.userIDText)
+            } footer: {
+                Text("Only needed if your server doesn't recognize automatic user detection.")
+                    .font(.caption2)
+            }
+
             if let errorMessage = viewModel.errorMessage {
                 Section {
                     Text(errorMessage)

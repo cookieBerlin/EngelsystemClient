@@ -8,6 +8,10 @@ public final class Instance {
     public var baseURL: String
     // Stores only the Keychain reference key, never the API key itself
     public var apiKeyKeychainRef: String
+    // Fallback for servers that 404 on the documented `self` path parameter alias
+    // (confirmed to happen on at least one real, older Engelsystem deployment) —
+    // nil means "use `self`", the default and normal case. See `userReference` below.
+    public var userID: Int?
     public var createdAt: Date
     public var updatedAt: Date
 
@@ -30,12 +34,14 @@ public final class Instance {
         id: UUID = UUID(),
         name: String,
         baseURL: String,
-        apiKeyKeychainRef: String
+        apiKeyKeychainRef: String,
+        userID: Int? = nil
     ) {
         self.id = id
         self.name = name
         self.baseURL = baseURL
         self.apiKeyKeychainRef = apiKeyKeychainRef
+        self.userID = userID
         self.createdAt = Date()
         self.updatedAt = Date()
         self.cachedShifts = []
@@ -67,4 +73,11 @@ public extension Instance {
     static let demoBaseURL = "demo://engelsystem.local"
 
     var isDemo: Bool { normalizedBaseURL == Instance.demoBaseURL }
+
+    /// How to address "myself" in `/users/{id}/...` API calls — `self` unless a
+    /// numeric fallback `userID` has been set for a server that doesn't support that
+    /// alias (see `userID` above).
+    var userReference: UserReference {
+        userID.map { .id($0) } ?? .me
+    }
 }

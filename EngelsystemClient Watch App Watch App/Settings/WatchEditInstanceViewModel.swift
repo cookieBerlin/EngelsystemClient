@@ -12,6 +12,10 @@ import EngelsystemClientKit
 final class WatchEditInstanceViewModel {
     var name: String
     var baseURL: String
+    /// Fallback for servers that 404 on the `self` path-parameter alias — see
+    /// `Instance.userID`. Kept as text here since it's an optional numeric field on a
+    /// form; parsed on submit.
+    var userIDText: String
     var isTesting = false
     var errorMessage: String?
 
@@ -25,6 +29,7 @@ final class WatchEditInstanceViewModel {
     ) {
         self.name = instance.name
         self.baseURL = instance.normalizedBaseURL
+        self.userIDText = instance.userID.map(String.init) ?? ""
         self.setupService = setupService
         self.credentialResolver = credentialResolver
     }
@@ -46,7 +51,8 @@ final class WatchEditInstanceViewModel {
                 for: instance,
                 name: name.trimmingCharacters(in: .whitespaces),
                 baseURL: baseURL.trimmingCharacters(in: .whitespaces),
-                apiKey: credential.apiKey
+                apiKey: credential.apiKey,
+                userID: Int(userIDText.trimmingCharacters(in: .whitespaces))
             )
             return true
         } catch {

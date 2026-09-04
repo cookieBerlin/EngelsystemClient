@@ -14,19 +14,19 @@ public struct ProfileSyncService {
 
     @discardableResult
     public func syncProfile(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> CachedUser {
-        let profile = try await apiClient.fetchOwnProfile(credential)
+        let profile = try await apiClient.fetchOwnProfile(for: instance.userReference, credential)
         return try upsertProfile(profile, instanceID: instance.id, instance: instance, in: modelContext)
     }
 
     @discardableResult
     public func syncWorklogs(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> [CachedWorklog] {
-        let worklogs = try await apiClient.fetchWorklogs(for: .me, credential)
+        let worklogs = try await apiClient.fetchWorklogs(for: instance.userReference, credential)
         return try upsertWorklogs(worklogs, instanceID: instance.id, instance: instance, in: modelContext)
     }
 
     @discardableResult
     public func syncAngelTypes(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> [CachedAngelTypeMembership] {
-        let memberships = try await apiClient.fetchOwnAngelTypes(credential)
+        let memberships = try await apiClient.fetchOwnAngelTypes(for: instance.userReference, credential)
         return try upsertAngelTypes(memberships, instanceID: instance.id, instance: instance, in: modelContext)
     }
 

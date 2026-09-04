@@ -56,11 +56,13 @@ private final class FakeAPIKeyStore: APIKeyStore {
         for: instance,
         name: "Demo Renamed",
         baseURL: Instance.demoBaseURL,
-        apiKey: "demo-key"
+        apiKey: "demo-key",
+        userID: 42
     )
 
     #expect(instance.name == "Demo Renamed")
     #expect(instance.baseURL == Instance.demoBaseURL)
+    #expect(instance.userID == 42)
     #expect(instance.updatedAt > originalUpdatedAt)
 }
 
@@ -75,12 +77,14 @@ private final class FakeAPIKeyStore: APIKeyStore {
             for: instance,
             name: "Should Not Save",
             baseURL: "http://%zz",
-            apiKey: "demo-key"
+            apiKey: "demo-key",
+            userID: 99
         )
     }
 
     #expect(instance.name == "Demo")
     #expect(instance.baseURL == Instance.demoBaseURL)
+    #expect(instance.userID == nil)
 }
 
 @Test func instanceSetupServiceDoesNotSaveKeyWhenConnectionTestFails() async throws {

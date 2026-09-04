@@ -33,6 +33,15 @@ struct InstanceSetupView: View {
                         .autocorrectionDisabled()
                 }
 
+                Section {
+                    TextField("User ID (optional)", text: $viewModel.userIDText)
+                        #if os(iOS)
+                        .keyboardType(.numberPad)
+                        #endif
+                } footer: {
+                    Text("Only needed if your server doesn't recognize automatic user detection. Leave blank unless Shifts/Profile show up empty — your numeric user ID is visible in your Engelsystem profile URL.")
+                }
+
                 if let errorMessage = viewModel.errorMessage {
                     Section {
                         Text(errorMessage)

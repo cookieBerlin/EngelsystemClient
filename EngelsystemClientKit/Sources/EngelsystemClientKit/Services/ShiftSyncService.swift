@@ -15,7 +15,7 @@ public struct ShiftSyncService {
 
     @discardableResult
     public func sync(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> [CachedShift] {
-        let shifts = try await apiClient.fetchShifts(for: .me, credential)
+        let shifts = try await apiClient.fetchShifts(for: instance.userReference, credential)
         return try upsert(shifts, instanceID: instance.id, instance: instance, in: modelContext)
     }
 

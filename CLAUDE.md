@@ -304,23 +304,38 @@ reason: these are the only points where a sync silently succeeding with
 zero items vs. actually failing can be told apart, and the UI alone
 can't show that distinction. No sensitive data logged (no API keys).
 
-**Open bug, unresolved: on a real (non-demo) server, Shifts and Profile
-show empty with no error, while News loads fine.** Reported 2026-09-05.
-Confirmed present *before* the `CancellationError` fix above too, so
-it's an independent issue, not a side effect of that fix. Prime
-suspect, not yet confirmed: Shifts (`/users/{id}/shifts`) and Profile's
-three calls (`/users/{id}`, `/users/{id}/worklogs`,
-`/users/{id}/angeltypes`) all pass `id = "self"` via `UserReference.me`
-— News (`/news`) is the only synced feature whose endpoint has no `{id}`
-path parameter at all, and it's the only one that works. If this
-instance's actual Engelsystem server doesn't support the literal `self`
-value for `{id}` (despite `openapi.yml`'s `oneOf: [string, integer]` /
-"User identifier or `self`" description — the *spec* allowing it doesn't
-guarantee this specific server implements it), that would explain
-exactly this pattern. Not yet confirmed because it needs the user's
-Xcode console output from a real reproduction to see the actual
-per-endpoint error/item-count now that the debug logging above exists —
-pick this back up from there rather than re-guessing at the cause.
+**Resolved bug: on a real (non-demo) server, Shifts and Profile showed
+empty with no error, while News loaded fine.** Reported and root-caused
+2026-09-05, confirmed via the user's Xcode console with the debug
+logging above: `/users/self/shifts` and `/users/self` both returned a
+genuine 404 on this server (`[APIClient] 404 for a list endpoint —
+treating as empty list` fired, then `[ProfileViewModel] refresh failed:
+notFound`) — so `self` really isn't supported as the `{id}` path
+parameter on at least this Engelsystem deployment, despite `openapi.yml`
+documenting it as valid (the *spec* allowing a value doesn't guarantee
+every real server implements it — this server apparently predates that
+alias, or never implemented it). Confirmed present *before* the
+`CancellationError` fix above too, so it was never a side effect of
+that fix — it's App/server API-compatibility, not a client concurrency
+bug.
+
+**Fix: `Instance.userID: Int?`**, an optional numeric fallback (nil =
+use `self`, the default/common case). `Instance.userReference` resolves
+to `.id(userID)` when set, else `.me`; `ShiftSyncService` and
+`ProfileSyncService`'s three sync calls all read `instance.userReference`
+instead of hardcoding `.me`, and `APIClient.fetchOwnProfile`/
+`fetchOwnAngelTypes` now take a `UserReference` parameter (matching
+`fetchShifts`/`fetchWorklogs`'s existing shape) instead of hardcoding it
+internally. Exposed as an optional "User ID" field on every setup/edit
+form (`InstanceSetupView`, `SettingsView`'s `EditInstanceView`,
+`WatchSetupView`, `WatchSettingsView`'s `WatchEditInstanceView`) with
+footer text explaining it's only needed if Shifts/Profile show up empty
+— the user finds their numeric ID in their Engelsystem profile URL.
+Not validated against the server during setup/edit (no `/users/{id}`-
+shaped call happens during the connection test) — it's just saved
+alongside name/baseURL and used on the next sync.
+
+## Implementation order
 
 1. ✅ Finish `EngelsystemClientKit` package + codegen setup
 2. ✅ SwiftData models (`Instance`, `CachedShift`, `CachedNews`, `CachedUser`,

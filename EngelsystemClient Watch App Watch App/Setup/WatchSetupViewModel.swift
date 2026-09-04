@@ -11,6 +11,10 @@ final class WatchSetupViewModel {
     var name: String = ""
     var baseURL: String = ""
     var apiKey: String = ""
+    /// Fallback for servers that 404 on the `self` path-parameter alias — see
+    /// `Instance.userID`. Kept as text here since it's an optional numeric field on a
+    /// form; parsed on submit.
+    var userIDText: String = ""
 
     var isTesting = false
     var errorMessage: String?
@@ -40,7 +44,8 @@ final class WatchSetupViewModel {
                 name: name.trimmingCharacters(in: .whitespaces),
                 baseURL: baseURL.trimmingCharacters(in: .whitespaces),
                 apiKey: apiKey,
-                store: LocalKeychainStore()
+                store: LocalKeychainStore(),
+                userID: Int(userIDText.trimmingCharacters(in: .whitespaces))
             )
             modelContext.insert(instance)
             return true
