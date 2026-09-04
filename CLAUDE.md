@@ -162,7 +162,10 @@ Engelsystem.xcodeproj
   extension only, not iOS): shares the next-shift snapshot with the complication
   process (see Watch App Scope / Implemented Features below). Confirmed working
   for local simulator builds with the free/personal team already configured in
-  this project (`DEVELOPMENT_TEAM = TYG73A374P`) — **unlike CloudKit containers,
+  this project (`DEVELOPMENT_TEAM = 8A5FNU94BM` — changed from the original
+  `TYG73A374P` after the user switched the Apple ID signed in to Xcode for
+  this project; Xcode's automatic signing picked up the new team ID on the
+  next build) — **unlike CloudKit containers,
   App Groups and Keychain Sharing don't require a paid Apple Developer Program
   membership**, only automatic signing with any team. Update the earlier
   assumption in this doc accordingly if you're revisiting the CloudKit/Keychain
@@ -225,6 +228,21 @@ not a carryover from the old one. `KeychainSyncStore`/`LocalKeychainStore`'s
 `kSecAttrService` strings changed again too, for the same reason as
 last time — any previously saved API key becomes unreachable under the
 old service string and must be re-entered.
+
+**Benign build warning: `Assets.xcassets: Could not get trait set for
+device Watch7,14 with version 26.6`** — confirmed harmless, build still
+succeeds and the app installs/runs fine on the watch. Root cause: the
+physical Apple Watch (a Watch7,14 = Apple Watch SE 3) updated itself
+over the air to watchOS 26.6, but the installed Xcode (26.6, build
+17F113 — confirmed to be the latest available at the time) still only
+bundles the watchOS 26.5 SDK; Apple hasn't shipped a matching SDK update
+yet. `actool`'s device-trait database
+(`WatchOS.platform/usr/standalone/device_traits.db`) has no entry for
+OS version 26.6 yet, so asset catalog compilation logs this warning for
+that specific connected device. Not fixable locally (no newer Xcode
+exists yet to install) — will resolve itself once Apple ships an Xcode
+update with a matching watchOS 26.6 SDK. Don't mistake this for an
+actual asset catalog problem if it recurs.
 
 ## Data/code flow
 
