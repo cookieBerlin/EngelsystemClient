@@ -42,6 +42,27 @@ final class EngelsystemClient_Watch_App_Watch_AppUITests: XCTestCase {
     @MainActor
     func testDemoModeShowsNextShift() throws {
         let app = XCUIApplication()
+
+        // A fresh install triggers the real system notification-permission alert on the
+        // first sync (NotificationScheduler.requestAuthorizationIfNeeded), which is a
+        // separate springboard-hosted process (com.apple.Carousel on watchOS) that can
+        // steal a tap meant for our app mid-test if left undismissed. An interruption
+        // monitor only fires on a subsequent UI interaction, so pair this with a no-op
+        // tap wherever the alert might have appeared (see below).
+        addUIInterruptionMonitor(withDescription: "Notification permission") { alert in
+            // The simulator's locale determines the button label ("Allow" vs. the
+            // German "Erlauben" seen in this environment) — try both rather than
+            // assuming English.
+            for label in ["Allow", "Erlauben"] {
+                let button = alert.buttons[label]
+                if button.exists {
+                    button.tap()
+                    return true
+                }
+            }
+            return false
+        }
+
         app.launch()
 
         // watchOS simulator cold launch is slow — give it more room than the iOS test needs.
@@ -62,6 +83,70 @@ final class EngelsystemClient_Watch_App_Watch_AppUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Next Shift"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.staticTexts["Info Desk Shift"].waitForExistence(timeout: 15))
+
+        // Force any pending notification-permission alert to be caught and dismissed by
+        // the interruption monitor above before continuing — it only fires on a
+        // subsequent UI interaction, not proactively.
+        app.tap()
+
+        // Settings now exists on the Watch too, mirroring the iOS app's Settings screen
+        // (instance management + notification lead time) — a plain in-content
+        // NavigationLink row below the sync status, not a toolbar item (watchOS's
+        // compact navigation bar doesn't reliably render a bare `ToolbarItem`). May need
+        // scrolling into view, same as the demo button above.
+        let settingsButton = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Settings"))
+            .firstMatch
+        for _ in 0..<10 where !settingsButton.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 10))
+        settingsButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 15))
+
+        // watchOS List rows expose as `.cell`, unlike the loosely-matched rows above.
+        let demoInstanceRow = app.cells["Demo"]
+        XCTAssertTrue(demoInstanceRow.waitForExistence(timeout: 10))
+        demoInstanceRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Wait for the push itself to land (navigation title is the instance name) before
+        // checking its content — decouples "did navigation happen" from "is this specific
+        // label rendered yet", which was flaky when checked together under one timeout.
+        XCTAssertTrue(app.navigationBars["Demo"].waitForExistence(timeout: 15))
+        // The only instance is activated automatically, so its detail view shows
+        // "Active Instance" rather than a "Use as Active Instance" button.
+        XCTAssertTrue(app.staticTexts["Active Instance"].waitForExistence(timeout: 15))
+        // The later sections ("Update API Key", "Remove Instance") aren't materialized
+        // in the accessibility tree until scrolled into view — same as the Setup form.
+        let updateKeyButton = app.buttons["Update API Key"]
+        for _ in 0..<10 where !updateKeyButton.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(updateKeyButton.waitForExistence(timeout: 10))
+        let removeInstanceButton = app.buttons["Remove Instance"]
+        for _ in 0..<10 where !removeInstanceButton.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(removeInstanceButton.waitForExistence(timeout: 10))
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
+
+        // Notification lead-time picker defaults to 15 min and can be changed —
+        // same loose-matching + coordinate-tap approach as the iOS UI test, since the
+        // system Picker control's hittable region doesn't coincide with its label.
+        let leadTimeRow = containingText("Notify Before Shift", in: app)
+        XCTAssertTrue(leadTimeRow.waitForExistence(timeout: 15))
+        XCTAssertTrue(containingText("15 min", in: app).waitForExistence(timeout: 15))
+        leadTimeRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let thirtyMinOption = containingText("30 min", in: app)
+        XCTAssertTrue(thirtyMinOption.waitForExistence(timeout: 10))
+        thirtyMinOption.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(containingText("30 min", in: app).waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    private func containingText(_ text: String, in app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", text)).firstMatch
     }
 
     @MainActor

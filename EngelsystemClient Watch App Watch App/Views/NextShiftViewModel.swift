@@ -38,12 +38,8 @@ final class NextShiftViewModel {
             let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
             lastUpdated = Date()
             if await notificationScheduler.requestAuthorizationIfNeeded() {
-                // No settings UI on the Watch for this (CLAUDE.md "Watch app scope" is
-                // deliberately minimal) — always uses the default lead time.
-                await notificationScheduler.syncNotifications(
-                    for: shifts,
-                    minutesBefore: NotificationScheduler.defaultMinutesBefore
-                )
+                let minutesBefore = NotificationScheduler.configuredMinutesBefore()
+                await notificationScheduler.syncNotifications(for: shifts, minutesBefore: minutesBefore)
             }
 
             // Publish to the App Group so the complication (a separate process with no

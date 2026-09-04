@@ -117,6 +117,14 @@ requirement.
 - Its own API call (`GET /users/self/shifts`, filtered to the next
   upcoming shift)
 - Local notification scheduling on the Watch too, for the next shift
+- **Exception to "minimal": Settings has full parity with iOS** — at the
+  user's explicit request, the Watch app supports the same instance
+  management (switch/add/remove, update API key) and notification
+  lead-time picker as the iOS Settings screen, including multi-instance
+  switching (previously iOS-only). This was a deliberate scope decision,
+  not scope creep: "minimal" governs which *data views* the Watch shows
+  (still just the next shift, no catalog/news), not configuration. See
+  Implemented Features below for how it's reached and built.
 
 ## Project/target structure
 
@@ -142,8 +150,10 @@ Engelsystem.xcodeproj
 │       ├── Profile/
 │       └── Settings/
 ├── EngelsystemClient Watch App/   ← watchOS target
-│   ├── Views/NextShiftView.swift, NextShiftViewModel.swift
-│   └── Setup/WatchSetupView.swift, WatchSetupViewModel.swift (fallback entry UI)
+│   ├── Views/NextShiftView.swift, NextShiftViewModel.swift, WatchMainView.swift
+│   ├── Setup/WatchSetupView.swift, WatchSetupViewModel.swift (fallback entry UI,
+│   │                                also reused as the "Add Instance" sheet)
+│   └── Settings/WatchSettingsView.swift, WatchUpdateAPIKeyViewModel.swift
 └── EngelsystemComplication/       ← watchOS Widget Extension (embedded in the
                                       Watch app target above), the complication
 ```
@@ -415,11 +425,13 @@ exists without reading the whole diff history.
   `minutesBefore` is a per-call parameter of `syncNotifications(for:
   minutesBefore:)` (not fixed at init) so a change to the Settings picker
   takes effect on the very next sync without recreating the scheduler;
-  `NotificationScheduler.configuredMinutesBefore()` reads the value the
-  iOS Settings screen writes via `@AppStorage`, falling back to
-  `defaultMinutesBefore` (15) if unset. The Watch app has no settings UI
-  of its own for this (deliberately minimal scope) and always passes
-  `defaultMinutesBefore` explicitly.
+  `NotificationScheduler.configuredMinutesBefore()` reads the value
+  whichever platform's Settings screen last wrote via `@AppStorage`,
+  falling back to `defaultMinutesBefore` (15) if unset — **both** iOS and
+  the Watch app now have this picker (see watchOS app below), each
+  reading/writing its own local `UserDefaults` (no CloudKit sync between
+  the two yet, so the two platforms' choices are independent, same as
+  every other per-device setting until sync is wired up).
 
 ### watchOS app
 
@@ -432,8 +444,36 @@ exists without reading the whole diff history.
   own `LocalKeychainStore` and its own local-only `Instance`/`CachedShift`
   SwiftData container (schema deliberately excludes `CachedNews`/
   `CachedUser`/`CachedWorklog` — the Watch never needs them per its
-  minimal scope). No instance switcher, unlike the iOS app: `ContentView`
-  just uses the first (only) `Instance` it finds.
+  minimal scope). Also reused as the "Add Instance" sheet from
+  `WatchSettingsView` below, not just first-run setup.
+- **Multi-instance + Settings** (`Settings/WatchSettingsView`, `Views/
+  WatchMainView`): the Watch app supports the same instance switching
+  and Settings screen as iOS, per the "Exception to minimal" note above.
+  `WatchMainView` resolves the active instance from
+  `@AppStorage("activeInstanceID")` exactly like iOS's `MainView`
+  (falling back to the first instance, activating it on first run) —
+  `ContentView` now only decides between "no instance yet" (→
+  `WatchSetupView`) and "at least one" (→ `WatchMainView`), matching the
+  iOS app's `ContentView`/`MainView` split. `WatchSettingsView` mirrors
+  iOS's `SettingsView` (instance list with switch/add/remove, "Update API
+  Key" via its own `WatchUpdateAPIKeyViewModel` — a Watch-target
+  duplicate of iOS's `UpdateAPIKeyViewModel` since that type lives in the
+  iOS app target, simplified to always use `LocalKeychainStore` like
+  `WatchSetupViewModel` already does — and the notification lead-time
+  picker) reached from `NextShiftView` via a plain in-content
+  `NavigationLink` row below the sync status, **not** a toolbar item:
+  testing showed watchOS's compact navigation bar doesn't reliably render
+  a bare `ToolbarItem` here (confirmed via the accessibility hierarchy —
+  no element for it existed at all), so an ordinary row is used instead.
+  The instance rows in `WatchSettingsView` also had to use the
+  destination-closure `NavigationLink { destination } label: { }` form
+  rather than `NavigationLink(value:)` + `.navigationDestination(for:)`:
+  the value-based flavor is what iOS's `SettingsView` uses successfully,
+  but on watchOS in this project the tap visibly registered (the row
+  highlighted as "Selected" in the accessibility hierarchy) without ever
+  performing the actual push — swapping to the closure-based form fixed
+  it immediately. Treat this as a watchOS-specific quirk to remember, not
+  something to "fix" by reverting to the value-based form.
 - **Next Shift** (`Views/NextShiftView`): shows only the next upcoming
   shift (title, time range, location) via the same `ShiftSyncService`
   the iOS Shifts screen uses, plus a sync-status line ("Updated HH:mm")
@@ -444,11 +484,24 @@ exists without reading the whole diff history.
   `WidgetCenter.shared.reloadAllTimelines()`.
 - watchOS UI Testing needs generous timeouts and a scroll-until-visible
   loop to be reliable — the simulator's cold launch is slow, and a
-  `Form`'s later sections aren't materialized in the accessibility tree
-  until scrolled into view. `EngelsystemClient_Watch_App_Watch_AppUITests`
-  accounts for both; if a run there fails anyway, cross-check against a
-  manual simulator screenshot and EngelsystemClientKit's unit tests
-  before assuming an app regression.
+  `Form`'s (or `List`'s) later sections/rows aren't materialized in the
+  accessibility tree until scrolled into view — this applies just as much
+  to `WatchSettingsView`'s instance-detail screen (the "Update API Key"/
+  "Remove Instance" sections sit below the fold) as it does to the Setup
+  form. `EngelsystemClient_Watch_App_Watch_AppUITests` accounts for both;
+  if a run there fails anyway, cross-check against a manual simulator
+  screenshot and EngelsystemClientKit's unit tests before assuming an app
+  regression. **Also watch for the real system notification-permission
+  alert**: a fresh install's first sync triggers
+  `NotificationScheduler.requestAuthorizationIfNeeded()`'s actual
+  authorization prompt, which is a separate springboard-hosted process
+  (`com.apple.Carousel` on watchOS) that can silently swallow a tap meant
+  for the app if left undismissed — a UI test needs an
+  `addUIInterruptionMonitor` for it (plus a no-op `app.tap()` afterward,
+  since interruption monitors only fire on a subsequent interaction, not
+  proactively), and the button label is locale-dependent (this
+  environment's simulator shows German "Erlauben"/"Nicht erlauben", not
+  English "Allow"/"Don't Allow" — match both rather than assuming one).
 - **Complication** (`EngelsystemComplication/`, step 7): a WidgetKit
   extension target embedded in the Watch app, added via the `xcodeproj`
   Ruby gem (`gem install xcodeproj`) since new Xcode targets can't be

@@ -55,6 +55,16 @@ struct NextShiftView: View {
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
+
+                // A plain in-content row rather than a toolbar item: watchOS's compact
+                // navigation bar doesn't reliably render a bare `ToolbarItem` here, so
+                // this is the standard, robust watchOS pattern for reaching a secondary
+                // screen.
+                NavigationLink {
+                    WatchSettingsView()
+                } label: {
+                    Label("Settings", systemImage: "gearshape")
+                }
             }
             .padding()
             .frame(maxWidth: .infinity)

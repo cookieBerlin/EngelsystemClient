@@ -10,16 +10,14 @@ import SwiftData
 import EngelsystemClientKit
 
 struct ContentView: View {
-    // Single-instance by design (see CLAUDE.md's Watch App Scope) — no instance
-    // switcher here, unlike the iOS app.
     @Query(sort: \Instance.createdAt) private var instances: [Instance]
 
     var body: some View {
         NavigationStack {
-            if let instance = instances.first {
-                NextShiftView(instance: instance)
-            } else {
+            if instances.isEmpty {
                 WatchSetupView()
+            } else {
+                WatchMainView(instances: instances)
             }
         }
     }
