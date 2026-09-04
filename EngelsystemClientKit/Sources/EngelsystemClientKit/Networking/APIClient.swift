@@ -149,6 +149,10 @@ public final class APIClient {
         do {
             return try await withCredential(credential, operation)
         } catch APIError.notFound {
+            // Distinguishes "server said 404, we're treating that as an empty list" from
+            // a genuine 200-with-empty-array in the caller's logs — see CLAUDE.md's open
+            // bug about Shifts/Profile showing empty with no error on a real server.
+            print("[APIClient] 404 for a list endpoint — treating as empty list")
             return []
         }
     }
