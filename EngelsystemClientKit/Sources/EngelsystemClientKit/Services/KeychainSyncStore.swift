@@ -3,13 +3,13 @@ import Security
 
 /// Persists API keys with iCloud sync (`kSecAttrSynchronizable`), shared between
 /// the iOS and Watch apps via the Keychain Sharing access group
-/// `$(AppIdentifierPrefix)de.engelsystem.shared` from both targets' entitlements.
+/// `$(AppIdentifierPrefix)net.cuccato.engelsystem.shared` from both targets' entitlements.
 /// The access group is deliberately not set explicitly here: Xcode only resolves
 /// `$(AppIdentifierPrefix)` at build/signing time based on the team certificate,
 /// and SecItem calls without `kSecAttrAccessGroup` automatically use the
 /// (single) group listed in the entitlements.
 public struct KeychainSyncStore: APIKeyStore {
-    private let service = "de.engelsystem.apikey.synced"
+    private let service = "net.cuccato.engelsystem.apikey.synced"
 
     public init() {}
 

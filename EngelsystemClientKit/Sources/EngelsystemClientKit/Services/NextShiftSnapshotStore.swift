@@ -22,7 +22,7 @@ public struct NextShiftSnapshot: Codable, Equatable, Sendable {
 /// app and its complication (`Services/NotificationScheduler`-style: the Watch app writes
 /// after every sync, the complication's timeline provider only ever reads).
 public struct NextShiftSnapshotStore {
-    public static let defaultAppGroupID = "group.de.engelsystem.shared"
+    public static let defaultAppGroupID = "group.net.cuccato.engelsystem.shared"
 
     private static let key = "nextShiftSnapshot"
 

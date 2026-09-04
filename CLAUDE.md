@@ -84,7 +84,7 @@ official REST API of the respective Engelsystem instance.
   generated DTOs |
 | Auth storage | Keychain, iCloud-synced |
 | Notifications | local only (`UNUserNotificationCenter`), no APNs |
-| Organization identifier | `de.engelsystem` |
+| Organization identifier | `net.cuccato.engelsystem` |
 
 ## Multi-instance concept
 
@@ -153,12 +153,12 @@ Engelsystem.xcodeproj
 
 ## Entitlements (both targets: iOS app + Watch app)
 
-- iCloud → CloudKit, same container: `iCloud.de.engelsystem`
+- iCloud → CloudKit, same container: `iCloud.net.cuccato.engelsystem`
 - Keychain Sharing, same access group:
-  `$(AppIdentifierPrefix)de.engelsystem.shared`
+  `$(AppIdentifierPrefix)net.cuccato.engelsystem.shared`
 - Background Modes (iOS target only): Background fetch, Background processing
 - **No** push-notification entitlement needed (local notifications only)
-- **App Group** `group.de.engelsystem.shared` (Watch app + `EngelsystemComplication`
+- **App Group** `group.net.cuccato.engelsystem.shared` (Watch app + `EngelsystemComplication`
   extension only, not iOS): shares the next-shift snapshot with the complication
   process (see Watch App Scope / Implemented Features below). Confirmed working
   for local simulator builds with the free/personal team already configured in
@@ -176,10 +176,24 @@ register on a real device with "cannot be registered ... because it is not
 available" — some other account already holds that exact string. Simulator
 builds never surface this, since they don't register real App IDs; it only
 shows up the first time someone actually runs on a physical device. Renamed
-to `de.engelsystem.EngelsystemClient.watchkitapp.nextshiftcomplication`,
-which worked. If you add another extension/target later and hit the same
-error on-device, just pick a more distinctive suffix and retry — it's not
-something wrong with the project's signing setup.
+to `...watchkitapp.nextshiftcomplication`, which worked. If you add
+another extension/target later and hit the same error on-device, just
+pick a more distinctive suffix and retry — it's not something wrong with
+the project's signing setup. (The base namespace shown here has since
+moved to `net.cuccato.engelsystem.*` — see the note below.)
+
+**Namespace base changed from `de.engelsystem.*` to
+`net.cuccato.engelsystem.*`** across every bundle identifier, the App
+Group, and the (still undeployed) Keychain Sharing/CloudKit identifiers
+documented above — at the user's request, moving off the literal domain
+of the real upstream Engelsystem project (probably related to the
+bundle-ID collision above) onto the user's own domain instead
+(`cuccato.net` reversed). `KeychainSyncStore`/`LocalKeychainStore`'s
+`kSecAttrService` strings were updated too for consistency, even though
+those aren't Apple-registered identifiers and didn't strictly need to
+change — note that this means any previously saved API key in a local
+simulator/device install becomes unreachable under the old service
+string and must be re-entered once.
 
 ## Data/code flow
 
@@ -380,7 +394,7 @@ exists without reading the whole diff history.
   Ruby gem (`gem install xcodeproj`) since new Xcode targets can't be
   created through the file-system-synchronized-group mechanism the rest
   of this project relies on — only added to *existing* targets. Reads a
-  `NextShiftSnapshot` from the `group.de.engelsystem.shared` App Group
+  `NextShiftSnapshot` from the `group.net.cuccato.engelsystem.shared` App Group
   (see Entitlements above) and renders `.accessoryCircular`/
   `.accessoryRectangular`/`.accessoryInline` families; never touches the
   network or Keychain itself (a separate process from the Watch app, no

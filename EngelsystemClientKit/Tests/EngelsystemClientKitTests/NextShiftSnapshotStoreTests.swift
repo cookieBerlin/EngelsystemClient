@@ -6,7 +6,7 @@ import Testing
     // A plain (non-App-Group) suite name still works for UserDefaults(suiteName:) in a
     // test process, so this exercises the same save/load logic without needing the real
     // App Group entitlement.
-    let store = NextShiftSnapshotStore(appGroupID: "de.engelsystem.tests.\(UUID().uuidString)")
+    let store = NextShiftSnapshotStore(appGroupID: "net.cuccato.engelsystem.tests.\(UUID().uuidString)")
 
     #expect(store.load() == nil)
 
