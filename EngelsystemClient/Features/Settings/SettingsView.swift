@@ -115,12 +115,14 @@ private struct InstanceDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var isPresentingKeyUpdate = false
+    @State private var isPresentingEdit = false
 
     var body: some View {
         Form {
-            Section("Event") {
+            Section {
                 LabeledContent("Name", value: instance.name)
                 LabeledContent("Server", value: instance.normalizedBaseURL)
+                Button("Edit Name / Server") { isPresentingEdit = true }
             }
 
             Section {
@@ -148,6 +150,67 @@ private struct InstanceDetailView: View {
         .navigationTitle(instance.name)
         .sheet(isPresented: $isPresentingKeyUpdate) {
             UpdateAPIKeyView(instance: instance)
+        }
+        .sheet(isPresented: $isPresentingEdit) {
+            EditInstanceView(instance: instance)
+        }
+    }
+}
+
+private struct EditInstanceView: View {
+    let instance: Instance
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var viewModel: EditInstanceViewModel
+
+    init(instance: Instance) {
+        self.instance = instance
+        _viewModel = State(initialValue: EditInstanceViewModel(instance: instance))
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Event") {
+                    TextField("Name", text: $viewModel.name)
+                }
+                Section("Server") {
+                    TextField("Server URL", text: $viewModel.baseURL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        #if os(iOS)
+                        .keyboardType(.URL)
+                        #endif
+                }
+                if let errorMessage = viewModel.errorMessage {
+                    Section {
+                        Text(errorMessage).foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("Edit Instance")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if viewModel.isTesting {
+                        ProgressView()
+                    } else {
+                        Button("Save") {
+                            Task {
+                                if await viewModel.save(instance: instance) {
+                                    dismiss()
+                                }
+                            }
+                        }
+                        .disabled(!viewModel.canSubmit)
+                    }
+                }
+            }
         }
     }
 }

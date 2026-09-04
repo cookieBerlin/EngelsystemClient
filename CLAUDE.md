@@ -153,7 +153,8 @@ Engelsystem.xcodeproj
 │   ├── Views/NextShiftView.swift, NextShiftViewModel.swift, WatchMainView.swift
 │   ├── Setup/WatchSetupView.swift, WatchSetupViewModel.swift (fallback entry UI,
 │   │                                also reused as the "Add Instance" sheet)
-│   └── Settings/WatchSettingsView.swift, WatchUpdateAPIKeyViewModel.swift
+│   └── Settings/WatchSettingsView.swift, WatchUpdateAPIKeyViewModel.swift,
+│                                 WatchEditInstanceViewModel.swift
 └── EngelsystemComplication/       ← watchOS Widget Extension (embedded in the
                                       Watch app target above), the complication
 ```
@@ -399,7 +400,19 @@ exists without reading the whole diff history.
   preferred) so a stale value in whichever store `InstanceCredentialResolver`
   happens to check first can't shadow the fresh one. If Shifts/News/Profile
   hits a 401, `MainView` auto-switches to this screen so the key can
-  actually be fixed (see Data/code flow above). Also a **Notifications**
+  actually be fixed (see Data/code flow above). Also **"Edit Name /
+  Server"** (`EditInstanceViewModel`): the name/server were originally
+  read-only `LabeledContent` on this screen — the user later asked for
+  them to be editable, same as everything else here. Resolves the
+  instance's *existing* API key via `InstanceCredentialResolver` (so
+  editing the name/server doesn't also demand re-entering the key — that
+  stays a separate "Update API Key" action) and re-tests the
+  name/server/key combination via the new
+  `InstanceSetupService.updateServerDetails`, which mutates the
+  `Instance` model in place on success (same "test then save" shape as
+  `createInstance`/`updateAPIKey`, always re-testing even for a
+  pure-rename since it's cheap and doubles as a health check). Also a
+  **Notifications**
   section: a "Notify Before Shift" picker (5/10/15/30/60 min) backed by
   `@AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)`, applying
   to all instances (it's a single app-wide preference, not per-instance).
@@ -474,6 +487,19 @@ exists without reading the whole diff history.
   performing the actual push — swapping to the closure-based form fixed
   it immediately. Treat this as a watchOS-specific quirk to remember, not
   something to "fix" by reverting to the value-based form.
+  Instance-detail also has an **"Edit Name / Server"** action
+  (`WatchEditInstanceViewModel`, the Watch-target twin of iOS's
+  `EditInstanceViewModel`, added when the user pointed out neither
+  platform could edit these after creation) — unlike
+  `WatchUpdateAPIKeyViewModel`, this one resolves the existing key via
+  `InstanceCredentialResolver` rather than assuming `LocalKeychainStore`,
+  since it needs to *read* a key that could in principle live in either
+  store. Presenting this as a `.sheet` surfaced another watchOS default:
+  an automatic "Close" (`xmark`) button appears in the sheet's navigation
+  bar with no code needed for it — `app.swipeDown()` does *not* dismiss a
+  watchOS sheet in UI tests, tapping that button does (and its nested
+  elements share the same accessibility label, so query with
+  `.firstMatch` to avoid an ambiguous-match error).
 - **Next Shift** (`Views/NextShiftView`): shows only the next upcoming
   shift (title, time range, location) via the same `ShiftSyncService`
   the iOS Shifts screen uses, plus a sync-status line ("Updated HH:mm")

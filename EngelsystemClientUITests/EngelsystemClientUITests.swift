@@ -68,7 +68,33 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(settingsRow.waitForExistence(timeout: 5))
         settingsRow.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Demo"].waitForExistence(timeout: 5))
+        let demoInstanceRow = app.staticTexts["Demo"]
+        XCTAssertTrue(demoInstanceRow.waitForExistence(timeout: 5))
+
+        // Editing the instance's name/server (previously not possible after creation —
+        // the "Event" section was read-only LabeledContent).
+        demoInstanceRow.tap()
+        XCTAssertTrue(app.navigationBars["Demo"].waitForExistence(timeout: 5))
+        let editButton = app.buttons["Edit Name / Server"]
+        XCTAssertTrue(editButton.waitForExistence(timeout: 5))
+        editButton.tap()
+
+        let nameField = app.textFields["Name"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 5))
+        nameField.tap()
+        if let existingValue = nameField.value as? String, !existingValue.isEmpty {
+            nameField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count))
+        }
+        nameField.typeText("Demo Renamed")
+
+        app.buttons["Save"].tap()
+        // Saving re-tests the connection (demo mode resolves instantly, no real
+        // network) and dismisses back to the instance detail view on success.
+        XCTAssertTrue(app.navigationBars["Demo Renamed"].waitForExistence(timeout: 10))
+        XCTAssertTrue(containingText("Demo Renamed", in: app).waitForExistence(timeout: 5))
+
+        goBack(app)
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
 
         // Notification lead-time picker defaults to 15 min and can be changed.
         // Its exact accessibility element type/label depend on the system-rendered

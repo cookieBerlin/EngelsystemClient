@@ -112,9 +112,29 @@ final class EngelsystemClient_Watch_App_Watch_AppUITests: XCTestCase {
         // checking its content — decouples "did navigation happen" from "is this specific
         // label rendered yet", which was flaky when checked together under one timeout.
         XCTAssertTrue(app.navigationBars["Demo"].waitForExistence(timeout: 15))
+
+        // Editing the instance's name/server (previously not possible after creation).
+        // Visible without scrolling — it's the first section's third row.
+        let editButton = app.buttons["Edit Name / Server"]
+        XCTAssertTrue(editButton.waitForExistence(timeout: 15))
+        editButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(app.navigationBars["Edit Instance"].waitForExistence(timeout: 15))
+        XCTAssertTrue(containingText("Demo", in: app).waitForExistence(timeout: 10))
+        // watchOS auto-adds a "Close" (xmark) button to a sheet's navigation bar —
+        // nested Button elements share the same label, so `.firstMatch` to avoid an
+        // ambiguous-match error.
+        let closeButton = app.buttons["Close"].firstMatch
+        XCTAssertTrue(closeButton.waitForExistence(timeout: 5))
+        closeButton.tap()
+
         // The only instance is activated automatically, so its detail view shows
-        // "Active Instance" rather than a "Use as Active Instance" button.
-        XCTAssertTrue(app.staticTexts["Active Instance"].waitForExistence(timeout: 15))
+        // "Active Instance" rather than a "Use as Active Instance" button. Adding the
+        // Edit row above pushed this below the fold, so it now needs scrolling too.
+        let activeInstanceLabel = app.staticTexts["Active Instance"]
+        for _ in 0..<10 where !activeInstanceLabel.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(activeInstanceLabel.waitForExistence(timeout: 15))
         // The later sections ("Update API Key", "Remove Instance") aren't materialized
         // in the accessibility tree until scrolled into view — same as the Setup form.
         let updateKeyButton = app.buttons["Update API Key"]

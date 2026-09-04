@@ -45,6 +45,44 @@ private final class FakeAPIKeyStore: APIKeyStore {
     #expect(try store.loadAPIKey(for: instance.apiKeyKeychainRef) == "new-demo-key")
 }
 
+@Test func instanceSetupServiceUpdatesServerDetailsForExistingInstance() async throws {
+    let store = FakeAPIKeyStore()
+    let instance = try await InstanceSetupService().createInstance(
+        name: "Demo", baseURL: Instance.demoBaseURL, apiKey: "demo-key", store: store
+    )
+    let originalUpdatedAt = instance.updatedAt
+
+    try await InstanceSetupService().updateServerDetails(
+        for: instance,
+        name: "Demo Renamed",
+        baseURL: Instance.demoBaseURL,
+        apiKey: "demo-key"
+    )
+
+    #expect(instance.name == "Demo Renamed")
+    #expect(instance.baseURL == Instance.demoBaseURL)
+    #expect(instance.updatedAt > originalUpdatedAt)
+}
+
+@Test func instanceSetupServiceDoesNotUpdateServerDetailsWhenConnectionTestFails() async throws {
+    let store = FakeAPIKeyStore()
+    let instance = try await InstanceSetupService().createInstance(
+        name: "Demo", baseURL: Instance.demoBaseURL, apiKey: "demo-key", store: store
+    )
+
+    await #expect(throws: APIError.invalidBaseURL) {
+        try await InstanceSetupService().updateServerDetails(
+            for: instance,
+            name: "Should Not Save",
+            baseURL: "http://%zz",
+            apiKey: "demo-key"
+        )
+    }
+
+    #expect(instance.name == "Demo")
+    #expect(instance.baseURL == Instance.demoBaseURL)
+}
+
 @Test func instanceSetupServiceDoesNotSaveKeyWhenConnectionTestFails() async throws {
     // Bad percent-encoding makes URL(string:) return nil, which APIClient maps to
     // .invalidBaseURL — deterministic and offline (see apiClientRejectsEmptyBaseURLForNonDemoInstance

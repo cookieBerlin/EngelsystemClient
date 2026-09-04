@@ -35,4 +35,19 @@ public struct InstanceSetupService {
         _ = try await apiClient.fetchInfo(credential)
         try store.save(apiKey: apiKey, for: instance.apiKeyKeychainRef)
     }
+
+    /// Tests `name`/`baseURL` against `instance`'s existing API key (resolved by the
+    /// caller via `InstanceCredentialResolver` — this never touches the Keychain
+    /// itself) and, on success, updates `instance` in place. Re-tests even when only
+    /// the name changed: cheap, and it doubles as a health check confirming the
+    /// server/key combination is still valid. Mutating `instance` directly (rather
+    /// than returning a value to apply) matches how sync services update existing
+    /// `Cached*` models already fetched from a `ModelContext`.
+    public func updateServerDetails(for instance: Instance, name: String, baseURL: String, apiKey: String) async throws {
+        let credential = EventCredential(baseURL: Instance.apiBasePath(for: baseURL), apiKey: apiKey)
+        _ = try await apiClient.fetchInfo(credential)
+        instance.name = name
+        instance.baseURL = baseURL
+        instance.touch()
+    }
 }

@@ -49,11 +49,17 @@ public final class Instance {
 public extension Instance {
     func touch() { updatedAt = Date() }
 
-    var normalizedBaseURL: String {
+    static func normalizedBaseURL(_ baseURL: String) -> String {
         baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
     }
 
-    var apiBasePath: String { "\(normalizedBaseURL)/api/v0-beta" }
+    static func apiBasePath(for baseURL: String) -> String {
+        "\(normalizedBaseURL(baseURL))/api/v0-beta"
+    }
+
+    var normalizedBaseURL: String { Instance.normalizedBaseURL(baseURL) }
+
+    var apiBasePath: String { Instance.apiBasePath(for: baseURL) }
 
     /// Sentinel base URL recognized by `APIClient` — an instance using this URL never
     /// makes real network requests; `APIClient` returns static mock data instead
