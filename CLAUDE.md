@@ -777,6 +777,49 @@ schedule anyway, and there's no reason to sync them.
   Sharing registration (which is separately confirmed working, see
   above).
 
+- **Root-caused and fixed, 2026-09-16: a manually re-entered
+  `Instance.userID` (or any other Settings edit) could silently revert
+  after rebuilding the app from Xcode.** Reported by the user against a
+  real (non-demo) server: they set the `userID` fallback (see the
+  "Resolved bug"/"Fix" entries below) via "Edit Name / Server", rebuilt
+  the app from Xcode, and the very next sync logged
+  `instance.userID = nil, userReference = me` again — the edit had been
+  lost. Root cause: **no production code path anywhere ever called
+  `modelContext.save()` explicitly** — every mutation (`EditInstanceViewModel`/
+  `WatchEditInstanceViewModel`'s `save`, `InstanceSetupViewModel`/
+  `WatchSetupViewModel`'s `testAndSave`, `SettingsView`/`WatchSettingsView`'s
+  `delete`) relied entirely on SwiftData's autosave. Autosave only flushes on
+  certain app-lifecycle events (e.g. the scene resigning active) — a debug
+  "Run" from Xcode that replaces an already-running build does **not** go
+  through that lifecycle at all, it kills the old process directly, so any
+  edit made shortly before the next rebuild had no chance to ever reach
+  disk. This wasn't a CloudKit-merge issue (the CloudKit sync work landed
+  the same day and was the first suspect) — it reproduces identically with
+  CloudKit unreachable, since the loss happens before anything gets a
+  chance to sync at all.
+
+  Fix: added explicit `try? modelContext.save()` right after every one of
+  the mutations above (`EditInstanceViewModel.save`/
+  `WatchEditInstanceViewModel.save` — both gained a `modelContext:` parameter
+  they didn't have before, threaded in from `EditInstanceView`/
+  `WatchEditInstanceView`'s `@Environment(\.modelContext)` — plus
+  `InstanceSetupViewModel`/`WatchSetupViewModel`'s `testAndSave` after
+  `modelContext.insert(instance)`, and `SettingsView`/`WatchSettingsView`'s
+  `delete` after `modelContext.delete(instance)`). `UpdateAPIKeyViewModel`/
+  `WatchUpdateAPIKeyViewModel` needed no change — they only write to the
+  Keychain, never mutate the SwiftData `Instance`.
+
+  Regression test:
+  `EngelsystemClientTests.EditInstanceViewModelPersistenceTests
+  .saveExplicitlyPersistsUserIDAcrossAFreshModelContainerLoad` — deliberately
+  reloads from a **second, brand-new** `ModelContainer` pointed at the same
+  on-disk store rather than re-reading the original `ModelContext`, since
+  the latter would pass even without an explicit save (the edit is visible
+  in-memory regardless of whether it was ever flushed) and wouldn't have
+  caught this bug. Confirmed it actually catches the regression by
+  temporarily removing the `try? modelContext.save()` call and re-running —
+  the test failed as expected, then passed again once restored.
+
 ## Testing
 
 - **Always add tests for new features** — logic in `EngelsystemClientKit`

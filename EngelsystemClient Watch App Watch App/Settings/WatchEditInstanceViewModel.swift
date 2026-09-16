@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import EngelsystemClientKit
 
 /// Watch equivalent of the iOS app's `EditInstanceViewModel` (`Features/Settings`) —
@@ -40,7 +41,9 @@ final class WatchEditInstanceViewModel {
             && !isTesting
     }
 
-    func save(instance: Instance) async -> Bool {
+    /// Explicit `modelContext.save()` after the mutation — see the matching comment on
+    /// iOS's `EditInstanceViewModel.save`, same root cause and fix (2026-09-16).
+    func save(instance: Instance, in modelContext: ModelContext) async -> Bool {
         errorMessage = nil
         isTesting = true
         defer { isTesting = false }
@@ -54,6 +57,7 @@ final class WatchEditInstanceViewModel {
                 apiKey: credential.apiKey,
                 userID: Int(userIDText.trimmingCharacters(in: .whitespaces))
             )
+            try? modelContext.save()
             return true
         } catch {
             errorMessage = Self.message(for: error)

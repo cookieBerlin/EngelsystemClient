@@ -5,9 +5,57 @@
 //  Created by Angelo Cuccato on 31.08.26.
 //
 
+import Foundation
 import Testing
+import SwiftData
 import EngelsystemClientKit
 @testable import EngelsystemClient
+
+/// Regression coverage for the 2026-09-16 bug: a user reported that a manually
+/// re-entered `Instance.userID` reverted to `nil` after rebuilding the app from
+/// Xcode. Root cause: no production code path ever called `modelContext.save()`
+/// explicitly, relying entirely on SwiftData's autosave — which fires on
+/// app-lifecycle events (e.g. resigning active) that a debug rebuild-and-relaunch
+/// skips entirely, since Xcode kills the old process directly instead of
+/// backgrounding it. Fixed by having `EditInstanceViewModel.save` (and the
+/// equivalent create/delete flows) explicitly call `modelContext.save()`. This test
+/// proves the fix by reloading from a brand-new `ModelContainer` backed by the same
+/// on-disk store, rather than re-reading the same in-memory `ModelContext` — the
+/// latter would pass even without an explicit save, since the edit is visible
+/// in-memory regardless of whether it was ever flushed to disk.
+struct EditInstanceViewModelPersistenceTests {
+    @Test @MainActor func saveExplicitlyPersistsUserIDAcrossAFreshModelContainerLoad() async throws {
+        let storeURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("EditInstanceViewModelPersistenceTests-\(UUID().uuidString).sqlite")
+        defer {
+            try? FileManager.default.removeItem(at: storeURL)
+        }
+        let configuration = ModelConfiguration(schema: Schema([Instance.self]), url: storeURL, cloudKitDatabase: .none)
+
+        let container = try ModelContainer(for: Instance.self, configurations: configuration)
+        let context = ModelContext(container)
+
+        let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: UUID().uuidString)
+        context.insert(instance)
+        try context.save()
+
+        let keyStore = LocalKeychainStore()
+        try keyStore.save(apiKey: "demo", for: instance.apiKeyKeychainRef)
+        defer { try? keyStore.deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = EditInstanceViewModel(instance: instance)
+        viewModel.userIDText = "42"
+        let succeeded = await viewModel.save(instance: instance, in: context)
+        #expect(succeeded)
+
+        // Simulate the rebuild-and-relaunch scenario: a fresh container/context
+        // reading the same file, not the `context` the edit was made through.
+        let reloadedContainer = try ModelContainer(for: Instance.self, configurations: configuration)
+        let reloadedContext = ModelContext(reloadedContainer)
+        let reloadedInstance = try #require(try reloadedContext.fetch(FetchDescriptor<Instance>()).first)
+        #expect(reloadedInstance.userID == 42)
+    }
+}
 
 struct SyncErrorMapperTests {
     @Test func isUnauthorizedIsTrueOnlyForAPIErrorUnauthorized() {

@@ -48,6 +48,7 @@ final class WatchSetupViewModel {
                 userID: Int(userIDText.trimmingCharacters(in: .whitespaces))
             )
             modelContext.insert(instance)
+            try? modelContext.save()
             return true
         } catch {
             errorMessage = Self.message(for: error)

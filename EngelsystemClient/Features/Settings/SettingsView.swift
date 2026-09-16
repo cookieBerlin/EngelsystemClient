@@ -95,6 +95,7 @@ struct SettingsView: View {
         try? modelContext.delete(model: CachedAngelTypeMembership.self, where: #Predicate { $0.instanceID == instanceID })
 
         modelContext.delete(instance)
+        try? modelContext.save()
     }
 }
 
@@ -173,6 +174,7 @@ private struct EditInstanceView: View {
     let instance: Instance
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var viewModel: EditInstanceViewModel
 
     init(instance: Instance) {
@@ -222,7 +224,7 @@ private struct EditInstanceView: View {
                     } else {
                         Button("Save") {
                             Task {
-                                if await viewModel.save(instance: instance) {
+                                if await viewModel.save(instance: instance, in: modelContext) {
                                     dismiss()
                                 }
                             }

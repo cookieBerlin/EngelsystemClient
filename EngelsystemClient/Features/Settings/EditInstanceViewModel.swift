@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import EngelsystemClientKit
 
 /// Backs the "Edit Instance" sheet (name + server URL) reached from `SettingsView`'s
@@ -39,8 +40,15 @@ final class EditInstanceViewModel {
     }
 
     /// Tests the (possibly changed) name/server against the instance's existing API
-    /// key and, on success, updates `instance` in place.
-    func save(instance: Instance) async -> Bool {
+    /// key and, on success, updates `instance` in place and explicitly persists the
+    /// `ModelContext`. The explicit `save()` matters here: SwiftData's autosave only
+    /// fires on certain app-lifecycle events (e.g. resigning active), which a debug
+    /// rebuild-and-relaunch from Xcode skips entirely (it kills the old process
+    /// directly rather than backgrounding it) — without this, an edit made shortly
+    /// before the next Xcode "Run" could be silently lost even though the sheet showed
+    /// success and dismissed. Root-caused 2026-09-16 after a user-reported case of a
+    /// manually re-entered `userID` reverting to `nil` after a rebuild.
+    func save(instance: Instance, in modelContext: ModelContext) async -> Bool {
         errorMessage = nil
         isTesting = true
         defer { isTesting = false }
@@ -54,6 +62,7 @@ final class EditInstanceViewModel {
                 apiKey: credential.apiKey,
                 userID: Int(userIDText.trimmingCharacters(in: .whitespaces))
             )
+            try? modelContext.save()
             return true
         } catch {
             errorMessage = SyncErrorMapper.message(for: error)

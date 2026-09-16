@@ -83,6 +83,7 @@ struct WatchSettingsView: View {
         try? modelContext.delete(model: CachedShift.self, where: #Predicate { $0.instanceID == instanceID })
 
         modelContext.delete(instance)
+        try? modelContext.save()
     }
 }
 
@@ -154,6 +155,7 @@ private struct WatchEditInstanceView: View {
     let instance: Instance
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var viewModel: WatchEditInstanceViewModel
 
     init(instance: Instance) {
@@ -192,7 +194,7 @@ private struct WatchEditInstanceView: View {
                     } else {
                         Button("Save") {
                             Task {
-                                if await viewModel.save(instance: instance) {
+                                if await viewModel.save(instance: instance, in: modelContext) {
                                     dismiss()
                                 }
                             }
