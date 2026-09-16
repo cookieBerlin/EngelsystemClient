@@ -717,26 +717,65 @@ schedule anyway, and there's no reason to sync them.
   Entitlements section above for how this was verified from the CLI side
   via the regenerated provisioning profiles) — the CloudKit container and
   Keychain Sharing group are real and provisioned for both targets now.
-- **Still open: `EngelsystemClient_Watch_App_Watch_AppUITests
-  .testDemoModeShowsNextShift` hung indefinitely** (killed after ~13+ and
-  ~4 minutes on two separate attempts, both well past its normal
-  60–120 second runtime) when run via `xcodebuild test` right after the
-  entitlement changes above — *before* the capability registration above
-  was confirmed — while the equivalent iOS UI test
-  (`testDemoModeNavigationFlow`) ran fine in the same session with the
-  same kind of entitlement additions. Not root-caused, and **not yet
-  re-tried since registration was confirmed** — it's plausible (but
-  unconfirmed) that the hang was caused by exactly this missing
-  registration (the app trying and failing/hanging to reach a CloudKit
-  container that didn't exist yet), in which case it may already be fixed
-  now. Re-run this test before trusting the Watch app's CloudKit path;
-  if it still hangs, don't wait it out past ~2 minutes — kill the process
-  (low CPU time while "running" is the tell that it's hung, not slow) and
-  investigate further rather than assuming the registration fix covers
-  it. The iOS side, the Kit unit tests (including a new
-  `modelContainerFactorySupportsBothInstanceAndLocalModels` test), and
-  both platforms' plain builds are all confirmed fine regardless — this
-  caveat is specifically about the Watch *UI test*, not the app code.
+- **Root-caused, 2026-09-16: `EngelsystemClient_Watch_App_Watch_AppUITests
+  .testDemoModeShowsNextShift` is not CloudKit-related at all — it's an
+  Xcode 27.0 / watchOS 27.0 Simulator performance ceiling on this specific
+  (M2, non-Pro) Mac.** Confirmed via three separate `xcodebuild test` runs,
+  the last one deliberately clean (single simulator pair, verified zero
+  stray processes and a calm system beforehand): every run fails at the
+  exact same spot — `EngelsystemClient_Watch_App_Watch_AppUITests.swift:114`
+  (`app.navigationBars["Demo"].waitForExistence(timeout: 15)`, right after
+  tapping the "Demo" row in Settings) — with the same error, `"Failed to
+  get matching snapshots: Timed out while evaluating UI query."` This is a
+  hard internal XCUITest ceiling on how long a single accessibility-tree
+  snapshot may take, separate from and not fixable by raising
+  `waitForExistence`'s own `timeout:` parameter. The test process itself
+  isn't infinite — it fails after ~4–4.5 minutes, then `xcodebuild` spends
+  up to another 10 minutes on its own "collecting diagnostics from
+  simulator" step before finally exiting (its own internal 600s ceiling),
+  making the whole command take **up to ~15–17 minutes** even though it
+  is bounded, not hung.
+
+  First diagnosed (wrongly) as an infinite hang tied to the missing
+  CloudKit registration; two premature `pkill -9`s against the
+  `xcodebuild` client left their **simulator devices running in the
+  background** (killing the client does not shut down the simulator,
+  which is owned by the separate long-lived `CoreSimulatorService`) and,
+  compounded by booting yet more simulators for each retry without
+  shutting the previous ones down, stacked multiple full watchOS
+  Simulator instances concurrently — confirmed via `ps aux` showing
+  duplicate `ClockFace.app`/`Carousel.app`/`homed`/`navd` processes,
+  driving the 1-minute load average to **777** on this machine. That
+  pile-up was real and is now cleaned up (`xcrun simctl shutdown all`
+  after every attempt from here on), but it was a confound, not the root
+  cause: the clean, single-simulator retry failed identically. Even a
+  single booted watchOS 27.0 Simulator pair alone was enough to drive
+  this Mac to ~100% CPU / 0% idle during the test — the newer Xcode 27
+  simulator runtimes (watchOS 27.0 spins up noticeably more system
+  daemons — HomeKit, Maps support, nanoprefsync, etc. — than 26.5 did)
+  are apparently too heavy for this hardware to service an accessibility
+  query fast enough within XCUITest's internal ceiling.
+
+  **Practical takeaway**: don't re-run this specific test as a matter of
+  routine on this machine — it will very likely fail the same way every
+  time regardless of app-code correctness, and each attempt costs up to
+  ~15 minutes. If you need to verify this Watch flow, do it via a manual
+  simulator/on-device check instead, or run the test once with real
+  patience (let it run the full ~15 minutes to a definitive result rather
+  than killing it early) only when you specifically need CI-style
+  confirmation. **Always run `xcrun simctl shutdown all` after killing or
+  finishing any `xcodebuild test` invocation** — never assume killing the
+  client process also tears down the simulator.
+
+  This does **not** implicate the CloudKit sync work above: the iOS UI
+  test (`testDemoModeNavigationFlow`) passed fine multiple times in the
+  same sessions, the Kit unit tests (including
+  `modelContainerFactorySupportsBothInstanceAndLocalModels`) all pass, and
+  both platforms' plain (non-test) builds are fine. This caveat is
+  entirely about the watchOS Simulator's performance on this machine
+  under Xcode 27.0, not about the app or the CloudKit container/Keychain
+  Sharing registration (which is separately confirmed working, see
+  above).
 
 ## Testing
 
