@@ -85,7 +85,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "76050552304578DE002B3D76"
             BuildableName = "EngelsystemClient Watch App Watch App.app"
-            BlueprintName = "EngelsystemClient Watch App Watch App"
             ReferencedContainer = "container:EngelsystemClient.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -102,7 +101,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "76050552304578DE002B3D76"
             BuildableName = "EngelsystemClient Watch App Watch App.app"
-            BlueprintName = "EngelsystemClient Watch App Watch App"
             ReferencedContainer = "container:EngelsystemClient.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

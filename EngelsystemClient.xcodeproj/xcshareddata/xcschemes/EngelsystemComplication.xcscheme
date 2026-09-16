@@ -78,7 +78,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "C853458D60E65CADEF7D1687"
             BuildableName = "EngelsystemComplication.appex"
-            BlueprintName = "EngelsystemComplication"
             ReferencedContainer = "container:EngelsystemClient.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -121,7 +120,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "C853458D60E65CADEF7D1687"
             BuildableName = "EngelsystemComplication.appex"
-            BlueprintName = "EngelsystemComplication"
             ReferencedContainer = "container:EngelsystemClient.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

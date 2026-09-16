@@ -82,6 +82,18 @@ struct SettingsView: View {
         if activeInstanceIDString == instance.id.uuidString {
             activeInstanceIDString = ""
         }
+
+        // Manual cascade delete: `Instance` (CloudKit-backed) and the `Cached*` models
+        // (local-only) live in separate `ModelConfiguration`s now, so SwiftData's
+        // relationship-based cascade delete no longer applies across them — see
+        // Instance.swift.
+        let instanceID = instance.id
+        try? modelContext.delete(model: CachedShift.self, where: #Predicate { $0.instanceID == instanceID })
+        try? modelContext.delete(model: CachedNews.self, where: #Predicate { $0.instanceID == instanceID })
+        try? modelContext.delete(model: CachedUser.self, where: #Predicate { $0.instanceID == instanceID })
+        try? modelContext.delete(model: CachedWorklog.self, where: #Predicate { $0.instanceID == instanceID })
+        try? modelContext.delete(model: CachedAngelTypeMembership.self, where: #Predicate { $0.instanceID == instanceID })
+
         modelContext.delete(instance)
     }
 }

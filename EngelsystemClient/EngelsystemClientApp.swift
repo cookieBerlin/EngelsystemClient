@@ -11,23 +11,15 @@ import EngelsystemClientKit
 
 @main
 struct EngelsystemClientApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Instance.self,
-            CachedShift.self,
-            CachedNews.self,
-            CachedUser.self,
-            CachedWorklog.self,
-            CachedAngelTypeMembership.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    // Instance syncs via CloudKit (same container as the Watch app); the Cached* models
+    // stay local-only, per-device caches of API data — see ModelContainerFactory.
+    var sharedModelContainer: ModelContainer = ModelContainerFactory.makeContainer(localSchemaTypes: [
+        CachedShift.self,
+        CachedNews.self,
+        CachedUser.self,
+        CachedWorklog.self,
+        CachedAngelTypeMembership.self,
+    ])
 
     var body: some Scene {
         WindowGroup {

@@ -16,11 +16,11 @@ public struct ShiftSyncService {
     @discardableResult
     public func sync(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> [CachedShift] {
         let shifts = try await apiClient.fetchShifts(for: instance.userReference, credential)
-        return try upsert(shifts, instanceID: instance.id, instance: instance, in: modelContext)
+        return try upsert(shifts, instanceID: instance.id, in: modelContext)
     }
 
     @discardableResult
-    private func upsert(_ shifts: [Shift], instanceID: UUID, instance: Instance, in modelContext: ModelContext) throws -> [CachedShift] {
+    private func upsert(_ shifts: [Shift], instanceID: UUID, in modelContext: ModelContext) throws -> [CachedShift] {
         var result: [CachedShift] = []
         for shift in shifts {
             let uid = CachedShift.uid(instanceID: instanceID, serverID: shift.id)
@@ -29,11 +29,9 @@ public struct ShiftSyncService {
 
             if let existing = try modelContext.fetch(descriptor).first {
                 existing.apply(shift)
-                existing.instance = instance
                 result.append(existing)
             } else {
                 let cached = CachedShift(shift: shift, instanceID: instanceID)
-                cached.instance = instance
                 modelContext.insert(cached)
                 result.append(cached)
             }

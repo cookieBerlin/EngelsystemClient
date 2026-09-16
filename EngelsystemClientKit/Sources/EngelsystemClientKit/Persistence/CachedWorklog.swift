@@ -18,7 +18,8 @@ public final class CachedWorklog {
 
     public var cachedAt: Date
 
-    @Relationship public var instance: Instance?
+    // No relationship to Instance — it lives in a separate, CloudKit-backed
+    // ModelConfiguration; see Instance.swift. Callers filter by `instanceID` instead.
 
     public init(
         serverID: Int,

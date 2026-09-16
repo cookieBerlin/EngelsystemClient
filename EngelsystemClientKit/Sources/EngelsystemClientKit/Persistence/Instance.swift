@@ -1,34 +1,33 @@
 import Foundation
 import SwiftData
 
+/// CloudKit-backed (see CLAUDE.md's Sync strategy) — lives in its own `ModelConfiguration`,
+/// separate from the local-only `Cached*` models, so it can sync between the iOS and Watch
+/// apps via the shared `iCloud.net.cuccato.engelsystem.de` container. This is why every
+/// stored property below needs a default value (CloudKit's SwiftData integration requires
+/// every attribute to be optional or have a default — its own record-construction path
+/// doesn't go through this type's custom `init`) and why `id` no longer has `.unique`
+/// (CloudKit doesn't support unique constraints at all). `Cached*` models keep their
+/// `.unique` `uid` since they stay in the local-only configuration.
 @Model
 public final class Instance {
-    @Attribute(.unique) public var id: UUID
-    public var name: String
-    public var baseURL: String
+    public var id: UUID = UUID()
+    public var name: String = ""
+    public var baseURL: String = ""
     // Stores only the Keychain reference key, never the API key itself
-    public var apiKeyKeychainRef: String
+    public var apiKeyKeychainRef: String = ""
     // Fallback for servers that 404 on the documented `self` path parameter alias
     // (confirmed to happen on at least one real, older Engelsystem deployment) —
     // nil means "use `self`", the default and normal case. See `userReference` below.
     public var userID: Int?
-    public var createdAt: Date
-    public var updatedAt: Date
+    public var createdAt: Date = Date()
+    public var updatedAt: Date = Date()
 
-    @Relationship(deleteRule: .cascade, inverse: \CachedShift.instance)
-    public var cachedShifts: [CachedShift]?
-
-    @Relationship(deleteRule: .cascade, inverse: \CachedNews.instance)
-    public var cachedNews: [CachedNews]?
-
-    @Relationship(deleteRule: .cascade, inverse: \CachedUser.instance)
-    public var cachedUsers: [CachedUser]?
-
-    @Relationship(deleteRule: .cascade, inverse: \CachedWorklog.instance)
-    public var cachedWorklogs: [CachedWorklog]?
-
-    @Relationship(deleteRule: .cascade, inverse: \CachedAngelTypeMembership.instance)
-    public var cachedAngelTypeMemberships: [CachedAngelTypeMembership]?
+    // No relationships to the Cached* models: they live in a separate, local-only
+    // ModelConfiguration (see the app targets' ModelContainer setup), and SwiftData
+    // relationships can't cross configurations. Deleting an Instance's cached data is
+    // therefore done manually (see SettingsView/WatchSettingsView's delete(_:)) instead
+    // of via an automatic cascade-delete relationship like before.
 
     public init(
         id: UUID = UUID(),
@@ -44,11 +43,6 @@ public final class Instance {
         self.userID = userID
         self.createdAt = Date()
         self.updatedAt = Date()
-        self.cachedShifts = []
-        self.cachedNews = []
-        self.cachedUsers = []
-        self.cachedWorklogs = []
-        self.cachedAngelTypeMemberships = []
     }
 }
 

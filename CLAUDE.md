@@ -178,10 +178,37 @@ Engelsystem.xcodeproj
   this project; Xcode's automatic signing picked up the new team ID on the
   next build) — **unlike CloudKit containers,
   App Groups and Keychain Sharing don't require a paid Apple Developer Program
-  membership**, only automatic signing with any team. Update the earlier
-  assumption in this doc accordingly if you're revisiting the CloudKit/Keychain
-  Sharing gap: CloudKit specifically is the one blocked on a paid account, not
-  entitlements in general.
+  membership**, only automatic signing with any team.
+
+**2026-09-16: iCloud/CloudKit + Keychain Sharing entitlements added to both
+targets**, now that the user has joined the paid Apple Developer Program —
+this was the one remaining blocker (see the note above and "Not yet
+implemented" history below). `EngelsystemClient/EngelsystemClient.entitlements`
+is a **new file** (the iOS app target had no entitlements file at all before
+this — `CODE_SIGN_ENTITLEMENTS` had to be added to its Debug/Release build
+settings in `project.pbxproj`, not just the plist itself); the Watch app's
+existing entitlements file gained the same two keys alongside its existing
+App Group. Both now declare:
+  - `com.apple.developer.icloud-services` = `["CloudKit"]`
+  - `com.apple.developer.icloud-container-identifiers` = `["iCloud.net.cuccato.engelsystem.de"]`
+  - `keychain-access-groups` = `["$(AppIdentifierPrefix)net.cuccato.engelsystem.de.shared"]`
+    (this entitlement key has no `com.apple.` prefix at all, unlike most
+    others here — confirmed against `Security/SecItem.h`)
+
+  Verified the entitlements compile and embed correctly (inspected the built
+  `.xcent` via `plutil -p`, `$(AppIdentifierPrefix)` resolved to the real
+  team ID) and that both the iOS and watchOS schemes still build clean. This
+  is hand-written entitlements-file editing, **not** the same as adding the
+  capability through Xcode's Signing & Capabilities UI — that UI step is
+  what actually registers the CloudKit container and provisions the
+  Keychain Sharing group against the paid developer account on Apple's
+  servers. **The user still needs to open Xcode once** and confirm/add the
+  iCloud (CloudKit checked, container `iCloud.net.cuccato.engelsystem.de`)
+  and Keychain Sharing capabilities via Signing & Capabilities for both the
+  iOS and Watch targets before real sync will work on-device — simulator
+  and CLI builds compile fine either way since they don't enforce real
+  provisioning, but that doesn't mean the container/group actually exist on
+  Apple's backend yet.
 
 **Bundle identifiers are unique across *all* Apple developer accounts, not just
 this project or team.** `EngelsystemComplication`'s original bundle ID
@@ -357,11 +384,13 @@ exists without reading the whole diff history.
 ### EngelsystemClientKit (shared package)
 
 - **Persistence (SwiftData)**: `Instance`, `CachedShift`, `CachedNews`,
-  `CachedUser`, `CachedWorklog`, `CachedAngelTypeMembership` models exist,
-  with cascade-delete relationships from `Instance` to all five cache
-  models. **Not yet CloudKit-backed** — the app's `ModelConfiguration` is
-  local-only for now; CloudKit needs to be wired up once the entitlements
-  below are configured.
+  `CachedUser`, `CachedWorklog`, `CachedAngelTypeMembership` models exist.
+  `Instance` is **CloudKit-backed** (`ModelContainerFactory`, see "CloudKit
+  sync for Instance metadata" below); the five `Cached*` models are
+  local-only and have **no relationship to `Instance`** any more (removed
+  when the CloudKit split landed, since SwiftData relationships can't
+  cross `ModelConfiguration`s) — they're matched to their instance purely
+  by the plain `instanceID: UUID` field every one of them already carries.
 - **Generated OpenAPI client** (`Generated/`): DTOs and API classes for
   every GET endpoint in `openapi.yml`, produced by
   `Scripts/generate-api.sh`. Regenerate with that script whenever
@@ -506,17 +535,23 @@ exists without reading the whole diff history.
 
 ### watchOS app
 
-- **Own local setup** (`Setup/WatchSetupView`): the Watch app's fallback
+- **Own local setup** (`Setup/WatchSetupView`): the Watch app's manual
   entry form (name, server URL, API key, plus a "Try Demo Mode" button),
-  using the same `InstanceSetupService` as the iOS app. Currently this is
-  the *only* way to configure the Watch app, not just the iCloud-
-  unavailable fallback — CloudKit sync between the two targets isn't
-  wired up yet (see Entitlements above), so the Watch always saves to its
-  own `LocalKeychainStore` and its own local-only `Instance`/`CachedShift`
-  SwiftData container (schema deliberately excludes `CachedNews`/
-  `CachedUser`/`CachedWorklog` — the Watch never needs them per its
-  minimal scope). Also reused as the "Add Instance" sheet from
-  `WatchSettingsView` below, not just first-run setup.
+  using the same `InstanceSetupService` as the iOS app. Since the CloudKit
+  sync described above landed, this is genuinely the **fallback** path now
+  (per CLAUDE.md's Sync strategy) rather than the only way to configure
+  the Watch — an instance created on iPhone should sync here automatically
+  via CloudKit — but that hasn't been end-to-end verified yet (see the
+  caveats in "CloudKit sync for Instance metadata" above), so treat this
+  form as still load-bearing until that's confirmed. Always saves the API
+  key to its own `LocalKeychainStore` regardless (a deliberate
+  simplification, not a bug: an instance entered here manually is meant to
+  be usable even without iCloud, and this form is also reused as the "Add
+  Instance" sheet from `WatchSettingsView` below, not just first-run
+  setup). `CachedShift` is the Watch's only local `Cached*` model (schema
+  deliberately excludes `CachedNews`/`CachedUser`/`CachedWorklog`/
+  `CachedAngelTypeMembership` — the Watch never needs them per its minimal
+  scope); `Instance` itself is shared with iOS via `ModelContainerFactory`.
 - **Multi-instance + Settings** (`Settings/WatchSettingsView`, `Views/
   WatchMainView`): the Watch app supports the same instance switching
   and Settings screen as iOS, per the "Exception to minimal" note above.
@@ -600,11 +635,85 @@ exists without reading the whole diff history.
   a watch face and seeing it render there, since that requires the
   Watch Face editing UI (no automation available for that flow here).
 
-### Not yet implemented
+### CloudKit sync for Instance metadata (2026-09-16)
 
-- CloudKit sync (iOS + Watch entitlements not configured yet — requires
-  a **paid** Apple Developer Program membership, see Entitlements above;
-  App Groups/Keychain Sharing are not affected by this and already work).
+Implemented once the user joined the paid Apple Developer Program (see
+Entitlements above for the entitlements themselves). Per this file's
+binding "Sync strategy": only `Instance` (name, server URL, `userID`)
+syncs between iOS and Watch — the `Cached*` models (shifts, news, profile,
+worklogs, angel type memberships) stay local-only per device, since
+they're just a cache of API data each platform re-fetches on its own sync
+schedule anyway, and there's no reason to sync them.
+
+- **`ModelContainerFactory`** (new, `EngelsystemClientKit/Persistence/`):
+  the single place both app targets build their `ModelContainer` from now,
+  replacing the inline schema/container setup that used to live directly
+  in each target's `...App.swift`. Splits the full schema into two
+  `ModelConfiguration`s — `Instance` alone (CloudKit-backed, container
+  `iCloud.net.cuccato.engelsystem.de`) and whatever `Cached*` types the
+  caller passes in (`localSchemaTypes:`, always local-only,
+  `cloudKitDatabase: .none`) — combined into one `ModelContainer` via
+  `ModelContainer(for: fullSchema, configurations: [cloud, local])`. Falls
+  back to a local-only configuration for `Instance` too when
+  `ICloudAvailability.isAvailable` is false, so the existing manual entry
+  forms (`InstanceSetupView`, `WatchSetupView`) remain a real fallback
+  rather than a dead code path. Takes `isStoredInMemoryOnly`/
+  `forceLocalOnly` parameters so tests get a fully deterministic,
+  side-effect-free container regardless of whether the machine running
+  them happens to be signed into iCloud (CloudKit mirroring also isn't
+  supported on an in-memory store at all, so `forceLocalOnly` must be set
+  whenever `isStoredInMemoryOnly` is).
+- **`Instance` lost its relationships to the `Cached*` models.** SwiftData
+  relationships can't cross `ModelConfiguration`s, and `Instance` now
+  lives in a different one than `Cached*`. Two knock-on changes:
+  - Every stored property on `Instance` needed a default value (`id: UUID
+    = UUID()`, `name: String = ""`, etc.) and `id` lost its `@Attribute(.unique)`
+    — both are hard CloudKit/SwiftData requirements for any model in a
+    CloudKit-backed configuration, unrelated to this app's own logic. The
+    `Cached*` models keep their `.unique` `uid` since they stay local-only.
+  - The automatic cascade-delete relationship (`Instance` → `Cached*`,
+    `deleteRule: .cascade`) no longer exists, so deleting an instance no
+    longer deletes its cached data for free. `SettingsView`/
+    `WatchSettingsView`'s `delete(_:)` now do this manually via
+    `ModelContext.delete(model:where:)` for each locally-scoped `Cached*`
+    type, filtered by `instanceID` (iOS: all five types; Watch: just
+    `CachedShift`, matching its narrower schema).
+  - The three sync services (`ShiftSyncService`, `NewsSyncService`,
+    `ProfileSyncService`) no longer set `existing.instance = instance` /
+    `cached.instance = instance` after upserting — that property is gone;
+    they already keyed everything off `instanceID` anyway, never the
+    relationship.
+- **Not yet verified end-to-end on-device or in the Watch simulator.**
+  Adding these entitlements by hand-editing the `.entitlements` files
+  (necessary since I can't drive Xcode's GUI) is not the same as actually
+  registering the CloudKit container/Keychain Sharing group against the
+  paid account — that registration normally happens automatically when
+  Xcode's Signing & Capabilities UI adds the capability, which needs the
+  user's own Xcode session. **The user still needs to open Xcode once**
+  and add/confirm iCloud (CloudKit, container
+  `iCloud.net.cuccato.engelsystem.de`) + Keychain Sharing via Signing &
+  Capabilities for both targets before real sync can be tested.
+  Additionally: `EngelsystemClient_Watch_App_Watch_AppUITests
+  .testDemoModeShowsNextShift` **hung indefinitely** (killed after ~13+ and
+  ~4 minutes on two separate attempts, both well past its normal
+  60–120 second runtime) when run via `xcodebuild test` after these
+  entitlement changes, while the equivalent iOS UI test
+  (`testDemoModeNavigationFlow`) ran fine in the same session with the
+  same kind of entitlement additions. Not root-caused — the watchOS
+  Simulator's iCloud/CloudKit account-status support is known to be
+  weaker than the iOS Simulator's (no real Watch pairing to source an
+  iCloud session from), so this may be a simulator-only limitation
+  (`ICloudAvailability.isAvailable` resolving `true` on-device/host but
+  the actual CloudKit container handshake never completing in that
+  environment) rather than an app defect — but this is a guess, not a
+  confirmed diagnosis. If you hit this again: don't wait it out past ~2
+  minutes, kill the process (low CPU time while "running" is the tell —
+  it's hung, not slow) and treat the Watch app's CloudKit path as
+  unverified by that test until it can be checked on a real paired
+  Watch+iPhone or the hang is root-caused. The iOS side, the Kit unit
+  tests (including a new `modelContainerFactorySupportsBothInstanceAndLocalModels`
+  test), and both platforms' plain builds are all confirmed fine — this
+  caveat is specifically about the Watch *UI test*, not the app code.
 
 ## Testing
 

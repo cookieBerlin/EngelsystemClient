@@ -6,5 +6,17 @@
 	<array>
 		<string>group.net.cuccato.engelsystem.de.shared</string>
 	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.net.cuccato.engelsystem.de</string>
+	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)net.cuccato.engelsystem.de.shared</string>
+	</array>
 </dict>
 </plist>

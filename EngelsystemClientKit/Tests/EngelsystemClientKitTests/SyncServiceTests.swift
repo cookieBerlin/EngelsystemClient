@@ -74,3 +74,39 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
         _ = try InstanceCredentialResolver().credential(for: instance)
     }
 }
+
+// `ModelContainerFactory` splits `Instance` (CloudKit-backed) from the `Cached*` models
+// (local-only) into separate `ModelConfiguration`s — see Instance.swift for why (SwiftData
+// relationships can't cross configurations, unlike before this split). This exercises that
+// container end-to-end: inserting and fetching both an `Instance` and a `CachedShift`
+// through the same `ModelContext`, which only works if the split configurations are wired
+// up correctly. Runs against whichever path `ICloudAvailability.isAvailable` takes in this
+// environment (almost always the local-only fallback in a `swift test` CLI process, since
+// there's no signed app / entitlements context) — either way, both model types must work.
+@Test @MainActor func modelContainerFactorySupportsBothInstanceAndLocalModels() throws {
+    let container = ModelContainerFactory.makeContainer(
+        localSchemaTypes: [CachedShift.self],
+        isStoredInMemoryOnly: true,
+        forceLocalOnly: true
+    )
+    let context = ModelContext(container)
+
+    let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: "ref")
+    context.insert(instance)
+    try context.save()
+    #expect(try context.fetch(FetchDescriptor<Instance>()).count == 1)
+
+    let shift = CachedShift(
+        serverID: 1,
+        instanceID: instance.id,
+        title: "Test Shift",
+        startsAt: Date(),
+        endsAt: Date().addingTimeInterval(3600),
+        locationID: 1,
+        shiftTypeID: 1,
+        url: "https://example.org/shifts/1"
+    )
+    context.insert(shift)
+    try context.save()
+    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 1)
+}

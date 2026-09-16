@@ -74,6 +74,14 @@ struct WatchSettingsView: View {
         if activeInstanceIDString == instance.id.uuidString {
             activeInstanceIDString = ""
         }
+
+        // Manual cascade delete: `Instance` (CloudKit-backed) and `CachedShift`
+        // (local-only, the only Cached* type the Watch schema includes) live in
+        // separate `ModelConfiguration`s now, so SwiftData's relationship-based
+        // cascade delete no longer applies across them — see Instance.swift.
+        let instanceID = instance.id
+        try? modelContext.delete(model: CachedShift.self, where: #Predicate { $0.instanceID == instanceID })
+
         modelContext.delete(instance)
     }
 }
