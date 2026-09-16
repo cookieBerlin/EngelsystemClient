@@ -198,17 +198,24 @@ App Group. Both now declare:
   Verified the entitlements compile and embed correctly (inspected the built
   `.xcent` via `plutil -p`, `$(AppIdentifierPrefix)` resolved to the real
   team ID) and that both the iOS and watchOS schemes still build clean. This
-  is hand-written entitlements-file editing, **not** the same as adding the
+  was hand-written entitlements-file editing, **not** the same as adding the
   capability through Xcode's Signing & Capabilities UI — that UI step is
   what actually registers the CloudKit container and provisions the
   Keychain Sharing group against the paid developer account on Apple's
-  servers. **The user still needs to open Xcode once** and confirm/add the
-  iCloud (CloudKit checked, container `iCloud.net.cuccato.engelsystem.de`)
-  and Keychain Sharing capabilities via Signing & Capabilities for both the
-  iOS and Watch targets before real sync will work on-device — simulator
-  and CLI builds compile fine either way since they don't enforce real
-  provisioning, but that doesn't mean the container/group actually exist on
-  Apple's backend yet.
+  servers.
+
+  **Confirmed done, 2026-09-16, same day**: the user opened Xcode and
+  completed this. Verified from the CLI side (not just taken on faith) by
+  inspecting the freshly regenerated local provisioning profiles under
+  `~/Library/Developer/Xcode/UserData/Provisioning Profiles/*.mobileprovision`
+  (`security cms -D -i <profile> | plutil -extract Entitlements ...`) —
+  both the iOS app's and the Watch app's profiles now list
+  `com.apple.developer.icloud-container-identifiers = [iCloud.net.cuccato.engelsystem.de]`,
+  which Apple only issues once a container by that identifier actually
+  exists on their backend, plus `keychain-access-groups` via the
+  automatic-signing wildcard group. The CloudKit container and Keychain
+  Sharing group are real and provisioned for both targets now — this is no
+  longer a manual next step.
 
 **Bundle identifiers are unique across *all* Apple developer accounts, not just
 this project or team.** `EngelsystemComplication`'s original bundle ID
@@ -281,6 +288,29 @@ that specific connected device. Not fixable locally (no newer Xcode
 exists yet to install) — will resolve itself once Apple ships an Xcode
 update with a matching watchOS 26.6 SDK. Don't mistake this for an
 actual asset catalog problem if it recurs.
+
+**Xcode upgraded to 27.0 (build 27A266a) on 2026-09-16**, superseding the
+26.6 install referenced throughout this doc — likely resolves the
+watchOS 26.6 SDK gap above, since 27.0 brings its own newer simulator
+runtimes (confirmed: iOS 27.0 and watchOS 27.0 simulators now exist
+alongside the previous 26.5 ones). Opening the project in it bumped
+`LastUpgradeCheck`/`LastUpgradeVersion` from 2660 to 2700 across
+`project.pbxproj` and all three shared schemes, synced the *project*-level
+`DEVELOPMENT_TEAM` (previously stale at the old `TYG73A374P`, unlike the
+per-target settings which were already `8A5FNU94BM`) and added
+`STRING_CATALOG_GENERATE_SYMBOLS = YES` to the project-level Debug/Release
+settings — all routine, harmless auto-upgrade artifacts, committed as-is.
+One practical fallout: `xcodebuild -destination 'platform=iOS
+Simulator,name=iPhone 17 Pro'` (by device *name*) started emitting a huge
+spurious "no matching destination" dump listing every paired/simulator
+device on the machine, even though the named simulator exists and the
+build still ultimately succeeds — switching to `-destination
+'platform=iOS Simulator,id=<UDID>'` (look the UDID up via `xcrun simctl
+list devices available`) avoids the noise entirely. Not root-caused
+(possibly duplicate/ambiguous device names across the old and new
+simulator runtime sets now installed side by side) — just use `id:`
+instead of `name:` going forward rather than re-investigating this each
+time.
 
 ## Data/code flow
 
@@ -683,36 +713,29 @@ schedule anyway, and there's no reason to sync them.
     `cached.instance = instance` after upserting — that property is gone;
     they already keyed everything off `instanceID` anyway, never the
     relationship.
-- **Not yet verified end-to-end on-device or in the Watch simulator.**
-  Adding these entitlements by hand-editing the `.entitlements` files
-  (necessary since I can't drive Xcode's GUI) is not the same as actually
-  registering the CloudKit container/Keychain Sharing group against the
-  paid account — that registration normally happens automatically when
-  Xcode's Signing & Capabilities UI adds the capability, which needs the
-  user's own Xcode session. **The user still needs to open Xcode once**
-  and add/confirm iCloud (CloudKit, container
-  `iCloud.net.cuccato.engelsystem.de`) + Keychain Sharing via Signing &
-  Capabilities for both targets before real sync can be tested.
-  Additionally: `EngelsystemClient_Watch_App_Watch_AppUITests
-  .testDemoModeShowsNextShift` **hung indefinitely** (killed after ~13+ and
+- **Capability registration confirmed done, 2026-09-16** (see the
+  Entitlements section above for how this was verified from the CLI side
+  via the regenerated provisioning profiles) — the CloudKit container and
+  Keychain Sharing group are real and provisioned for both targets now.
+- **Still open: `EngelsystemClient_Watch_App_Watch_AppUITests
+  .testDemoModeShowsNextShift` hung indefinitely** (killed after ~13+ and
   ~4 minutes on two separate attempts, both well past its normal
-  60–120 second runtime) when run via `xcodebuild test` after these
-  entitlement changes, while the equivalent iOS UI test
+  60–120 second runtime) when run via `xcodebuild test` right after the
+  entitlement changes above — *before* the capability registration above
+  was confirmed — while the equivalent iOS UI test
   (`testDemoModeNavigationFlow`) ran fine in the same session with the
-  same kind of entitlement additions. Not root-caused — the watchOS
-  Simulator's iCloud/CloudKit account-status support is known to be
-  weaker than the iOS Simulator's (no real Watch pairing to source an
-  iCloud session from), so this may be a simulator-only limitation
-  (`ICloudAvailability.isAvailable` resolving `true` on-device/host but
-  the actual CloudKit container handshake never completing in that
-  environment) rather than an app defect — but this is a guess, not a
-  confirmed diagnosis. If you hit this again: don't wait it out past ~2
-  minutes, kill the process (low CPU time while "running" is the tell —
-  it's hung, not slow) and treat the Watch app's CloudKit path as
-  unverified by that test until it can be checked on a real paired
-  Watch+iPhone or the hang is root-caused. The iOS side, the Kit unit
-  tests (including a new `modelContainerFactorySupportsBothInstanceAndLocalModels`
-  test), and both platforms' plain builds are all confirmed fine — this
+  same kind of entitlement additions. Not root-caused, and **not yet
+  re-tried since registration was confirmed** — it's plausible (but
+  unconfirmed) that the hang was caused by exactly this missing
+  registration (the app trying and failing/hanging to reach a CloudKit
+  container that didn't exist yet), in which case it may already be fixed
+  now. Re-run this test before trusting the Watch app's CloudKit path;
+  if it still hangs, don't wait it out past ~2 minutes — kill the process
+  (low CPU time while "running" is the tell that it's hung, not slow) and
+  investigate further rather than assuming the registration fix covers
+  it. The iOS side, the Kit unit tests (including a new
+  `modelContainerFactorySupportsBothInstanceAndLocalModels` test), and
+  both platforms' plain builds are all confirmed fine regardless — this
   caveat is specifically about the Watch *UI test*, not the app code.
 
 ## Testing
