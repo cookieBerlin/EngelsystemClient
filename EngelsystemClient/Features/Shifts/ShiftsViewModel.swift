@@ -33,6 +33,7 @@ final class ShiftsViewModel {
         defer { isLoading = false }
         do {
             let credential = try credentialResolver.credential(for: instance)
+            print("[ShiftsViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
             let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
             print("[ShiftsViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
             if await notificationScheduler.requestAuthorizationIfNeeded() {

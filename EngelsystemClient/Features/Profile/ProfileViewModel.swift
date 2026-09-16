@@ -27,6 +27,7 @@ final class ProfileViewModel {
         defer { isLoading = false }
         do {
             let credential = try credentialResolver.credential(for: instance)
+            print("[ProfileViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
             let profile = try await syncService.syncProfile(instance: instance, credential: credential, in: modelContext)
             print("[ProfileViewModel] synced profile '\(profile.name)' from \(credential.baseURL)")
             let worklogs = try await syncService.syncWorklogs(instance: instance, credential: credential, in: modelContext)
