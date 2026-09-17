@@ -38,7 +38,15 @@ public enum ModelContainerFactory {
         let localSchema = Schema(localSchemaTypes)
         let fullSchema = Schema([Instance.self] + localSchemaTypes)
 
-        let cloudKitDatabase: ModelConfiguration.CloudKitDatabase = (!forceLocalOnly && ICloudAvailability.isAvailable)
+        let iCloudAvailable = !forceLocalOnly && ICloudAvailability.isAvailable
+        // Diagnostic: whether Instance is CloudKit-backed at all is otherwise invisible
+        // from the outside — a device with no iCloud account signed in (or one that
+        // just never got FileManager.ubiquityIdentityToken populated yet) silently
+        // falls back to a fully local, unsynced Instance store, which looks identical
+        // to "sync is broken" from the UI (an empty instance list) but has a completely
+        // different fix (sign into iCloud on *this* device, separately from any other).
+        print("[ModelContainerFactory] ICloudAvailability.isAvailable = \(ICloudAvailability.isAvailable), forceLocalOnly = \(forceLocalOnly) -> Instance is \(iCloudAvailable ? "CloudKit-backed" : "local-only, NOT syncing")")
+        let cloudKitDatabase: ModelConfiguration.CloudKitDatabase = iCloudAvailable
             ? .private(cloudKitContainerIdentifier)
             : .none
 
