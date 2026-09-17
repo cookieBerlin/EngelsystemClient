@@ -1325,6 +1325,15 @@ schedule anyway, and there's no reason to sync them.
   the only place that would surface a *genuine* future CloudKit account
   problem (as opposed to the app-side bug this entry describes).
 
+  **Confirmed fixed on real hardware, same day**: after rebuilding and
+  reinstalling on the same physical Watch, the user confirmed `Instance`
+  sync from the iPhone now actually arrives — this is the first time
+  cross-device `Instance` sync has ever been confirmed working in
+  practice, not just via entitlement/provisioning inspection. The new
+  `CloudSyncStatus` footer on both Settings screens (see Implemented
+  Features below) exists specifically so this stays visible going
+  forward without needing a console attached.
+
 ## Testing
 
 - **Always add tests for new features** — logic in `EngelsystemClientKit`
