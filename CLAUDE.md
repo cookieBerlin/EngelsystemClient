@@ -784,6 +784,29 @@ exists without reading the whole diff history.
 
 ### iOS/iPadOS app
 
+- **Launch screen** (`Features/Launch/LaunchScreenView`, wired into
+  `ContentView`, 2026-09-17): shows the app icon, name, and
+  `AppVersionInfo.displayString` (version/build/git hash — see
+  Entitlements above) for a fixed `ContentView.launchScreenDuration`
+  (1.2s) while `ContentView` renders, so there's a branding moment
+  instead of jumping straight from the system launch screen into
+  `InstanceSetupView`/`MainView`. The icon is read from `Info.plist`'s
+  `CFBundleIcons` (the standard way to show the real running app icon
+  inside SwiftUI, since an appicon asset set isn't otherwise
+  referenceable as a plain `Image`). Not a gate on real async work —
+  `ModelContainerFactory.makeContainer` already runs synchronously
+  before `ContentView` even appears (see `EngelsystemClientApp`), so
+  this is a deliberate minimum-duration splash, not a loading indicator.
+  **Not asserted directly in `EngelsystemClientUITests`**: on a
+  slow/loaded test machine, cold-launch overhead before XCUITest can
+  even query the accessibility hierarchy can exceed the whole 1.2s
+  window on its own, so an existence check for the splash text is a
+  race against test-harness startup, not a check of real behavior —
+  confirmed hands-on (failed at a 5s timeout after an 11s+ cold launch).
+  Verified structurally instead (it's what `ContentView` renders first,
+  so a crash there would break every later assertion in that test) —
+  see the equivalent workaround already needed for the "Try Demo Mode"
+  button below.
 - **Instance Setup** (`Features/InstanceSetup`): form to add an
   Engelsystem instance (name, server URL, API key). Tests the connection
   against `GET /info` before saving; only creates the `Instance` and
@@ -1225,6 +1248,34 @@ schedule anyway, and there's no reason to sync them.
   re-running — a full erase, not just an uninstall, and don't trust a
   bare `uninstall` to have actually done anything without checking its
   output.
+- **`xcodebuild test` (iOS, this machine) can fail every single attempt
+  with `"Simulator device failed to launch ...xctrunner"` /
+  `"The request was denied by service delegate (SBMainWorkspace)"`,
+  even against a simulator already confirmed booted to its home screen
+  (verified via `xcrun simctl io <udid> screenshot`).** Root-caused
+  2026-09-17: `xcodebuild test` runs against a throwaway **clone** of
+  the target simulator by default (visible in the test log as `Clone 1
+  of <device> - <Target>Runner`), not the literal device you booted and
+  screenshotted — that clone gets its own independent boot, and can
+  still be mid-boot (denying all app-launch requests) even when the
+  original device is long since idle at its home screen. Confirmed by
+  eliminating it: adding **`-parallel-testing-enabled NO`** to the
+  `xcodebuild test` invocation makes it run against the actual target
+  simulator directly, and the launch failures stopped immediately across
+  every subsequent run. Add this flag by default for this project on
+  this machine — don't spend time re-diagnosing `RequestDenied` as an
+  app/entitlements/code problem first.
+- **A UI-test assertion that a short-lived transient element (e.g. a
+  1–2 second splash/toast) appeared is inherently racy against cold
+  app-launch time on a slow or loaded machine — don't add one.** Hit
+  this validating the launch screen above: a `waitForExistence(timeout:
+  5)` for its text failed outright because cold launch alone had
+  already taken 11+ seconds before XCUITest could even query the
+  accessibility hierarchy, by which point a 1.2-second on-screen window
+  (timed from first render, not from process launch) had long since
+  closed. Prefer a structural check (does the rest of the flow still
+  work, proving the transient view didn't crash) over trying to catch
+  it existing on screen.
 
 ## Important constraints that apply to every implementation step
 

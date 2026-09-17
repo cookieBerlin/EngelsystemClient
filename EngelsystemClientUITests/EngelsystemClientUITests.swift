@@ -38,8 +38,24 @@ final class EngelsystemClientUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
+        // LaunchScreenView (icon/app name/version) shows for a fixed, short duration
+        // (ContentView.launchScreenDuration) from when SwiftUI first renders it — not
+        // from process launch. Deliberately not asserted here: on a slow/loaded machine,
+        // cold launch overhead before XCUITest can even query the accessibility
+        // hierarchy can exceed that whole window on its own, making an existence check
+        // for it a race against test-harness startup rather than a check of real
+        // behavior (confirmed hands-on: failed at a 5s timeout after an 11s+ cold
+        // launch). The launch screen is exercised structurally instead — it's what
+        // ContentView shows first, so if it crashed or broke ContentView's body, none
+        // of this test's later assertions would ever get to run.
+        //
+        // It briefly overlays real content (icon/app name/version, shown
+        // for ContentView.launchScreenDuration) — it exists in the accessibility tree
+        // immediately, so `waitForExistence` alone isn't enough to know it's safe to
+        // tap; wait for it to actually be hittable (splash gone) first.
         let demoButton = app.buttons["Try Demo Mode"]
         XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
+        waitUntilHittable(demoButton, in: app)
         demoButton.tap()
 
         // Demo mode lands on Shifts by default and syncs the sample shifts.
@@ -150,6 +166,17 @@ final class EngelsystemClientUITests: XCTestCase {
     @MainActor
     private func containingText(_ text: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", text)).firstMatch
+    }
+
+    /// `waitForExistence` only checks that an element is in the accessibility tree, not
+    /// that it's actually tappable — an element under an opaque overlay (like
+    /// `LaunchScreenView`) still "exists". Used wherever a launch-time overlay could
+    /// still be covering the real content when the element first appears.
+    @MainActor
+    private func waitUntilHittable(_ element: XCUIElement, in app: XCUIApplication, timeout: TimeInterval = 5) {
+        let predicate = NSPredicate(format: "isHittable == true")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        _ = XCTWaiter.wait(for: [expectation], timeout: timeout)
     }
 
     @MainActor
