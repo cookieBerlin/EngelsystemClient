@@ -79,6 +79,14 @@ struct SettingsView: View {
             } footer: {
                 Text("How far in advance a local reminder is scheduled before each of your shifts starts.")
             }
+
+            Section {
+                Text(AppVersionInfo.displayString)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .listRowBackground(Color.clear)
         }
         .navigationTitle("Settings")
         .toolbar {

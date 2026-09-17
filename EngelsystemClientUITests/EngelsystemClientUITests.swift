@@ -129,6 +129,14 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(thirtyMinOption.waitForExistence(timeout: 5))
         thirtyMinOption.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         XCTAssertTrue(containingText("30 min", in: app).waitForExistence(timeout: 5))
+
+        // Version/build/git-hash footer at the bottom of Settings (AppVersionInfo) —
+        // scroll down since it sits below the fold after all the sections above.
+        let versionFooter = containingText("Version", in: app)
+        for _ in 0..<10 where !versionFooter.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(versionFooter.waitForExistence(timeout: 5))
     }
 
     @MainActor

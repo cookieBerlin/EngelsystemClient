@@ -863,6 +863,14 @@ exists without reading the whole diff history.
   section: a "Notify Before Shift" picker (5/10/15/30/60 min) backed by
   `@AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)`, applying
   to all instances (it's a single app-wide preference, not per-instance).
+  At the very bottom, a plain unheadered section shows `AppVersionInfo
+  .displayString` (`Features/Shared`) — marketing version, build number,
+  and the `GitCommitHash` Info.plist key (see Entitlements above),
+  formatted as "Version 1.0 (3) · a1b2c3d" — so a specific installed
+  build can be identified at a glance. `WatchSettingsView` has the same
+  footer via its own duplicate `AppVersionInfo` (`Settings/`, watch
+  target — duplicated rather than shared since `Bundle.main` resolves
+  per-target).
 - **Shared feature helpers** (`Features/Shared`): `ErrorBanner` (inline
   red banner for sync errors), `SyncErrorMapper` (maps `APIError`/
   `InstanceCredentialError`/`KeychainError` to the same user-facing
@@ -1179,6 +1187,26 @@ schedule anyway, and there's no reason to sync them.
   in the dev environment) or `simctl` (no tap/touch support). Run with
   `xcodebuild test -scheme EngelsystemClient -destination 'platform=iOS
   Simulator,name=<device>' -only-testing:EngelsystemClientUITests/<Class>/<method>`.
+- **`testDemoModeNavigationFlow` (and any test that assumes a fresh
+  "no instance configured yet" first launch) fails at its very first
+  assertion — `"Try Demo Mode"` button not found — if the target
+  simulator already has `Instance` records from an earlier test run or
+  manual `xcrun simctl launch`/install.** `ContentView` shows `MainView`
+  directly instead of `InstanceSetupView` once any instance exists
+  (demo or real), and this local SwiftData store persists across
+  separate `xcodebuild test` invocations on the same simulator — it is
+  **not** reset between runs, and `xcrun simctl uninstall` silently does
+  nothing if the simulator happens to be shut down at that moment
+  (`"Unable to lookup in current state: Shutdown"`, no error surfaced
+  otherwise). Root-caused 2026-09-17 after this exact test started
+  failing (and, confusingly, also hanging for ~10 minutes on
+  `xcodebuild`'s own "collecting diagnostics from simulator" step
+  afterward — the same red herring shape as the watchOS Simulator
+  ceiling below, but a completely different, mundane cause here). Fix:
+  `xcrun simctl shutdown <udid> && xcrun simctl erase <udid>` before
+  re-running — a full erase, not just an uninstall, and don't trust a
+  bare `uninstall` to have actually done anything without checking its
+  output.
 
 ## Important constraints that apply to every implementation step
 

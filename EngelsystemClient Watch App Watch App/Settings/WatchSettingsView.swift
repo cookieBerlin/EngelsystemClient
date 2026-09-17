@@ -65,6 +65,14 @@ struct WatchSettingsView: View {
             } header: {
                 Text("Notifications")
             }
+
+            Section {
+                Text(AppVersionInfo.displayString)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .listRowBackground(Color.clear)
         }
         .navigationTitle("Settings")
         .sheet(isPresented: $isPresentingSetup) {
