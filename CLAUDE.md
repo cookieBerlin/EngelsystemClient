@@ -264,8 +264,30 @@ requirement.
 - **Fallback:** if iCloud is disabled on the device → allow manual
   key/server entry directly on the Watch (its own local keychain entry,
   independent of sync)
-- Startup check: `FileManager.default.ubiquityIdentityToken != nil` to
-  check iCloud availability and show fallback UI if needed
+- ~~Startup check: `FileManager.default.ubiquityIdentityToken != nil` to
+  check iCloud availability and show fallback UI if needed~~ **Removed
+  2026-09-18 — this was wrong from the start.** `ubiquityIdentityToken`
+  belongs to the iCloud Documents/Ubiquity-container API family, a
+  *different* Apple iCloud subsystem from CloudKit (what `Instance`
+  actually syncs through). Confirmed on a real Watch:
+  `ubiquityIdentityToken != nil` reported `false` while
+  `CKContainer.accountStatus()` correctly reported `.available` for the
+  very same signed-in iCloud account — meaning this check had been
+  silently forcing `Instance` into a local-only, unsynced
+  `ModelConfiguration` on every device (very likely the iPhone too, just
+  never noticed since a single-device install behaves identically
+  whether or not sync is actually happening) since CloudKit sync was
+  first implemented on 2026-09-16. **`Instance` is now unconditionally
+  CloudKit-backed in production** — no pre-check at all — since
+  CloudKit's own mirroring already degrades gracefully with no iCloud
+  account (local reads/writes keep working; sync merely pauses until an
+  account becomes available). See `ModelContainerFactory` below for the
+  full writeup. `ICloudAvailability.isAvailable`
+  (`ubiquityIdentityToken`-based) is still used, unchanged, for choosing
+  `KeychainSyncStore` vs. `LocalKeychainStore` when saving an API key —
+  that's a genuinely different iCloud feature (iCloud Keychain sync,
+  `kSecAttrSynchronizable`) from both CloudKit and Ubiquity/Documents,
+  and hasn't been shown to have the same problem.
 
 ## Watch app scope (deliberately minimal)
 
@@ -1071,16 +1093,27 @@ schedule anyway, and there's no reason to sync them.
   `iCloud.net.cuccato.engelsystem.de`) and whatever `Cached*` types the
   caller passes in (`localSchemaTypes:`, always local-only,
   `cloudKitDatabase: .none`) — combined into one `ModelContainer` via
-  `ModelContainer(for: fullSchema, configurations: [cloud, local])`. Falls
-  back to a local-only configuration for `Instance` too when
-  `ICloudAvailability.isAvailable` is false, so the existing manual entry
-  forms (`InstanceSetupView`, `WatchSetupView`) remain a real fallback
-  rather than a dead code path. Takes `isStoredInMemoryOnly`/
-  `forceLocalOnly` parameters so tests get a fully deterministic,
-  side-effect-free container regardless of whether the machine running
-  them happens to be signed into iCloud (CloudKit mirroring also isn't
-  supported on an in-memory store at all, so `forceLocalOnly` must be set
-  whenever `isStoredInMemoryOnly` is).
+  `ModelContainer(for: fullSchema, configurations: [cloud, local])`.
+  `Instance` is **unconditionally** CloudKit-backed in production
+  (`forceLocalOnly` is test-only — see below); the manual entry forms
+  (`InstanceSetupView`, `WatchSetupView`) remain the real fallback for a
+  device genuinely without an iCloud account, since CloudKit's own
+  mirroring degrades gracefully in that case rather than needing a
+  pre-check. **This used to instead gate on
+  `ICloudAvailability.isAvailable`
+  (`FileManager.ubiquityIdentityToken != nil`) — root-caused wrong,
+  2026-09-18**: that API is part of the iCloud Documents/Ubiquity-
+  container family, not CloudKit, and reported `false` on a real Watch
+  even while `CKContainer.accountStatus()` correctly reported
+  `.available` for the same signed-in account. This had been silently
+  forcing `Instance` local-only on every device since CloudKit sync was
+  first implemented — see the "Actually root-caused" CloudKit-account
+  entry further below for the full story and how it was found. Takes
+  `isStoredInMemoryOnly`/`forceLocalOnly` parameters so tests get a fully
+  deterministic, side-effect-free container regardless of this machine's
+  iCloud state (CloudKit mirroring also isn't supported on an in-memory
+  store at all, so `forceLocalOnly` must be set whenever
+  `isStoredInMemoryOnly` is).
 - **`Instance` lost its relationships to the `Cached*` models.** SwiftData
   relationships can't cross `ModelConfiguration`s, and `Instance` now
   lives in a different one than `Cached*`. Two knock-on changes:
@@ -1207,6 +1240,83 @@ schedule anyway, and there's no reason to sync them.
   caught this bug. Confirmed it actually catches the regression by
   temporarily removing the `try? modelContext.save()` call and re-running —
   the test failed as expected, then passed again once restored.
+
+- **Actually root-caused, 2026-09-18: `Instance` sync between iOS and
+  Watch had never actually worked, on either platform, since CloudKit
+  sync was first implemented (2026-09-16) — the CLAUDE.md-specified
+  startup check itself used the wrong Apple API.** Reported by the user
+  from a real Watch: `WatchSetupView` (the "no instance configured yet"
+  fallback) kept showing even though an `Instance` was already active on
+  the paired iPhone. `ModelContainerFactory` diagnostic logging (added
+  during this investigation, see below) showed
+  `ICloudAvailability.isAvailable = false` on the Watch — meaning
+  `Instance` had silently fallen back to a local-only `ModelConfiguration`
+  there, never even attempting CloudKit. The user confirmed the correct
+  Apple ID was signed in on the Watch and iCloud Drive was enabled on the
+  paired iPhone, ruling out an actual account problem — which pointed at
+  the check itself rather than the device's iCloud state.
+
+  `ICloudAvailability.isAvailable` is `FileManager.default
+  .ubiquityIdentityToken != nil` — this is exactly what CLAUDE.md's
+  "Sync strategy" originally specified as the binding startup check
+  (written before any CloudKit code existed). The problem:
+  **`ubiquityIdentityToken` belongs to Apple's iCloud Documents/
+  Ubiquity-container API family — a different iCloud subsystem from
+  CloudKit entirely**, historically used for detecting iCloud account
+  changes for document-based storage (the same family as
+  `url(forUbiquityContainerIdentifier:)`, and the reason this app never
+  appears in Settings' "apps using iCloud Drive" list — it correctly
+  doesn't, since the app never requested that capability, only
+  `CloudKit`). Confirmed by adding a parallel diagnostic
+  (`ICloudAvailability.logCloudKitAccountStatus`, logs
+  `CKContainer.accountStatus()` — CloudKit's own, documented-correct
+  availability API) alongside the existing check: on the same real
+  Watch, in the same launch, `ubiquityIdentityToken != nil` reported
+  `false` while `CKContainer.accountStatus()` reported
+  `CKAccountStatus.available` (`rawValue: 1`) for the identical
+  signed-in account. The wrong API had been used the entire time —
+  first specified in CLAUDE.md itself, before the 2026-09-16 CloudKit
+  implementation ever wrote a line of code against it, so this was never
+  a coding mistake introduced later, it was baked into the original
+  binding design.
+
+  This explains why the 2026-09-16 entitlement verification (provisioning
+  profile inspection, confirming the CloudKit container and Keychain
+  Sharing group were correctly provisioned) never caught it: that check
+  only confirmed the *capability was provisioned*, never that the app
+  actually *used* it at runtime — `isAvailable` gated the decision, and
+  its always-`false` result meant `Instance` used the CloudKit-configured
+  container's identifier as a label only, with `cloudKitDatabase: .none`
+  underneath. It also explains why nothing looked broken on the iPhone
+  side before this: a single-device install behaves identically whether
+  or not CloudKit sync is actually active, so there was nothing to
+  visibly contradict.
+
+  Fix: **removed the availability pre-check from `ModelContainerFactory`
+  entirely** — `Instance` is now unconditionally CloudKit-backed in
+  production (`forceLocalOnly` remains, test-only, for a fully
+  deterministic offline container). This is also the more correct
+  design regardless of the API mixup: `NSPersistentCloudKitContainer`-
+  style CloudKit mirroring is built to degrade gracefully with no iCloud
+  account present (local reads/writes keep working; sync merely pauses
+  until an account becomes available), so gating the *configuration
+  itself* on a point-in-time availability check was never necessary —
+  doubly so since `CKContainer.accountStatus()`, the theoretically
+  "correct" replacement check, is async and container creation happens
+  synchronously at app launch, which would have required a much larger
+  restructure to use correctly anyway. `ICloudAvailability.isAvailable`
+  itself is untouched and still used exactly as before for choosing
+  `KeychainSyncStore` vs. `LocalKeychainStore` — iCloud Keychain sync
+  (`kSecAttrSynchronizable`) is a third, genuinely distinct iCloud
+  subsystem from both CloudKit and Ubiquity/Documents, and hasn't been
+  shown to have this problem.
+
+  `ICloudAvailability.logCloudKitAccountStatus(containerIdentifier:)`
+  (`Services/APIKeyStore.swift`) is kept as a standing diagnostic —
+  fire-and-forget, logs `CKContainer.accountStatus()` on every
+  `ModelContainerFactory.makeContainer` call in production — since it's
+  the only place that would surface a *genuine* future CloudKit account
+  problem (as opposed to the app-side bug this entry describes).
 
 ## Testing
 

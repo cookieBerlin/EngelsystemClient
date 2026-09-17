@@ -10,10 +10,14 @@ import SwiftData
 /// relationships can't cross `ModelConfiguration`s, which is also why `Instance` no
 /// longer has relationships to the `Cached*` types — see `Instance.swift`).
 ///
-/// Falls back to a local-only configuration for `Instance` too when iCloud isn't
-/// available on the device (`ICloudAvailability.isAvailable`) — the existing manual
-/// entry forms (`InstanceSetupView`, `WatchSetupView`) already cover that case, per the
-/// "Fallback" bullet in CLAUDE.md's Sync strategy.
+/// `Instance` is unconditionally CloudKit-backed in production (2026-09-18 — no
+/// device-side availability pre-check; see the root-cause comment in
+/// `makeContainer` below for why one existed before and why it was wrong)
+/// — `forceLocalOnly` exists purely for deterministic, offline tests. The existing
+/// manual entry forms (`InstanceSetupView`, `WatchSetupView`) remain the real fallback
+/// path per the "Fallback" bullet in CLAUDE.md's Sync strategy, since CloudKit itself
+/// still degrades gracefully (local reads/writes keep working) when there's genuinely
+/// no iCloud account on the device.
 public enum ModelContainerFactory {
     public static let cloudKitContainerIdentifier = "iCloud.net.cuccato.engelsystem.de"
 
@@ -22,13 +26,11 @@ public enum ModelContainerFactory {
     ///     Watch: just `CachedShift`, per its excluded-schema design).
     ///   - isStoredInMemoryOnly: `false` for real app use (the default); tests pass
     ///     `true` for an ephemeral container with no on-disk side effects.
-    ///   - forceLocalOnly: bypasses the `ICloudAvailability.isAvailable` check and
-    ///     always uses a local-only configuration for `Instance` too. Real app code
-    ///     never needs this (the availability check already does the right thing);
-    ///     it exists so tests get a deterministic container regardless of whether the
-    ///     machine running them happens to be signed into iCloud — CloudKit mirroring
-    ///     also isn't supported on an in-memory store, so this must be forced whenever
-    ///     `isStoredInMemoryOnly` is `true`.
+    ///   - forceLocalOnly: always uses a local-only configuration for `Instance` too.
+    ///     Real app code never needs this; it exists so tests get a deterministic
+    ///     container regardless of this machine's iCloud state — CloudKit mirroring
+    ///     isn't supported on an in-memory store at all, so this must be forced
+    ///     whenever `isStoredInMemoryOnly` is `true`.
     public static func makeContainer(
         localSchemaTypes: [any PersistentModel.Type],
         isStoredInMemoryOnly: Bool = false,
@@ -38,20 +40,33 @@ public enum ModelContainerFactory {
         let localSchema = Schema(localSchemaTypes)
         let fullSchema = Schema([Instance.self] + localSchemaTypes)
 
-        let iCloudAvailable = !forceLocalOnly && ICloudAvailability.isAvailable
-        // Diagnostic: whether Instance is CloudKit-backed at all is otherwise invisible
-        // from the outside — a device with no iCloud account signed in (or one that
-        // just never got FileManager.ubiquityIdentityToken populated yet) silently
-        // falls back to a fully local, unsynced Instance store, which looks identical
-        // to "sync is broken" from the UI (an empty instance list) but has a completely
-        // different fix (sign into iCloud on *this* device, separately from any other).
-        print("[ModelContainerFactory] ICloudAvailability.isAvailable = \(ICloudAvailability.isAvailable), forceLocalOnly = \(forceLocalOnly) -> Instance is \(iCloudAvailable ? "CloudKit-backed" : "local-only, NOT syncing")")
+        // Always CloudKit-backed in production — forceLocalOnly is only for tests,
+        // which need a fully offline, deterministic container regardless of this
+        // machine's iCloud state (CloudKit mirroring isn't supported on an in-memory
+        // store at all). Root-caused 2026-09-18: this used to also gate on
+        // `ICloudAvailability.isAvailable` (`FileManager.ubiquityIdentityToken != nil`),
+        // per CLAUDE.md's originally-specified startup check — but that API belongs to
+        // the iCloud Documents/Ubiquity-container family, a *different* Apple iCloud
+        // subsystem from CloudKit. Confirmed on a real Watch: `isAvailable` reported
+        // `false` while `CKContainer.accountStatus()` correctly reported `.available`
+        // for the very same signed-in account — meaning this check silently forced
+        // *every* device (very likely the iPhone too, just unnoticed since a
+        // single-device install works identically whether or not sync is actually
+        // happening) into local-only mode the whole time. `Instance` sync between
+        // devices was never actually exercised despite the entitlements being
+        // correctly provisioned (see Entitlements in CLAUDE.md). CloudKit's own
+        // mirroring already degrades gracefully with no iCloud account at all (the
+        // local store keeps working; sync merely pauses until an account becomes
+        // available), so there's no need for a synchronous pre-check here at all —
+        // removed rather than switched to `CKContainer.accountStatus()`, since that API
+        // is async and container creation happens synchronously at app launch.
+        let cloudKitDatabase: ModelConfiguration.CloudKitDatabase = forceLocalOnly
+            ? .none
+            : .private(cloudKitContainerIdentifier)
+        print("[ModelContainerFactory] Instance is \(forceLocalOnly ? "local-only (forced, test-only)" : "CloudKit-backed")")
         if !forceLocalOnly {
             ICloudAvailability.logCloudKitAccountStatus(containerIdentifier: cloudKitContainerIdentifier)
         }
-        let cloudKitDatabase: ModelConfiguration.CloudKitDatabase = iCloudAvailable
-            ? .private(cloudKitContainerIdentifier)
-            : .none
 
         let cloudConfiguration = ModelConfiguration(
             "Cloud",
