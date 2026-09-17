@@ -57,6 +57,52 @@ struct EditInstanceViewModelPersistenceTests {
     }
 }
 
+/// Coverage for the combined "Edit Instance" dialog's API Key field (2026-09-17
+/// multi-active-instance redesign, CLAUDE.md): leaving it blank must keep the existing
+/// key untouched, typing a new one must overwrite it. `InstanceSetupServiceTests` (Kit)
+/// already covers this at the service layer in isolation; these two exercise the
+/// `EditInstanceViewModel` on top, seeding *both* Keychain stores identically so the
+/// assertions hold regardless of `ICloudAvailability.isAvailable` in the test
+/// environment (the view model always mirrors a freshly typed key into both stores, and
+/// never touches either when the field is left blank).
+struct EditInstanceViewModelAPIKeyTests {
+    @MainActor
+    private func makeInstanceWithSeededKey(_ key: String) throws -> (Instance, ModelContext) {
+        let configuration = ModelConfiguration(schema: Schema([Instance.self]), isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        let container = try ModelContainer(for: Instance.self, configurations: configuration)
+        let context = ModelContext(container)
+        let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: UUID().uuidString)
+        context.insert(instance)
+        try KeychainSyncStore().save(apiKey: key, for: instance.apiKeyKeychainRef)
+        try LocalKeychainStore().save(apiKey: key, for: instance.apiKeyKeychainRef)
+        return (instance, context)
+    }
+
+    @Test @MainActor func blankAPIKeyFieldLeavesTheExistingKeyUnchanged() async throws {
+        let (instance, context) = try makeInstanceWithSeededKey("original-key")
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef); try? KeychainSyncStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = EditInstanceViewModel(instance: instance)
+        viewModel.apiKey = ""
+        let succeeded = await viewModel.save(instance: instance, in: context)
+
+        #expect(succeeded)
+        #expect(try LocalKeychainStore().loadAPIKey(for: instance.apiKeyKeychainRef) == "original-key")
+    }
+
+    @Test @MainActor func nonBlankAPIKeyFieldOverwritesTheExistingKey() async throws {
+        let (instance, context) = try makeInstanceWithSeededKey("original-key")
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef); try? KeychainSyncStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = EditInstanceViewModel(instance: instance)
+        viewModel.apiKey = "replacement-key"
+        let succeeded = await viewModel.save(instance: instance, in: context)
+
+        #expect(succeeded)
+        #expect(try LocalKeychainStore().loadAPIKey(for: instance.apiKeyKeychainRef) == "replacement-key")
+    }
+}
+
 struct SyncErrorMapperTests {
     @Test func isUnauthorizedIsTrueOnlyForAPIErrorUnauthorized() {
         #expect(SyncErrorMapper.isUnauthorized(APIError.unauthorized))

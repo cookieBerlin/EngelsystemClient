@@ -20,20 +20,32 @@ final class NewsViewModel {
         self.credentialResolver = credentialResolver ?? InstanceCredentialResolver()
     }
 
-    func refresh(instance: Instance, in modelContext: ModelContext) async {
+    /// Syncs every currently active instance (2026-09-17 multi-active-instance redesign,
+    /// CLAUDE.md) — each instance's news is upserted independently, so a failure on one
+    /// doesn't prevent the others from refreshing.
+    func refresh(instances: [Instance], in modelContext: ModelContext) async {
         errorMessage = nil
         isUnauthorized = false
         isLoading = true
         defer { isLoading = false }
-        do {
-            let credential = try credentialResolver.credential(for: instance)
-            let news = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
-            print("[NewsViewModel] synced \(news.count) news item(s) from \(credential.baseURL)")
-        } catch {
-            print("[NewsViewModel] refresh failed: \(error)")
-            guard !SyncErrorMapper.isCancellation(error) else { return }
-            errorMessage = SyncErrorMapper.message(for: error)
-            isUnauthorized = SyncErrorMapper.isUnauthorized(error)
+
+        var lastError: Error?
+
+        for instance in instances {
+            do {
+                let credential = try credentialResolver.credential(for: instance)
+                let news = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
+                print("[NewsViewModel] synced \(news.count) news item(s) from \(credential.baseURL)")
+            } catch {
+                print("[NewsViewModel] refresh failed for '\(instance.name)': \(error)")
+                guard !SyncErrorMapper.isCancellation(error) else { continue }
+                lastError = error
+            }
+        }
+
+        if let lastError {
+            errorMessage = SyncErrorMapper.message(for: lastError)
+            isUnauthorized = SyncErrorMapper.isUnauthorized(lastError)
         }
     }
 }

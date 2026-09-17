@@ -113,9 +113,10 @@ final class EngelsystemClient_Watch_App_Watch_AppUITests: XCTestCase {
         // label rendered yet", which was flaky when checked together under one timeout.
         XCTAssertTrue(app.navigationBars["Demo"].waitForExistence(timeout: 15))
 
-        // Editing the instance's name/server (previously not possible after creation).
-        // Visible without scrolling — it's the first section's third row.
-        let editButton = app.buttons["Edit Name / Server"]
+        // Editing the instance (combined name/server/User ID/API Key dialog since the
+        // 2026-09-17 multi-active-instance redesign — previously two separate actions).
+        // Visible without scrolling — it's the first section's fourth row.
+        let editButton = app.buttons["Edit Instance"]
         XCTAssertTrue(editButton.waitForExistence(timeout: 15))
         editButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         XCTAssertTrue(app.navigationBars["Edit Instance"].waitForExistence(timeout: 15))
@@ -127,21 +128,19 @@ final class EngelsystemClient_Watch_App_Watch_AppUITests: XCTestCase {
         XCTAssertTrue(closeButton.waitForExistence(timeout: 5))
         closeButton.tap()
 
-        // The only instance is activated automatically, so its detail view shows
-        // "Active Instance" rather than a "Use as Active Instance" button. Adding the
-        // Edit row above pushed this below the fold, so it now needs scrolling too.
-        let activeInstanceLabel = app.staticTexts["Active Instance"]
-        for _ in 0..<10 where !activeInstanceLabel.exists {
+        // The only instance defaults to active on creation, so its detail view's
+        // Status row reads "Active" — there's no separate "Update API Key" action
+        // anymore (folded into "Edit Instance" above) or "Use as Active Instance"
+        // button (activation now happens via a swipe action on the Settings list, not
+        // from the detail screen). Adding the Edit row above pushed this below the
+        // fold, so it now needs scrolling too.
+        let statusLabel = containingText("Active", in: app)
+        for _ in 0..<10 where !statusLabel.exists {
             app.swipeUp()
         }
-        XCTAssertTrue(activeInstanceLabel.waitForExistence(timeout: 15))
-        // The later sections ("Update API Key", "Remove Instance") aren't materialized
-        // in the accessibility tree until scrolled into view — same as the Setup form.
-        let updateKeyButton = app.buttons["Update API Key"]
-        for _ in 0..<10 where !updateKeyButton.exists {
-            app.swipeUp()
-        }
-        XCTAssertTrue(updateKeyButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(statusLabel.waitForExistence(timeout: 15))
+        // "Remove Instance" isn't materialized in the accessibility tree until scrolled
+        // into view — same as the Setup form.
         let removeInstanceButton = app.buttons["Remove Instance"]
         for _ in 0..<10 where !removeInstanceButton.exists {
             app.swipeUp()

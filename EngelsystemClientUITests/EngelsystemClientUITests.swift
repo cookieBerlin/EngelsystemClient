@@ -75,7 +75,7 @@ final class EngelsystemClientUITests: XCTestCase {
         // the "Event" section was read-only LabeledContent).
         demoInstanceRow.tap()
         XCTAssertTrue(app.navigationBars["Demo"].waitForExistence(timeout: 5))
-        let editButton = app.buttons["Edit Name / Server"]
+        let editButton = app.buttons["Edit Instance"]
         XCTAssertTrue(editButton.waitForExistence(timeout: 5))
         editButton.tap()
 
@@ -95,6 +95,25 @@ final class EngelsystemClientUITests: XCTestCase {
 
         goBack(app)
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+
+        // 2026-09-17 multi-active-instance redesign: instances move between "Active"/
+        // "Inactive" sections via a swipe action, not a per-row Toggle or a single
+        // "active instance" concept.
+        let renamedRow = app.staticTexts["Demo Renamed"]
+        XCTAssertTrue(renamedRow.waitForExistence(timeout: 5))
+        renamedRow.swipeLeft()
+        let deactivateButton = app.buttons["Deactivate"]
+        XCTAssertTrue(deactivateButton.waitForExistence(timeout: 5))
+        deactivateButton.tap()
+        XCTAssertTrue(containingText("No active instances", in: app).waitForExistence(timeout: 5))
+
+        let inactiveRow = app.staticTexts["Demo Renamed"]
+        XCTAssertTrue(inactiveRow.waitForExistence(timeout: 5))
+        inactiveRow.swipeLeft()
+        let activateButton = app.buttons["Activate"]
+        XCTAssertTrue(activateButton.waitForExistence(timeout: 5))
+        activateButton.tap()
+        XCTAssertTrue(containingText("No inactive instances", in: app).waitForExistence(timeout: 5))
 
         // Notification lead-time picker defaults to 15 min and can be changed.
         // Its exact accessibility element type/label depend on the system-rendered

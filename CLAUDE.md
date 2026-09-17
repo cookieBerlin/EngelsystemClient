@@ -88,13 +88,12 @@ official REST API of the respective Engelsystem instance.
 
 ## Multi-instance concept
 
-**Redesigned 2026-09-17 (planned, not yet implemented — see "Multi-active-
-instance redesign" below for the rollout plan):** originally exactly one
+**Redesigned and implemented 2026-09-17:** originally exactly one
 `Instance` could be "active" at a time (a single `@AppStorage` ID picked
 which instance's data Shifts/News/Profile showed). The user asked for
 **multiple instances to be active simultaneously** (e.g. helping at more
-than one event at once) plus a simpler per-instance settings dialog. New
-binding design:
+than one event at once) plus a simpler per-instance settings dialog.
+Binding design, now shipped:
 
 - `Instance` SwiftData model: `id`, `name`, `baseURL`,
   `apiKeyKeychainRef`, `userID`, **`isActive: Bool` (new)**.
@@ -169,68 +168,85 @@ binding design:
   `Instance` purely via the plain `instanceID: UUID` field (no relationship
   — see "CloudKit sync for Instance metadata" below for why).
 
-### Multi-active-instance redesign — rollout plan (2026-09-17, planned)
+### Multi-active-instance redesign — implementation notes (2026-09-17)
 
-Concrete steps for the design above, in dependency order. Nothing in this
-subsection is implemented yet.
+How the design above landed in code, for a fresh session that needs the
+file-level detail without re-deriving it:
 
-1. **`Instance.isActive: Bool = true`** (new stored property,
-   `EngelsystemClientKit/Persistence/Instance.swift`) — default `true` so
-   newly-inserted instances need no special-casing. No migration step —
-   see "No migration path for existing data" above.
-2. Remove `@AppStorage("activeInstanceID")` outright from `SettingsView`/
-   `WatchSettingsView`/`MainView`/`WatchMainView` (and
-   `activateFirstInstanceIfNeeded()`/first-instance-activation
-   call sites, now redundant), replaced by reading
-   `instances.filter(\.isActive)` (a `@Query` predicate or a computed
-   filter over the existing `instances`/`@Query` array).
-3. **Settings UI**: replace the single instance list + "Use as Active
-   Instance"/"Active Instance" button+label with two sections ("Active"/
-   "Inactive"), each row carrying a swipe action that flips
-   `instance.isActive` and moves it to the other section, saved
-   immediately (`try? modelContext.save()`) — no connection test, no
-   sheet. Do this for both `SettingsView` and `WatchSettingsView`.
-4. **Combined edit dialog**: merge iOS's `EditInstanceView`+
-   `EditInstanceViewModel` and `UpdateAPIKeyView`+`UpdateAPIKeyViewModel`
-   into one (same for the Watch's `WatchEditInstanceView`/
-   `WatchUpdateAPIKeyView` pair) — one form, one "Save" action. Likely
-   needs a new `InstanceSetupService` method that tests+saves
-   name/baseURL/userID *and* conditionally rewrites the keychain entry
-   only when a new key was actually typed, rather than calling
-   `updateServerDetails` and `updateAPIKey` as two separate operations.
-5. **`multiInstanceDisplayMode` setting** (new `@AppStorage` value, iOS
-   app target only, exposed on `SettingsView`'s existing Notifications-
-   style preferences section): an enum with `.merged`/`.switcher`/
-   `.sectioned` cases, default `.merged` (closest to a single unified
-   list, least surprising default).
-6. **Shifts/News/Profile view models + views**: `refresh(instance:in:)`
-   → `refresh(instances:in:)`, looping the existing per-instance sync
-   calls and aggregating; each screen's `@Query` predicate changes from
-   `instanceID == id` to `activeIDs.contains(instanceID)`; each view
-   renders per `multiInstanceDisplayMode` (merged list with a label,
-   switcher with a segmented control, or sectioned list) — the "Watch
-   for another `SyncErrorMapper.isCancellation(_:)` guard" and similar
-   existing per-instance patterns extend to "per instance in the loop",
-   not a wholesale rewrite of that logic.
-7. **Watch's `NextShiftViewModel`**: same aggregation as Shifts, but
-   collapses to the single nearest-upcoming shift via
-   `CachedShift.nextShift(from:)` over the combined result before
-   updating the App Group snapshot/complication.
-8. **Notification scheduling**: `NotificationScheduler.syncNotifications`
-   needs to be called once with the *combined* upcoming-shift set across
-   all active instances (not once per instance), otherwise its
-   "cancel whatever's no longer in the synced/upcoming set" logic could
-   cancel notifications belonging to a different active instance that
-   simply wasn't part of that particular call.
-9. **Tests**: unit tests in `EngelsystemClientKitTests` for `isActive`
-   default behavior and the two-section active/inactive filtering;
-   app-target tests for the combined edit dialog's "blank key =
-   unchanged" behavior (mirroring the existing
-   `EditInstanceViewModelPersistenceTests` pattern); an XCUITest update
-   for the iOS instance list's swipe-to-activate/deactivate action and
-   the combined edit sheet (the Watch UI test stays off-limits per the
-   Simulator performance ceiling documented below — verify Watch changes
-   via a manual simulator check instead).
+- `Instance.isActive: Bool = true` (`EngelsystemClientKit/Persistence/
+  Instance.swift`) — no migration step was needed (the app wasn't
+  released yet, so there was no installed base to migrate).
+- `@AppStorage("activeInstanceID")` is gone from `SettingsView`/
+  `WatchSettingsView`/`MainView`/`WatchMainView`, along with the
+  first-instance-auto-activation code it needed (redundant now that
+  every new `Instance` defaults to active) — replaced everywhere by
+  `instances.filter(\.isActive)`.
+- `SettingsView`/`WatchSettingsView` list instances in two sections
+  ("Active"/"Inactive"); each row has a swipe action ("Activate"/
+  "Deactivate") that flips `instance.isActive`, calls `.touch()`, and
+  saves immediately (`try? modelContext.save()`) — no connection test,
+  no sheet. The instance detail screen shows a read-only
+  `LabeledContent("Status", …)` rather than duplicating the toggle.
+- `EditInstanceViewModel`/`WatchEditInstanceViewModel` gained an `apiKey`
+  field (blank by default) and now call
+  `InstanceSetupService.updateInstance(for:name:baseURL:apiKey:
+  newAPIKeyToStore:userID:store:)` — the single method that replaced the
+  old separate `updateServerDetails`/`updateAPIKey`. Blank field → the
+  caller resolves the existing key via `InstanceCredentialResolver` to
+  test with, and passes `newAPIKeyToStore: nil` so the Keychain is never
+  touched; a typed value is used to test *and* passed as
+  `newAPIKeyToStore` so it overwrites the entry (mirrored into both
+  Keychain stores on iOS, same reasoning as the old
+  `UpdateAPIKeyViewModel`). `UpdateAPIKeyViewModel`/
+  `WatchUpdateAPIKeyViewModel` and their standalone sheets are deleted —
+  fully absorbed into the combined "Edit Instance" dialog.
+- `MultiInstanceDisplayMode` (`EngelsystemClient/Features/Shared/
+  MultiInstanceDisplayMode.swift`, iOS app target only) backs an
+  `@AppStorage` picker on `SettingsView`. `ShiftsView`/`NewsView`/
+  `ProfileView` each read every active instance's cached data (still
+  matched by the existing plain `instanceID` field, no relationship) and
+  branch on the mode: `.merged` shows one flat list with a small
+  `InstanceBadge` per row, `.switcher` shows one instance at a time via
+  the shared `InstancePicker` segmented control, `.sectioned` groups into
+  one `Section` per instance. A single active instance always renders as
+  `.merged` regardless of the stored preference (no pointless
+  picker/sections for one instance). Profile's identity fields (name/
+  pronoun/T-shirt/arrived) are inherently per-instance, so `.merged`/
+  `.sectioned` show one compact identity row per instance rather than
+  merging them into one card — only `.switcher` shows the full
+  single-instance identity layout from before this redesign.
+- `ShiftsViewModel`/`NewsViewModel`/`ProfileViewModel`/`NextShiftViewModel`
+  (Watch) all changed from `refresh(instance:in:)` to
+  `refresh(instances:in:)`, looping the existing per-instance sync calls
+  and aggregating the results; a failure on one instance doesn't block
+  the others from syncing. For Shifts/NextShift specifically,
+  `NotificationScheduler.syncNotifications` is only called once, with
+  the *combined* shift set, and **only when every instance in the batch
+  synced cleanly** that pass — if one instance fails, the others'
+  previously scheduled notifications are deliberately left untouched
+  rather than risk the "cancel whatever's no longer in the synced set"
+  logic dropping a still-valid notification for the instance that didn't
+  get a chance to re-sync.
+- Watch's `NextShiftView`/`NextShiftViewModel` take every active instance
+  and pick the single nearest upcoming shift across all of them via the
+  existing `CachedShift.nextShift(from:)` — still one shift shown, per
+  the Watch's minimal scope.
+- Tests: `EngelsystemClientKitTests` covers `Instance.isActive`'s default
+  and the new `InstanceSetupService.updateInstance` (both the
+  keychain-untouched-on-blank-key and overwrite-on-new-key paths, plus
+  the connection-test-failure path), and re-verifies the generated
+  `usersIdShiftsGetWithRequestBuilder` URL fix from the same day still
+  holds. `EngelsystemClientTests` (app target) adds
+  `EditInstanceViewModelAPIKeyTests` (blank vs. typed key, seeding both
+  Keychain stores identically so the assertions hold regardless of
+  `ICloudAvailability.isAvailable` in the test environment).
+  `EngelsystemClientUITests.testDemoModeNavigationFlow` was updated for
+  the renamed "Edit Instance" button and extended to cover the
+  swipe-to-activate/deactivate flow end to end. The watchOS UI test's
+  source was updated to match (renamed button, dropped "Update API Key"/
+  "Active Instance" assertions) but — per the Simulator performance
+  ceiling documented below — wasn't run; verify Watch changes via a
+  manual simulator check instead.
 
 ## Sync strategy (iOS ↔ Watch), binding
 
@@ -679,68 +695,82 @@ exists without reading the whole diff history.
   least one instance exists. A single `NavigationSplitView` with a
   sidebar of four sections (Shifts/News/Profile/Settings) — not a plain
   `TabView`, per the iPad requirement above; collapses to stack
-  navigation on iPhone automatically. Resolves the active instance from
-  `@AppStorage` (falling back to the first instance) and passes it to
-  whichever section is selected; defaults to Shifts on launch.
-- **Shifts** (`Features/Shifts`): lists the signed-in user's shifts for
-  the active instance. `ShiftsViewModel` resolves the instance's
-  credential and calls `ShiftSyncService`; the view itself reads from
-  `CachedShift` via `@Query` filtered on `instanceID`, so it's populated
-  from whatever was last synced even before a refresh completes.
-  Pull-to-refresh and an initial `.task` both trigger a sync.
+  navigation on iPhone automatically. Since the 2026-09-17 multi-active-
+  instance redesign, resolves every `instance.isActive` instance (not a
+  single `@AppStorage` ID) and passes that array to whichever section is
+  selected; the sidebar's own navigation title reflects the count ("No
+  Active Instance" / the one instance's name / "N Active Instances").
+  Defaults to Shifts on launch.
+- **Shifts** (`Features/Shifts`): lists the signed-in user's shifts
+  aggregated across every active instance (see "Multi-instance concept"
+  above for `MultiInstanceDisplayMode`). `ShiftsViewModel.refresh(instances:
+  in:)` loops each active instance's credential resolution + sync; the
+  view reads from `CachedShift` via a `@Query` over all instances,
+  filtered client-side to the active instance IDs (not a SwiftData
+  predicate — simpler, and record counts here are small enough that
+  filtering in Swift after the fetch isn't a real cost). Pull-to-refresh
+  and an initial `.task` both trigger a sync. Shows a
+  `ContentUnavailableView` instead of a list when there are zero active
+  instances.
 - **News** (`Features/News`): same pattern via `NewsSyncService`/
-  `CachedNews`; pinned items sort first, meeting items get a badge, body
-  text renders through `AttributedString(markdown:)` since the API docs
-  say news text may contain markdown. `CachedNews.sanitizedText(from:)`
-  strips the `[more]` separator tag the API docs mention (and trims the
-  whitespace it typically sits between) before storing — we always show
-  the full text, so removing the marker is enough, no truncation needed.
-- **Profile** (`Features/Profile`): same pattern via `ProfileSyncService`
-  (profile + worklogs + angel type memberships in one refresh)/
+  `CachedNews`/`NewsViewModel.refresh(instances:in:)`; pinned items sort
+  first, meeting items get a badge, body text renders through
+  `AttributedString(markdown:)` since the API docs say news text may
+  contain markdown. `CachedNews.sanitizedText(from:)` strips the `[more]`
+  separator tag the API docs mention (and trims the whitespace it
+  typically sits between) before storing — we always show the full text,
+  so removing the marker is enough, no truncation needed.
+- **Profile** (`Features/Profile`): same pattern via
+  `ProfileSyncService`/`ProfileViewModel.refresh(instances:in:)` (profile
+  + worklogs + angel type memberships, once per active instance)/
   `CachedUser`+`CachedWorklog`+`CachedAngelTypeMembership`; shows profile
   fields (pronoun, T-shirt size, arrived), the user's own angel types
   (`GET /users/{id}/angeltypes` — distinct from `APIClient.fetchAngelTypes`,
   which is the instance-wide catalog) with a supporter/unconfirmed badge,
   and a worklog list with a summed total. Angel types were the one part
   of Phase 1's "profile, angel types, worklogs" scope missed when this
-  screen was first built — added afterward once noticed.
+  screen was first built — added afterward once noticed. Unlike
+  Shifts/News, the identity fields are inherently per-instance (see
+  "Multi-instance concept" above) — `.merged`/`.sectioned` show one
+  compact row per instance rather than merging them into one card.
 - **Instance management** (`Features/Settings/SettingsView`): reached via
   the sidebar's Settings section. A plain pushed list (not its own
-  `NavigationSplitView`, since it's already hosted inside `MainView`'s)
-  of configured instances; switch the active instance (its ID stored in
-  `@AppStorage`, not the key itself), view an instance's name/server/
-  active status, remove an instance (cleans up both keychain stores,
-  since which one was used at creation time isn't persisted). The first
-  instance created is activated automatically. Also **"Update API Key"**
-  (`UpdateAPIKeyViewModel`): tests a new key against the instance's
-  existing server via `InstanceSetupService.updateAPIKey`, then writes it
-  into *both* keychain stores (not just the iCloud-vs-local one currently
-  preferred) so a stale value in whichever store `InstanceCredentialResolver`
-  happens to check first can't shadow the fresh one. If Shifts/News/Profile
-  hits a 401, `MainView` auto-switches to this screen so the key can
-  actually be fixed (see Data/code flow above). Also **"Edit Name /
-  Server"** (`EditInstanceViewModel`): the name/server were originally
-  read-only `LabeledContent` on this screen — the user later asked for
-  them to be editable, same as everything else here. Resolves the
-  instance's *existing* API key via `InstanceCredentialResolver` (so
-  editing the name/server doesn't also demand re-entering the key — that
-  stays a separate "Update API Key" action) and re-tests the
-  name/server/key combination via the new
-  `InstanceSetupService.updateServerDetails`, which mutates the
-  `Instance` model in place on success (same "test then save" shape as
-  `createInstance`/`updateAPIKey`, always re-testing even for a
-  pure-rename since it's cheap and doubles as a health check). Also a
-  **Notifications**
+  `NavigationSplitView`, since it's already hosted inside `MainView`'s),
+  split into "Active"/"Inactive" sections with a swipe action per row to
+  move an instance between them (`instance.isActive`, CloudKit-synced —
+  see "Multi-instance concept" above; this replaced a single
+  `@AppStorage`-backed active instance and a `Toggle` was explicitly
+  rejected in favor of this two-section-plus-swipe layout). Removing an
+  instance cleans up both keychain stores, since which one was used at
+  creation time isn't persisted. The combined **"Edit Instance"**
+  dialog (`EditInstanceViewModel`) merges what used to be two separate
+  actions — "Edit Name / Server" and "Update API Key" — into one form
+  (Name, Server URL, User ID, API Key); the API Key field is blank by
+  default and blank means "keep the existing key" (resolved via
+  `InstanceCredentialResolver`), only fill it in to actually change it.
+  Saving calls `InstanceSetupService.updateInstance` (the single method
+  that replaced `updateServerDetails`/`updateAPIKey`), which re-tests the
+  connection with whichever key is in play and, on success, updates
+  `instance` in place and (only if a new key was typed) overwrites the
+  Keychain entry in *both* stores (not just the iCloud-vs-local one
+  currently preferred) so a stale value in whichever store
+  `InstanceCredentialResolver` happens to check first can't shadow the
+  fresh one. If Shifts/News/Profile hits a 401, `MainView` auto-switches
+  to this screen so the key can actually be fixed via that same dialog
+  (see Data/code flow above). Also a **Multiple Active Instances**
+  picker (`MultiInstanceDisplayMode`, see above) and a **Notifications**
   section: a "Notify Before Shift" picker (5/10/15/30/60 min) backed by
   `@AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)`, applying
   to all instances (it's a single app-wide preference, not per-instance).
 - **Shared feature helpers** (`Features/Shared`): `ErrorBanner` (inline
-  red banner for sync errors) and `SyncErrorMapper` (maps `APIError`/
+  red banner for sync errors), `SyncErrorMapper` (maps `APIError`/
   `InstanceCredentialError`/`KeychainError` to the same user-facing
   English message across Shifts/News/Profile/Settings, plus
-  `isUnauthorized(_:)` for the 401-triggers-navigation behavior above), so
+  `isUnauthorized(_:)` for the 401-triggers-navigation behavior above, so
   the nearly-identical view models don't each re-implement the same
-  error-message switch statement.
+  error-message switch statement), `InstancePicker` (the segmented
+  control backing `MultiInstanceDisplayMode.switcher` on Shifts/News/
+  Profile), and `MultiInstanceDisplayMode` itself.
 - **Local shift-start notifications** (`Services/NotificationScheduler`):
   after every successful Shifts sync, requests notification authorization
   if not yet determined and schedules a local reminder
@@ -786,59 +816,66 @@ exists without reading the whole diff history.
 - **Multi-instance + Settings** (`Settings/WatchSettingsView`, `Views/
   WatchMainView`): the Watch app supports the same instance switching
   and Settings screen as iOS, per the "Exception to minimal" note above.
-  `WatchMainView` resolves the active instance from
-  `@AppStorage("activeInstanceID")` exactly like iOS's `MainView`
-  (falling back to the first instance, activating it on first run) —
-  `ContentView` now only decides between "no instance yet" (→
+  Since the 2026-09-17 multi-active-instance redesign, `WatchMainView`
+  passes every `instance.isActive` instance to `NextShiftView` rather
+  than resolving a single `@AppStorage`-backed active instance —
+  `ContentView` still only decides between "no instance yet" (→
   `WatchSetupView`) and "at least one" (→ `WatchMainView`), matching the
   iOS app's `ContentView`/`MainView` split. `WatchSettingsView` mirrors
-  iOS's `SettingsView` (instance list with switch/add/remove, "Update API
-  Key" via its own `WatchUpdateAPIKeyViewModel` — a Watch-target
-  duplicate of iOS's `UpdateAPIKeyViewModel` since that type lives in the
-  iOS app target, simplified to always use `LocalKeychainStore` like
-  `WatchSetupViewModel` already does — and the notification lead-time
-  picker) reached from `NextShiftView` via a plain in-content
-  `NavigationLink` row below the sync status, **not** a toolbar item:
-  testing showed watchOS's compact navigation bar doesn't reliably render
-  a bare `ToolbarItem` here (confirmed via the accessibility hierarchy —
-  no element for it existed at all), so an ordinary row is used instead.
-  The instance rows in `WatchSettingsView` also had to use the
-  destination-closure `NavigationLink { destination } label: { }` form
-  rather than `NavigationLink(value:)` + `.navigationDestination(for:)`:
-  the value-based flavor is what iOS's `SettingsView` uses successfully,
-  but on watchOS in this project the tap visibly registered (the row
+  iOS's `SettingsView`: two sections ("Active"/"Inactive") with a swipe
+  action per row to move an instance between them, no
+  `MultiInstanceDisplayMode` picker here (that setting only affects
+  iOS's Shifts/News/Profile catalog screens, which the Watch doesn't
+  have), and the notification lead-time picker — reached from
+  `NextShiftView` via a plain in-content `NavigationLink` row below the
+  sync status, **not** a toolbar item: testing showed watchOS's compact
+  navigation bar doesn't reliably render a bare `ToolbarItem` here
+  (confirmed via the accessibility hierarchy — no element for it existed
+  at all), so an ordinary row is used instead. The instance rows in
+  `WatchSettingsView` also had to use the destination-closure
+  `NavigationLink { destination } label: { }` form rather than
+  `NavigationLink(value:)` + `.navigationDestination(for:)`: the
+  value-based flavor is what iOS's `SettingsView` uses successfully, but
+  on watchOS in this project the tap visibly registered (the row
   highlighted as "Selected" in the accessibility hierarchy) without ever
   performing the actual push — swapping to the closure-based form fixed
   it immediately. Treat this as a watchOS-specific quirk to remember, not
   something to "fix" by reverting to the value-based form.
-  Instance-detail also has an **"Edit Name / Server"** action
+  Instance-detail's combined **"Edit Instance"** action
   (`WatchEditInstanceViewModel`, the Watch-target twin of iOS's
-  `EditInstanceViewModel`, added when the user pointed out neither
-  platform could edit these after creation) — unlike
-  `WatchUpdateAPIKeyViewModel`, this one resolves the existing key via
+  `EditInstanceViewModel` — same merged name/server/User ID/API Key form,
+  API Key blank-means-unchanged) resolves the existing key via
   `InstanceCredentialResolver` rather than assuming `LocalKeychainStore`,
   since it needs to *read* a key that could in principle live in either
-  store. Presenting this as a `.sheet` surfaced another watchOS default:
-  an automatic "Close" (`xmark`) button appears in the sheet's navigation
-  bar with no code needed for it — `app.swipeDown()` does *not* dismiss a
-  watchOS sheet in UI tests, tapping that button does (and its nested
-  elements share the same accessibility label, so query with
-  `.firstMatch` to avoid an ambiguous-match error).
+  store, but always uses `LocalKeychainStore` to *write* a freshly typed
+  one (no primary/secondary mirroring, same simplification
+  `WatchSetupViewModel` already makes). `WatchUpdateAPIKeyViewModel` and
+  its standalone sheet are deleted, fully absorbed into this dialog.
+  Presenting the edit form as a `.sheet` surfaced another watchOS
+  default: an automatic "Close" (`xmark`) button appears in the sheet's
+  navigation bar with no code needed for it — `app.swipeDown()` does
+  *not* dismiss a watchOS sheet in UI tests, tapping that button does
+  (and its nested elements share the same accessibility label, so query
+  with `.firstMatch` to avoid an ambiguous-match error).
 - **Next Shift** (`Views/NextShiftView`): shows only the next upcoming
   shift (title, time range, location) via the same `ShiftSyncService`
   the iOS Shifts screen uses, plus a sync-status line ("Updated HH:mm")
   and schedules the same local notification for it via
   `NotificationScheduler`. No full shift catalog, no news, per the Watch
-  App Scope above. After every sync it also writes a `NextShiftSnapshot`
-  to the shared App Group (see `EngelsystemComplication` below) and calls
+  App Scope above. Since the 2026-09-17 redesign, `NextShiftViewModel`
+  syncs every active instance and shows the chronologically nearest
+  upcoming shift across all of them (still exactly one shift) — see
+  "Multi-instance concept" above. After every sync it also writes a
+  `NextShiftSnapshot` to the shared App Group (see
+  `EngelsystemComplication` below) and calls
   `WidgetCenter.shared.reloadAllTimelines()`.
 - watchOS UI Testing needs generous timeouts and a scroll-until-visible
   loop to be reliable — the simulator's cold launch is slow, and a
   `Form`'s (or `List`'s) later sections/rows aren't materialized in the
   accessibility tree until scrolled into view — this applies just as much
-  to `WatchSettingsView`'s instance-detail screen (the "Update API Key"/
-  "Remove Instance" sections sit below the fold) as it does to the Setup
-  form. `EngelsystemClient_Watch_App_Watch_AppUITests` accounts for both;
+  to `WatchSettingsView`'s instance-detail screen (the "Remove Instance"
+  section sits below the fold) as it does to the Setup form.
+  `EngelsystemClient_Watch_App_Watch_AppUITests` accounts for both;
   if a run there fails anyway, cross-check against a manual simulator
   screenshot and EngelsystemClientKit's unit tests before assuming an app
   regression. **Also watch for the real system notification-permission

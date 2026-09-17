@@ -5,9 +5,12 @@ import EngelsystemClientKit
 /// Root view once at least one instance is configured. A single `NavigationSplitView`
 /// with a sidebar of feature sections — not a plain `TabView` on iPad, per CLAUDE.md —
 /// that collapses to stack navigation on iPhone automatically.
+///
+/// 2026-09-17 multi-active-instance redesign (CLAUDE.md): any number of instances can
+/// be active at once (`Instance.isActive`), so there's no single `activeInstanceID`
+/// anymore — Shifts/News/Profile each receive every active instance and aggregate
+/// across them (see `MultiInstanceDisplayMode`).
 struct MainView: View {
-    @AppStorage("activeInstanceID") private var activeInstanceIDString: String = ""
-
     let instances: [Instance]
 
     @State private var selection: Section? = .shifts
@@ -36,10 +39,14 @@ struct MainView: View {
         }
     }
 
-    /// There's always at least one instance while `MainView` is shown (see `ContentView`);
-    /// falls back to the first instance if the stored active ID doesn't match any of them.
-    private var activeInstance: Instance {
-        instances.first(where: { $0.id.uuidString == activeInstanceIDString }) ?? instances[0]
+    private var activeInstances: [Instance] { instances.filter(\.isActive) }
+
+    private var navigationTitle: String {
+        switch activeInstances.count {
+        case 0: return "No Active Instance"
+        case 1: return activeInstances[0].name
+        default: return "\(activeInstances.count) Active Instances"
+        }
     }
 
     var body: some View {
@@ -47,27 +54,21 @@ struct MainView: View {
             List(Section.allCases, selection: $selection) { section in
                 Label(section.title, systemImage: section.systemImage).tag(section)
             }
-            .navigationTitle(activeInstance.name)
+            .navigationTitle(navigationTitle)
         } detail: {
             NavigationStack {
                 switch selection ?? .shifts {
                 case .shifts:
-                    ShiftsView(instance: activeInstance, onUnauthorized: goToSettings)
+                    ShiftsView(instances: activeInstances, onUnauthorized: goToSettings)
                 case .news:
-                    NewsView(instance: activeInstance, onUnauthorized: goToSettings)
+                    NewsView(instances: activeInstances, onUnauthorized: goToSettings)
                 case .profile:
-                    ProfileView(instance: activeInstance, onUnauthorized: goToSettings)
+                    ProfileView(instances: activeInstances, onUnauthorized: goToSettings)
                 case .settings:
                     SettingsView(instances: instances)
                 }
             }
         }
-        .onAppear { activateFirstInstanceIfNeeded() }
-    }
-
-    private func activateFirstInstanceIfNeeded() {
-        guard activeInstanceIDString.isEmpty, let first = instances.first else { return }
-        activeInstanceIDString = first.id.uuidString
     }
 
     /// CLAUDE.md's error-handling contract ("401 → back to Instance Setup") realized as

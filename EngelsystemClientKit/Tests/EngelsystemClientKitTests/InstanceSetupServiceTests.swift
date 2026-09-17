@@ -33,58 +33,78 @@ private final class FakeAPIKeyStore: APIKeyStore {
     #expect(try store.loadAPIKey(for: instance.apiKeyKeychainRef) == "demo")
 }
 
-@Test func instanceSetupServiceUpdatesAPIKeyForExistingInstance() async throws {
+@Test func instanceSetupServiceUpdatesInstanceAndKeychainWhenNewKeyProvided() async throws {
     let store = FakeAPIKeyStore()
     let instance = try await InstanceSetupService().createInstance(
         name: "Demo", baseURL: Instance.demoBaseURL, apiKey: "old-demo-key", store: store
     )
-
-    try await InstanceSetupService().updateAPIKey(for: instance, apiKey: "new-demo-key", store: store)
-
-    // Same keychain reference is overwritten in place — no new Instance/reference created.
-    #expect(try store.loadAPIKey(for: instance.apiKeyKeychainRef) == "new-demo-key")
-}
-
-@Test func instanceSetupServiceUpdatesServerDetailsForExistingInstance() async throws {
-    let store = FakeAPIKeyStore()
-    let instance = try await InstanceSetupService().createInstance(
-        name: "Demo", baseURL: Instance.demoBaseURL, apiKey: "demo-key", store: store
-    )
     let originalUpdatedAt = instance.updatedAt
 
-    try await InstanceSetupService().updateServerDetails(
+    try await InstanceSetupService().updateInstance(
         for: instance,
         name: "Demo Renamed",
         baseURL: Instance.demoBaseURL,
-        apiKey: "demo-key",
-        userID: 42
+        apiKey: "new-demo-key",
+        newAPIKeyToStore: "new-demo-key",
+        userID: 42,
+        store: store
     )
 
     #expect(instance.name == "Demo Renamed")
     #expect(instance.baseURL == Instance.demoBaseURL)
     #expect(instance.userID == 42)
     #expect(instance.updatedAt > originalUpdatedAt)
+    // Same keychain reference is overwritten in place — no new Instance/reference created.
+    #expect(try store.loadAPIKey(for: instance.apiKeyKeychainRef) == "new-demo-key")
 }
 
-@Test func instanceSetupServiceDoesNotUpdateServerDetailsWhenConnectionTestFails() async throws {
+/// The combined "Edit Instance" dialog leaves the API Key field blank to mean "keep the
+/// existing key" (2026-09-17 multi-active-instance redesign, CLAUDE.md) — the caller
+/// still resolves the *existing* key to test with, but passes `newAPIKeyToStore: nil` so
+/// the Keychain entry is left completely untouched for a pure name/server/userID edit.
+@Test func instanceSetupServiceLeavesKeychainUntouchedWhenNoNewKeyProvided() async throws {
+    let store = FakeAPIKeyStore()
+    let instance = try await InstanceSetupService().createInstance(
+        name: "Demo", baseURL: Instance.demoBaseURL, apiKey: "unchanged-demo-key", store: store
+    )
+
+    try await InstanceSetupService().updateInstance(
+        for: instance,
+        name: "Demo Renamed",
+        baseURL: Instance.demoBaseURL,
+        apiKey: "unchanged-demo-key",
+        newAPIKeyToStore: nil,
+        userID: 42,
+        store: store
+    )
+
+    #expect(instance.name == "Demo Renamed")
+    #expect(instance.userID == 42)
+    #expect(try store.loadAPIKey(for: instance.apiKeyKeychainRef) == "unchanged-demo-key")
+}
+
+@Test func instanceSetupServiceDoesNotUpdateInstanceWhenConnectionTestFails() async throws {
     let store = FakeAPIKeyStore()
     let instance = try await InstanceSetupService().createInstance(
         name: "Demo", baseURL: Instance.demoBaseURL, apiKey: "demo-key", store: store
     )
 
     await #expect(throws: APIError.invalidBaseURL) {
-        try await InstanceSetupService().updateServerDetails(
+        try await InstanceSetupService().updateInstance(
             for: instance,
             name: "Should Not Save",
             baseURL: "http://%zz",
             apiKey: "demo-key",
-            userID: 99
+            newAPIKeyToStore: "should-not-save-key",
+            userID: 99,
+            store: store
         )
     }
 
     #expect(instance.name == "Demo")
     #expect(instance.baseURL == Instance.demoBaseURL)
     #expect(instance.userID == nil)
+    #expect(try store.loadAPIKey(for: instance.apiKeyKeychainRef) == "demo-key")
 }
 
 @Test func instanceSetupServiceDoesNotSaveKeyWhenConnectionTestFails() async throws {

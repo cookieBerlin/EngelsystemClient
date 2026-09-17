@@ -24,33 +24,39 @@ public struct InstanceSetupService {
         return instance
     }
 
-    /// Tests a new API key against `instance`'s existing server and, on success,
-    /// overwrites the stored key under the same `apiKeyKeychainRef` (unlike
-    /// `createInstance`, no new `Instance`/keychain reference is created). Used when a
-    /// key has expired or been revoked (`APIError.unauthorized`) — CLAUDE.md's "401 →
-    /// back to Instance Setup" is realized as "back to Settings to fix the key" now
-    /// that Settings/instance management exists.
-    public func updateAPIKey(for instance: Instance, apiKey: String, store: APIKeyStore) async throws {
-        let credential = EventCredential(baseURL: instance.apiBasePath, apiKey: apiKey)
-        _ = try await apiClient.fetchInfo(credential)
-        try store.save(apiKey: apiKey, for: instance.apiKeyKeychainRef)
-    }
-
-    /// Tests `name`/`baseURL` against `instance`'s existing API key (resolved by the
-    /// caller via `InstanceCredentialResolver` — this never touches the Keychain
-    /// itself) and, on success, updates `instance` in place. Re-tests even when only
-    /// the name changed: cheap, and it doubles as a health check confirming the
-    /// server/key combination is still valid. Mutating `instance` directly (rather
+    /// Tests `name`/`baseURL`/`apiKey` together and, on success, updates `instance`'s
+    /// name/baseURL/`userID` in place and (only if `newAPIKeyToStore` is non-nil)
+    /// overwrites the keychain entry under the instance's existing `apiKeyKeychainRef`.
+    /// Backs the single combined "Edit Instance" dialog (2026-09-17 multi-active-instance
+    /// redesign, CLAUDE.md) that replaced the previously separate "Edit Name / Server"
+    /// and "Update API Key" actions — callers resolve the *effective* key to test with
+    /// themselves (the freshly typed one, or the existing one via
+    /// `InstanceCredentialResolver` when the API Key field was left blank) and pass
+    /// `newAPIKeyToStore` only when the user actually typed a replacement, so a
+    /// pure name/server/userID edit never touches the Keychain at all. Re-tests even
+    /// when only the name changed: cheap, and it doubles as a health check confirming
+    /// the server/key combination is still valid. Mutating `instance` directly (rather
     /// than returning a value to apply) matches how sync services update existing
     /// `Cached*` models already fetched from a `ModelContext`. `userID` isn't part of
     /// the connection test (no `/users/{id}`-shaped endpoint is called here) — it's
     /// just saved alongside, see `Instance.userID`/`userReference`.
-    public func updateServerDetails(for instance: Instance, name: String, baseURL: String, apiKey: String, userID: Int?) async throws {
+    public func updateInstance(
+        for instance: Instance,
+        name: String,
+        baseURL: String,
+        apiKey: String,
+        newAPIKeyToStore: String?,
+        userID: Int?,
+        store: APIKeyStore
+    ) async throws {
         let credential = EventCredential(baseURL: Instance.apiBasePath(for: baseURL), apiKey: apiKey)
         _ = try await apiClient.fetchInfo(credential)
         instance.name = name
         instance.baseURL = baseURL
         instance.userID = userID
         instance.touch()
+        if let newAPIKeyToStore {
+            try store.save(apiKey: newAPIKeyToStore, for: instance.apiKeyKeychainRef)
+        }
     }
 }

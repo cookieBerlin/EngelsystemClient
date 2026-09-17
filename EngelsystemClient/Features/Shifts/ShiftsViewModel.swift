@@ -26,25 +26,42 @@ final class ShiftsViewModel {
         self.notificationScheduler = notificationScheduler
     }
 
-    func refresh(instance: Instance, in modelContext: ModelContext) async {
+    /// Syncs every currently active instance (2026-09-17 multi-active-instance redesign,
+    /// CLAUDE.md — any number of instances can be active at once) and aggregates their
+    /// shifts. Notifications are only (re)synced when every instance in `instances`
+    /// synced cleanly this pass — if one fails, previously scheduled notifications for
+    /// the others are deliberately left untouched rather than risk the combined
+    /// "cancel whatever's no longer in the synced set" logic dropping a still-valid
+    /// notification for an instance that simply didn't get a chance to re-sync.
+    func refresh(instances: [Instance], in modelContext: ModelContext) async {
         errorMessage = nil
         isUnauthorized = false
         isLoading = true
         defer { isLoading = false }
-        do {
-            let credential = try credentialResolver.credential(for: instance)
-            print("[ShiftsViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
-            let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
-            print("[ShiftsViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
-            if await notificationScheduler.requestAuthorizationIfNeeded() {
-                let minutesBefore = NotificationScheduler.configuredMinutesBefore()
-                await notificationScheduler.syncNotifications(for: shifts, minutesBefore: minutesBefore)
+
+        var allShifts: [CachedShift] = []
+        var lastError: Error?
+
+        for instance in instances {
+            do {
+                let credential = try credentialResolver.credential(for: instance)
+                print("[ShiftsViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
+                let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
+                print("[ShiftsViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
+                allShifts.append(contentsOf: shifts)
+            } catch {
+                print("[ShiftsViewModel] refresh failed for '\(instance.name)': \(error)")
+                guard !SyncErrorMapper.isCancellation(error) else { continue }
+                lastError = error
             }
-        } catch {
-            print("[ShiftsViewModel] refresh failed: \(error)")
-            guard !SyncErrorMapper.isCancellation(error) else { return }
-            errorMessage = SyncErrorMapper.message(for: error)
-            isUnauthorized = SyncErrorMapper.isUnauthorized(error)
+        }
+
+        if let lastError {
+            errorMessage = SyncErrorMapper.message(for: lastError)
+            isUnauthorized = SyncErrorMapper.isUnauthorized(lastError)
+        } else if await notificationScheduler.requestAuthorizationIfNeeded() {
+            let minutesBefore = NotificationScheduler.configuredMinutesBefore()
+            await notificationScheduler.syncNotifications(for: allShifts, minutesBefore: minutesBefore)
         }
     }
 }

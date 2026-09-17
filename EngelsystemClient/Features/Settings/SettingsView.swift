@@ -6,27 +6,66 @@ import EngelsystemClientKit
 /// (CLAUDE.md multi-instance concept: "switching in Settings"). A plain pushed list
 /// rather than its own `NavigationSplitView`, since it's already hosted inside
 /// `MainView`'s `NavigationSplitView`/`NavigationStack`.
+///
+/// 2026-09-17 multi-active-instance redesign (CLAUDE.md): any number of instances can
+/// be active simultaneously, so the single "Use as Active Instance" button/label is
+/// gone, replaced by two sections ("Active"/"Inactive") with a swipe action per row to
+/// move an instance between them — chosen over a per-row `Toggle` (rejected) and over
+/// drag-and-drop between sections (doesn't translate to watchOS, where Settings
+/// otherwise mirrors iOS's).
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @AppStorage("activeInstanceID") private var activeInstanceIDString: String = ""
     @AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)
     private var notificationLeadTimeMinutes: Int = NotificationScheduler.defaultMinutesBefore
+    @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
+    private var multiInstanceDisplayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
 
     let instances: [Instance]
 
     @State private var isPresentingSetup = false
 
+    private var activeInstances: [Instance] { instances.filter(\.isActive) }
+    private var inactiveInstances: [Instance] { instances.filter { !$0.isActive } }
+
+    private var multiInstanceDisplayMode: Binding<MultiInstanceDisplayMode> {
+        Binding(
+            get: { MultiInstanceDisplayMode(rawValue: multiInstanceDisplayModeRaw) ?? .merged },
+            set: { multiInstanceDisplayModeRaw = $0.rawValue }
+        )
+    }
+
     var body: some View {
         List {
-            Section("Instances") {
-                ForEach(instances) { instance in
-                    NavigationLink(value: instance) {
-                        InstanceRow(
-                            instance: instance,
-                            isActive: instance.id.uuidString == activeInstanceIDString
-                        )
+            Section("Active") {
+                if activeInstances.isEmpty {
+                    Text("No active instances.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(activeInstances) { instance in
+                        instanceRow(for: instance, activate: false)
                     }
                 }
+            }
+
+            Section("Inactive") {
+                if inactiveInstances.isEmpty {
+                    Text("No inactive instances.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(inactiveInstances) { instance in
+                        instanceRow(for: instance, activate: true)
+                    }
+                }
+            }
+
+            Section {
+                Picker("Multiple Active Instances", selection: multiInstanceDisplayMode) {
+                    ForEach(MultiInstanceDisplayMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+            } footer: {
+                Text("How Shifts, News, and Profile display data when more than one instance is active at the same time.")
             }
 
             Section {
@@ -52,25 +91,33 @@ struct SettingsView: View {
             }
         }
         .sheet(isPresented: $isPresentingSetup) {
-            InstanceSetupView { activateFirstInstanceIfNeeded() }
+            InstanceSetupView()
         }
         .navigationDestination(for: Instance.self) { instance in
-            InstanceDetailView(
-                instance: instance,
-                isActive: instance.id.uuidString == activeInstanceIDString,
-                onActivate: { activate(instance) },
-                onDelete: { delete(instance) }
-            )
+            InstanceDetailView(instance: instance, onDelete: { delete(instance) })
         }
     }
 
-    private func activateFirstInstanceIfNeeded() {
-        guard activeInstanceIDString.isEmpty, let first = instances.first else { return }
-        activate(first)
+    @ViewBuilder
+    private func instanceRow(for instance: Instance, activate: Bool) -> some View {
+        NavigationLink(value: instance) {
+            InstanceRow(instance: instance)
+        }
+        .swipeActions {
+            if activate {
+                Button("Activate") { setActive(instance, isActive: true) }
+                    .tint(.green)
+            } else {
+                Button("Deactivate") { setActive(instance, isActive: false) }
+                    .tint(.orange)
+            }
+        }
     }
 
-    private func activate(_ instance: Instance) {
-        activeInstanceIDString = instance.id.uuidString
+    private func setActive(_ instance: Instance, isActive: Bool) {
+        instance.isActive = isActive
+        instance.touch()
+        try? modelContext.save()
     }
 
     private func delete(_ instance: Instance) {
@@ -78,10 +125,6 @@ struct SettingsView: View {
         // both stores — deleting a nonexistent entry is a no-op.
         try? KeychainSyncStore().deleteAPIKey(for: instance.apiKeyKeychainRef)
         try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef)
-
-        if activeInstanceIDString == instance.id.uuidString {
-            activeInstanceIDString = ""
-        }
 
         // Manual cascade delete: `Instance` (CloudKit-backed) and the `Cached*` models
         // (local-only) live in separate `ModelConfiguration`s now, so SwiftData's
@@ -101,33 +144,22 @@ struct SettingsView: View {
 
 private struct InstanceRow: View {
     let instance: Instance
-    let isActive: Bool
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(instance.name)
-                Text(instance.normalizedBaseURL)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            if isActive {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-            }
+        VStack(alignment: .leading) {
+            Text(instance.name)
+            Text(instance.normalizedBaseURL)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 }
 
 private struct InstanceDetailView: View {
     let instance: Instance
-    let isActive: Bool
-    let onActivate: () -> Void
     let onDelete: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var isPresentingKeyUpdate = false
     @State private var isPresentingEdit = false
 
     var body: some View {
@@ -135,22 +167,8 @@ private struct InstanceDetailView: View {
             Section {
                 LabeledContent("Name", value: instance.name)
                 LabeledContent("Server", value: instance.normalizedBaseURL)
-                Button("Edit Name / Server") { isPresentingEdit = true }
-            }
-
-            Section {
-                if isActive {
-                    Label("Active Instance", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                } else {
-                    Button("Use as Active Instance", action: onActivate)
-                }
-            }
-
-            Section {
-                Button("Update API Key") { isPresentingKeyUpdate = true }
-            } footer: {
-                Text("If shifts, news, or your profile stop loading with an authorization error, the API key may have expired or been revoked — update it here.")
+                LabeledContent("Status", value: instance.isActive ? "Active" : "Inactive")
+                Button("Edit Instance") { isPresentingEdit = true }
             }
 
             Section {
@@ -161,15 +179,15 @@ private struct InstanceDetailView: View {
             }
         }
         .navigationTitle(instance.name)
-        .sheet(isPresented: $isPresentingKeyUpdate) {
-            UpdateAPIKeyView(instance: instance)
-        }
         .sheet(isPresented: $isPresentingEdit) {
             EditInstanceView(instance: instance)
         }
     }
 }
 
+/// Combined "Edit Instance" form — name, server, User ID, and API Key in one dialog
+/// (see `EditInstanceViewModel` for why this replaced the previously separate "Edit
+/// Name / Server" and "Update API Key" sheets).
 private struct EditInstanceView: View {
     let instance: Instance
 
@@ -204,6 +222,12 @@ private struct EditInstanceView: View {
                 } footer: {
                     Text("Only needed if your server doesn't recognize automatic user detection. Leave blank unless Shifts/Profile show up empty — your numeric user ID is visible in your Engelsystem profile URL.")
                 }
+                Section {
+                    SecureField("New API Key (optional)", text: $viewModel.apiKey)
+                        .autocorrectionDisabled()
+                } footer: {
+                    Text("Leave blank to keep the current key. Only fill this in if it's expired, been revoked, or you're pointing this instance at a different account.")
+                }
                 if let errorMessage = viewModel.errorMessage {
                     Section {
                         Text(errorMessage).foregroundStyle(.red)
@@ -225,52 +249,6 @@ private struct EditInstanceView: View {
                         Button("Save") {
                             Task {
                                 if await viewModel.save(instance: instance, in: modelContext) {
-                                    dismiss()
-                                }
-                            }
-                        }
-                        .disabled(!viewModel.canSubmit)
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct UpdateAPIKeyView: View {
-    let instance: Instance
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = UpdateAPIKeyViewModel()
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("API Key") {
-                    SecureField("New API Key", text: $viewModel.apiKey)
-                        .autocorrectionDisabled()
-                }
-                if let errorMessage = viewModel.errorMessage {
-                    Section {
-                        Text(errorMessage).foregroundStyle(.red)
-                    }
-                }
-            }
-            .navigationTitle("Update API Key")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    if viewModel.isTesting {
-                        ProgressView()
-                    } else {
-                        Button("Save") {
-                            Task {
-                                if await viewModel.update(instance: instance) {
                                     dismiss()
                                 }
                             }

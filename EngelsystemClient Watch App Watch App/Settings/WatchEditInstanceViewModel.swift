@@ -3,11 +3,11 @@ import SwiftData
 import EngelsystemClientKit
 
 /// Watch equivalent of the iOS app's `EditInstanceViewModel` (`Features/Settings`) —
-/// duplicated rather than shared for the same reason as `WatchUpdateAPIKeyViewModel`
-/// (that type lives in the iOS app target, not `EngelsystemClientKit`). Uses
-/// `InstanceCredentialResolver` directly rather than `WatchUpdateAPIKeyViewModel`'s
-/// always-`LocalKeychainStore` simplification, since the existing API key could in
-/// principle live in either store and this needs to *read* it, not write it.
+/// duplicated rather than shared because that type lives in the iOS app target, not
+/// `EngelsystemClientKit`. Simpler than the iOS version: the Watch always uses its own
+/// local keychain entry, independent of iCloud sync (same simplification
+/// `WatchSetupViewModel` already makes), so there's no primary/secondary store
+/// mirroring when a new key is entered.
 @Observable
 @MainActor
 final class WatchEditInstanceViewModel {
@@ -17,6 +17,9 @@ final class WatchEditInstanceViewModel {
     /// `Instance.userID`. Kept as text here since it's an optional numeric field on a
     /// form; parsed on submit.
     var userIDText: String
+    /// Left blank on open; blank on save means "keep the existing key" — see the iOS
+    /// `EditInstanceViewModel`'s matching field for the full rationale.
+    var apiKey: String = ""
     var isTesting = false
     var errorMessage: String?
 
@@ -48,14 +51,22 @@ final class WatchEditInstanceViewModel {
         isTesting = true
         defer { isTesting = false }
 
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespaces)
+        let newKeyToStore = trimmedKey.isEmpty ? nil : trimmedKey
+        let store = LocalKeychainStore()
+
         do {
-            let credential = try credentialResolver.credential(for: instance)
-            try await setupService.updateServerDetails(
+            let existingCredential = try credentialResolver.credential(for: instance)
+            let effectiveAPIKey = newKeyToStore ?? existingCredential.apiKey
+
+            try await setupService.updateInstance(
                 for: instance,
                 name: name.trimmingCharacters(in: .whitespaces),
                 baseURL: baseURL.trimmingCharacters(in: .whitespaces),
-                apiKey: credential.apiKey,
-                userID: Int(userIDText.trimmingCharacters(in: .whitespaces))
+                apiKey: effectiveAPIKey,
+                newAPIKeyToStore: newKeyToStore,
+                userID: Int(userIDText.trimmingCharacters(in: .whitespaces)),
+                store: store
             )
             try? modelContext.save()
             return true

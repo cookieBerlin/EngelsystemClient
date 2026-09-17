@@ -18,6 +18,19 @@ import Testing
     #expect(instance.apiBasePath == "https://engelsystem.example.org/api/v0-beta")
 }
 
+// 2026-09-17 multi-active-instance redesign (CLAUDE.md): any number of instances can be
+// active at once, so a freshly created instance must default to active — there's no
+// "first instance is auto-activated" special case standing in for this anymore.
+@Test func instanceDefaultsToActiveOnCreation() {
+    let instance = Instance(name: "Real", baseURL: "https://engelsystem.example.org", apiKeyKeychainRef: "ref")
+    #expect(instance.isActive)
+}
+
+@Test func instanceCanBeCreatedInactive() {
+    let instance = Instance(name: "Real", baseURL: "https://engelsystem.example.org", apiKeyKeychainRef: "ref", isActive: false)
+    #expect(!instance.isActive)
+}
+
 // `Instance.userID` is a fallback for user-scoped endpoints — see
 // `usersIdShiftsGetRequestBuilderProducesACorrectlyFormattedIDPathSegment` below for what
 // this was actually working around (not a server-side "self" incompatibility, as first

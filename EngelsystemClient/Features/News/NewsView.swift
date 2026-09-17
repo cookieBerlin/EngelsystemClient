@@ -2,61 +2,116 @@ import SwiftUI
 import SwiftData
 import EngelsystemClientKit
 
+/// 2026-09-17 multi-active-instance redesign (CLAUDE.md): `instances` is every
+/// currently active instance, aggregated per `MultiInstanceDisplayMode` — see
+/// `ShiftsView` for the shared pattern.
 struct NewsView: View {
-    let instance: Instance
+    let instances: [Instance]
     var onUnauthorized: () -> Void = {}
 
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = NewsViewModel()
-    @Query private var newsItems: [CachedNews]
+    @State private var selectedInstanceID: UUID?
+    @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
+    private var displayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
+    @Query private var allNewsItems: [CachedNews]
 
-    init(instance: Instance, onUnauthorized: @escaping () -> Void = {}) {
-        self.instance = instance
-        self.onUnauthorized = onUnauthorized
-        let instanceID = instance.id
-        _newsItems = Query(filter: #Predicate<CachedNews> { $0.instanceID == instanceID })
+    private var displayMode: MultiInstanceDisplayMode {
+        guard instances.count > 1 else { return .merged }
+        return MultiInstanceDisplayMode(rawValue: displayModeRaw) ?? .merged
     }
 
-    private var sortedNews: [CachedNews] { CachedNews.sortedByRecency(newsItems) }
+    private var instanceIDs: Set<UUID> { Set(instances.map(\.id)) }
+    private var newsItems: [CachedNews] { allNewsItems.filter { instanceIDs.contains($0.instanceID) } }
+
+    private var switcherInstance: Instance? {
+        instances.first(where: { $0.id == selectedInstanceID }) ?? instances.first
+    }
+
+    private func instanceName(for item: CachedNews) -> String? {
+        instances.first(where: { $0.id == item.instanceID })?.name
+    }
 
     var body: some View {
-        List {
-            if let errorMessage = viewModel.errorMessage {
-                Section {
-                    ErrorBanner(message: errorMessage)
-                }
-                .listRowInsets(EdgeInsets())
-            }
-
-            if newsItems.isEmpty && !viewModel.isLoading {
+        Group {
+            if instances.isEmpty {
                 ContentUnavailableView(
-                    "No News",
+                    "No Active Instance",
                     systemImage: "newspaper",
-                    description: Text("There's no news yet.")
+                    description: Text("Activate an instance in Settings to see its news.")
                 )
             } else {
-                ForEach(sortedNews) { item in
-                    NewsRow(item: item)
+                List {
+                    if let errorMessage = viewModel.errorMessage {
+                        Section {
+                            ErrorBanner(message: errorMessage)
+                        }
+                        .listRowInsets(EdgeInsets())
+                    }
+
+                    switch displayMode {
+                    case .merged:
+                        newsRows(CachedNews.sortedByRecency(newsItems), labeled: true)
+                    case .switcher:
+                        InstancePicker(instances: instances, selection: $selectedInstanceID)
+                            .listRowSeparator(.hidden)
+                        let filtered = newsItems.filter { $0.instanceID == switcherInstance?.id }
+                        newsRows(CachedNews.sortedByRecency(filtered), labeled: false)
+                    case .sectioned:
+                        ForEach(instances) { instance in
+                            let instanceNews = CachedNews.sortedByRecency(newsItems.filter { $0.instanceID == instance.id })
+                            if !instanceNews.isEmpty {
+                                Section(instance.name) {
+                                    ForEach(instanceNews) { item in
+                                        NewsRow(item: item)
+                                    }
+                                }
+                            }
+                        }
+                        if newsItems.isEmpty && !viewModel.isLoading {
+                            emptyState
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .toolbar {
+                    if viewModel.isLoading {
+                        ToolbarItem { ProgressView() }
+                    }
+                }
+                .refreshable { await viewModel.refresh(instances: instances, in: modelContext) }
+                .task { await viewModel.refresh(instances: instances, in: modelContext) }
+                .onChange(of: viewModel.isUnauthorized) { _, isUnauthorized in
+                    if isUnauthorized { onUnauthorized() }
                 }
             }
         }
-        .listStyle(.plain)
         .navigationTitle("News")
-        .toolbar {
-            if viewModel.isLoading {
-                ToolbarItem { ProgressView() }
+    }
+
+    @ViewBuilder
+    private func newsRows(_ items: [CachedNews], labeled: Bool) -> some View {
+        if items.isEmpty && !viewModel.isLoading {
+            emptyState
+        } else {
+            ForEach(items) { item in
+                NewsRow(item: item, instanceName: labeled ? instanceName(for: item) : nil)
             }
         }
-        .refreshable { await viewModel.refresh(instance: instance, in: modelContext) }
-        .task { await viewModel.refresh(instance: instance, in: modelContext) }
-        .onChange(of: viewModel.isUnauthorized) { _, isUnauthorized in
-            if isUnauthorized { onUnauthorized() }
-        }
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView(
+            "No News",
+            systemImage: "newspaper",
+            description: Text("There's no news yet.")
+        )
     }
 }
 
 private struct NewsRow: View {
     let item: CachedNews
+    var instanceName: String?
 
     private var attributedText: AttributedString {
         (try? AttributedString(markdown: item.text)) ?? AttributedString(item.text)
@@ -77,6 +132,10 @@ private struct NewsRow: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.blue.opacity(0.2)))
+                }
+                if let instanceName {
+                    Spacer()
+                    InstanceBadge(name: instanceName)
                 }
             }
             Text(attributedText)

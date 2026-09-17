@@ -3,41 +3,50 @@ import SwiftData
 import EngelsystemClientKit
 
 /// Watch equivalent of the iOS app's `SettingsView` (`Features/Settings`) — instance
-/// management (switch/add/remove, update API key) plus the notification lead-time
-/// picker, now that the Watch app supports the same settings as iOS. Structured the
-/// same way as its iOS counterpart (a plain pushed `List`, private row/detail views in
-/// the same file), just via its own `@Query` instead of an `instances` parameter, since
-/// the Watch app has no `MainView`-equivalent already holding that array.
+/// management (switch/add/remove, edit) plus the notification lead-time picker, now
+/// that the Watch app supports the same settings as iOS. Structured the same way as its
+/// iOS counterpart (a plain pushed `List`, private row/detail views in the same file),
+/// just via its own `@Query` instead of an `instances` parameter, since the Watch app
+/// has no `MainView`-equivalent already holding that array.
+///
+/// 2026-09-17 multi-active-instance redesign (CLAUDE.md): mirrors iOS's two-section
+/// ("Active"/"Inactive") + swipe-action-to-move layout, replacing the old single list
+/// with a "Use as Active Instance" button. No `multiInstanceDisplayMode` picker here —
+/// that setting only affects iOS's Shifts/News/Profile catalog screens, which the Watch
+/// doesn't have (see `MultiInstanceDisplayMode`).
 struct WatchSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Instance.createdAt) private var instances: [Instance]
-    @AppStorage("activeInstanceID") private var activeInstanceIDString: String = ""
     @AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)
     private var notificationLeadTimeMinutes: Int = NotificationScheduler.defaultMinutesBefore
 
     @State private var isPresentingSetup = false
 
+    private var activeInstances: [Instance] { instances.filter(\.isActive) }
+    private var inactiveInstances: [Instance] { instances.filter { !$0.isActive } }
+
     var body: some View {
         List {
-            Section("Instances") {
-                ForEach(instances) { instance in
-                    // Destination-closure NavigationLink rather than
-                    // `NavigationLink(value:)` + `.navigationDestination(for:)` — the
-                    // value-based flavor didn't reliably push on watchOS in testing here
-                    // (UI tests confirmed the tap registers but no navigation occurs);
-                    // this style is confirmed working.
-                    NavigationLink {
-                        WatchInstanceDetailView(
-                            instance: instance,
-                            isActive: instance.id.uuidString == activeInstanceIDString,
-                            onActivate: { activate(instance) },
-                            onDelete: { delete(instance) }
-                        )
-                    } label: {
-                        WatchInstanceRow(
-                            instance: instance,
-                            isActive: instance.id.uuidString == activeInstanceIDString
-                        )
+            Section("Active") {
+                if activeInstances.isEmpty {
+                    Text("No active instances.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(activeInstances) { instance in
+                        instanceRow(for: instance, activate: false)
+                    }
+                }
+            }
+
+            Section("Inactive") {
+                if inactiveInstances.isEmpty {
+                    Text("No inactive instances.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(inactiveInstances) { instance in
+                        instanceRow(for: instance, activate: true)
                     }
                 }
                 Button {
@@ -63,17 +72,37 @@ struct WatchSettingsView: View {
         }
     }
 
-    private func activate(_ instance: Instance) {
-        activeInstanceIDString = instance.id.uuidString
+    // Destination-closure NavigationLink rather than `NavigationLink(value:)` +
+    // `.navigationDestination(for:)` — the value-based flavor didn't reliably push on
+    // watchOS in testing here (UI tests confirmed the tap registers but no navigation
+    // occurs); this style is confirmed working.
+    @ViewBuilder
+    private func instanceRow(for instance: Instance, activate: Bool) -> some View {
+        NavigationLink {
+            WatchInstanceDetailView(instance: instance, onDelete: { delete(instance) })
+        } label: {
+            WatchInstanceRow(instance: instance)
+        }
+        .swipeActions {
+            if activate {
+                Button("Activate") { setActive(instance, isActive: true) }
+                    .tint(.green)
+            } else {
+                Button("Deactivate") { setActive(instance, isActive: false) }
+                    .tint(.orange)
+            }
+        }
+    }
+
+    private func setActive(_ instance: Instance, isActive: Bool) {
+        instance.isActive = isActive
+        instance.touch()
+        try? modelContext.save()
     }
 
     private func delete(_ instance: Instance) {
         try? KeychainSyncStore().deleteAPIKey(for: instance.apiKeyKeychainRef)
         try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef)
-
-        if activeInstanceIDString == instance.id.uuidString {
-            activeInstanceIDString = ""
-        }
 
         // Manual cascade delete: `Instance` (CloudKit-backed) and `CachedShift`
         // (local-only, the only Cached* type the Watch schema includes) live in
@@ -89,28 +118,17 @@ struct WatchSettingsView: View {
 
 private struct WatchInstanceRow: View {
     let instance: Instance
-    let isActive: Bool
 
     var body: some View {
-        HStack {
-            Text(instance.name)
-            Spacer()
-            if isActive {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-            }
-        }
+        Text(instance.name)
     }
 }
 
 private struct WatchInstanceDetailView: View {
     let instance: Instance
-    let isActive: Bool
-    let onActivate: () -> Void
     let onDelete: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var isPresentingKeyUpdate = false
     @State private var isPresentingEdit = false
 
     var body: some View {
@@ -118,20 +136,8 @@ private struct WatchInstanceDetailView: View {
             Section {
                 LabeledContent("Name", value: instance.name)
                 LabeledContent("Server", value: instance.normalizedBaseURL)
-                Button("Edit Name / Server") { isPresentingEdit = true }
-            }
-
-            Section {
-                if isActive {
-                    Label("Active Instance", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                } else {
-                    Button("Use as Active Instance", action: onActivate)
-                }
-            }
-
-            Section {
-                Button("Update API Key") { isPresentingKeyUpdate = true }
+                LabeledContent("Status", value: instance.isActive ? "Active" : "Inactive")
+                Button("Edit Instance") { isPresentingEdit = true }
             }
 
             Section {
@@ -142,15 +148,15 @@ private struct WatchInstanceDetailView: View {
             }
         }
         .navigationTitle(instance.name)
-        .sheet(isPresented: $isPresentingKeyUpdate) {
-            WatchUpdateAPIKeyView(instance: instance)
-        }
         .sheet(isPresented: $isPresentingEdit) {
             WatchEditInstanceView(instance: instance)
         }
     }
 }
 
+/// Combined "Edit Instance" form — see the iOS `EditInstanceView`'s matching comment
+/// for why this merged what used to be separate "Edit Name / Server" and "Update API
+/// Key" sheets.
 private struct WatchEditInstanceView: View {
     let instance: Instance
 
@@ -180,6 +186,12 @@ private struct WatchEditInstanceView: View {
                     Text("Only needed if your server doesn't recognize automatic user detection.")
                         .font(.caption2)
                 }
+                Section {
+                    SecureField("New API Key (optional)", text: $viewModel.apiKey)
+                } footer: {
+                    Text("Leave blank to keep the current key.")
+                        .font(.caption2)
+                }
                 if let errorMessage = viewModel.errorMessage {
                     Section {
                         Text(errorMessage)
@@ -204,46 +216,6 @@ private struct WatchEditInstanceView: View {
                 }
             }
             .navigationTitle("Edit Instance")
-        }
-    }
-}
-
-private struct WatchUpdateAPIKeyView: View {
-    let instance: Instance
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = WatchUpdateAPIKeyViewModel()
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("API Key") {
-                    SecureField("New API Key", text: $viewModel.apiKey)
-                }
-                if let errorMessage = viewModel.errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .font(.caption2)
-                            .foregroundStyle(.red)
-                    }
-                }
-                Section {
-                    if viewModel.isTesting {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Button("Save") {
-                            Task {
-                                if await viewModel.update(instance: instance) {
-                                    dismiss()
-                                }
-                            }
-                        }
-                        .disabled(!viewModel.canSubmit)
-                    }
-                }
-            }
-            .navigationTitle("Update API Key")
         }
     }
 }

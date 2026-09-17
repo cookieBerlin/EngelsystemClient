@@ -3,20 +3,23 @@ import SwiftData
 import EngelsystemClientKit
 
 /// Shows only the next upcoming shift — no full shift catalog, no news — per
-/// CLAUDE.md's deliberately minimal Watch App Scope.
+/// CLAUDE.md's deliberately minimal Watch App Scope. Since the 2026-09-17
+/// multi-active-instance redesign, `instances` is every currently active instance
+/// (`Instance.isActive`) — still exactly one shift shown, but it's the nearest upcoming
+/// one across all of them, not a single pre-selected instance.
 struct NextShiftView: View {
-    let instance: Instance
+    let instances: [Instance]
 
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = NextShiftViewModel()
-    @Query private var shifts: [CachedShift]
+    @Query private var allShifts: [CachedShift]
 
-    init(instance: Instance) {
-        self.instance = instance
-        let instanceID = instance.id
-        _shifts = Query(filter: #Predicate<CachedShift> { $0.instanceID == instanceID })
+    init(instances: [Instance]) {
+        self.instances = instances
     }
 
+    private var instanceIDs: Set<UUID> { Set(instances.map(\.id)) }
+    private var shifts: [CachedShift] { allShifts.filter { instanceIDs.contains($0.instanceID) } }
     private var nextShift: CachedShift? { CachedShift.nextShift(from: shifts) }
 
     var body: some View {
@@ -42,7 +45,7 @@ struct NextShiftView: View {
                             .foregroundStyle(.secondary)
                     }
                 } else if !viewModel.isLoading {
-                    Text("No upcoming shifts")
+                    Text(instances.isEmpty ? "No active instance" : "No upcoming shifts")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -70,7 +73,7 @@ struct NextShiftView: View {
             .frame(maxWidth: .infinity)
         }
         .navigationTitle("Next Shift")
-        .task { await viewModel.refresh(instance: instance, in: modelContext) }
-        .refreshable { await viewModel.refresh(instance: instance, in: modelContext) }
+        .task { await viewModel.refresh(instances: instances, in: modelContext) }
+        .refreshable { await viewModel.refresh(instances: instances, in: modelContext) }
     }
 }

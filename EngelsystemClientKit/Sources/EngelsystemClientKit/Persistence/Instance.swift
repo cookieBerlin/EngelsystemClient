@@ -20,6 +20,12 @@ public final class Instance {
     // (confirmed to happen on at least one real, older Engelsystem deployment) —
     // nil means "use `self`", the default and normal case. See `userReference` below.
     public var userID: Int?
+    // Whether this instance's data (Shifts/News/Profile, the Watch's next shift) is
+    // currently included. Replaces the old single "active instance" concept (2026-09-17
+    // multi-active-instance redesign, CLAUDE.md) — any number of instances can be active
+    // simultaneously. Defaults to true so a newly created instance shows up immediately
+    // without a separate activation step.
+    public var isActive: Bool = true
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
 
@@ -34,13 +40,15 @@ public final class Instance {
         name: String,
         baseURL: String,
         apiKeyKeychainRef: String,
-        userID: Int? = nil
+        userID: Int? = nil,
+        isActive: Bool = true
     ) {
         self.id = id
         self.name = name
         self.baseURL = baseURL
         self.apiKeyKeychainRef = apiKeyKeychainRef
         self.userID = userID
+        self.isActive = isActive
         self.createdAt = Date()
         self.updatedAt = Date()
     }
