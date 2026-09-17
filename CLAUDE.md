@@ -1347,6 +1347,46 @@ schedule anyway, and there's no reason to sync them.
   Features below) exists specifically so this stays visible going
   forward without needing a console attached.
 
+- **Fixed, 2026-09-18: an already-open `@Query` view didn't refresh
+  promptly when a CloudKit merge landed in the background.** Reported by
+  the user: toggling `Instance.isActive` in Settings on the Watch only
+  showed up in the already-open iPhone Settings screen after leaving and
+  re-entering it, even though the sync itself (confirmed above) was
+  working — the data was on disk, the visible view just never redrew.
+  Root cause: `NSPersistentCloudKitContainer`-style merges write directly
+  into the store without going through the local `ModelContext`'s own
+  save, and `@Query`'s observers are wired to the context's "did save"
+  notification, not to the underlying store change itself — so a
+  background remote merge updates the data but never fires the signal
+  the view is actually watching for.
+
+  Fix: `refreshesOnRemoteCloudKitChange(modelContext:)` (a `View`
+  extension, duplicated per target — `EngelsystemClient/Features/Shared/
+  RemoteChangeRefresh.swift` and `EngelsystemClient Watch App Watch App/
+  Settings/RemoteChangeRefresh.swift`, kept out of `EngelsystemClientKit`
+  since it's SwiftUI view-layer code) observes Core Data's
+  `NSPersistentStoreRemoteChange` notification (SwiftData is built on
+  Core Data, so this still fires) and forces a `modelContext.save()` —
+  a no-op write, but it's exactly the signal `@Query` needs. Applied
+  once at the app root (`.refreshesOnRemoteCloudKitChange(modelContext:
+  sharedModelContainer.mainContext)` in both `EngelsystemClientApp`/
+  `EngelsystemClient_Watch_App_Watch_AppApp`), not per-screen, so every
+  `@Query` bound to the shared context benefits.
+
+  **Self-caught regression while building this**: the first version
+  called `modelContext.save()` directly from the notification handler,
+  which spammed "Publishing changes from background threads is not
+  allowed" on both iPhone and Watch (confirmed via a real-device console
+  log the user pasted) — `NSPersistentStoreRemoteChange` fires on a
+  background queue, but `ModelContext` is main-actor-bound. Fixed by
+  adding `.receive(on: DispatchQueue.main)` to the publisher chain before
+  the `onReceive` handler runs. This project's `MemberImportVisibility`
+  upcoming-feature flag means `.receive(on:)` additionally needs an
+  explicit `import Combine` in both files (normally implicit via
+  SwiftUI). Verified via the full Kit test suite (33 tests),
+  `EngelsystemClientTests` (6 tests), and `testDemoModeNavigationFlow`
+  — all green with the fix in place.
+
 ## Testing
 
 - **Always add tests for new features** — logic in `EngelsystemClientKit`
