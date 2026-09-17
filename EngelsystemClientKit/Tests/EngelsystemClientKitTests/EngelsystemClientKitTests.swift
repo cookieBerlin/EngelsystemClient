@@ -18,8 +18,10 @@ import Testing
     #expect(instance.apiBasePath == "https://engelsystem.example.org/api/v0-beta")
 }
 
-// Some real Engelsystem servers 404 on the documented `self` path-parameter alias
-// (confirmed on at least one deployment) — `userID` is the fallback for those.
+// `Instance.userID` is a fallback for user-scoped endpoints — see
+// `usersIdShiftsGetRequestBuilderProducesACorrectlyFormattedIDPathSegment` below for what
+// this was actually working around (not a server-side "self" incompatibility, as first
+// suspected on 2026-09-05 — that diagnosis was itself wrong, root-caused 2026-09-17).
 @Test func instanceUserReferenceDefaultsToMeWhenUserIDIsUnset() {
     let instance = Instance(name: "Real", baseURL: "https://engelsystem.example.org", apiKeyKeychainRef: "ref")
     guard case .me = instance.userReference else {
@@ -40,6 +42,23 @@ import Testing
         return
     }
     #expect(id == 42)
+}
+
+/// Regression test, root-caused 2026-09-17: `UsersIdGetIdParameter` (generated) isn't
+/// `RawRepresentable`, so the generated `APIHelper.mapValueToPathItem` used to build every
+/// `/users/{id}/...` request path fell through to interpolating the raw enum value — producing
+/// literal `{id}` path segments like `"typeInt(2)"` or `"typeString(\"self\")"` instead of
+/// `"2"`/`"self"`, a malformed URL that 404s no matter what `Instance.userID` is set to. Fixed
+/// by giving `UsersIdGetIdParameter` a `CustomStringConvertible` conformance in
+/// `APIEndpoint.swift` (not `Generated/`) — this test exercises the real generated request
+/// builder end-to-end (not just the conformance in isolation) so a future regenerate/change
+/// that breaks this interaction again gets caught.
+@Test func usersIdShiftsGetRequestBuilderProducesACorrectlyFormattedIDPathSegment() {
+    let numericBuilder = ShiftAPI.usersIdShiftsGetWithRequestBuilder(id: UserReference.id(2).parameter)
+    #expect(numericBuilder.URLString.hasSuffix("/users/2/shifts"))
+
+    let selfBuilder = ShiftAPI.usersIdShiftsGetWithRequestBuilder(id: UserReference.me.parameter)
+    #expect(selfBuilder.URLString.hasSuffix("/users/self/shifts"))
 }
 
 // MARK: - CachedNews text sanitization
