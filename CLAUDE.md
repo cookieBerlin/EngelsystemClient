@@ -820,7 +820,16 @@ exists without reading the whole diff history.
   filtering in Swift after the fetch isn't a real cost). Pull-to-refresh
   and an initial `.task` both trigger a sync. Shows a
   `ContentUnavailableView` instead of a list when there are zero active
-  instances.
+  instances. **Grouped by calendar day** (2026-09-17, user-reported: a
+  shift row only ever showed a time, no date, at all) via
+  `CachedShift.groupedByDay` (`EngelsystemClientKit/Persistence/
+  CachedShift.swift` — day-sorted, each day's shifts start-time-sorted)
+  — `.merged`/`.switcher` render one real `Section` per day (header
+  "Today"/"Tomorrow"/weekday+month+day, via `ShiftsView.dateHeaderText`);
+  `.sectioned` (already grouped into one `Section` per instance) uses a
+  plain styled text row per day instead of a nested real `Section`,
+  since a `Section` can't nest inside another `Section` in a plain
+  `List`.
 - **News** (`Features/News`): same pattern via `NewsSyncService`/
   `CachedNews`/`NewsViewModel.refresh(instances:in:)`; pinned items sort
   first, meeting items get a badge, body text renders through

@@ -63,8 +63,18 @@ struct ShiftsView: View {
                             let instanceShifts = shifts.filter { $0.instanceID == instance.id }
                             if !instanceShifts.isEmpty {
                                 Section(instance.name) {
-                                    ForEach(instanceShifts) { shift in
-                                        ShiftRow(shift: shift)
+                                    // A `Section` can't nest inside another `Section` in a
+                                    // plain `List`, so date sub-groups here are a styled
+                                    // header row rather than a real `Section` (unlike
+                                    // .merged/.switcher below, which aren't already
+                                    // sectioned by instance and can use real ones).
+                                    ForEach(CachedShift.groupedByDay(instanceShifts), id: \.day) { group in
+                                        Text(dateHeaderText(group.day))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        ForEach(group.shifts) { shift in
+                                            ShiftRow(shift: shift)
+                                        }
                                     }
                                 }
                             }
@@ -90,15 +100,27 @@ struct ShiftsView: View {
         .navigationTitle("Shifts")
     }
 
+    /// Shifts grouped into one `Section` per calendar day — a shift row on its own only
+    /// shows a time, not a date, so the day header is what actually conveys it.
     @ViewBuilder
     private func shiftRows(_ shifts: [CachedShift], labeled: Bool) -> some View {
         if shifts.isEmpty && !viewModel.isLoading {
             emptyState
         } else {
-            ForEach(shifts) { shift in
-                ShiftRow(shift: shift, instanceName: labeled ? instanceName(for: shift) : nil)
+            ForEach(CachedShift.groupedByDay(shifts), id: \.day) { group in
+                Section(dateHeaderText(group.day)) {
+                    ForEach(group.shifts) { shift in
+                        ShiftRow(shift: shift, instanceName: labeled ? instanceName(for: shift) : nil)
+                    }
+                }
             }
         }
+    }
+
+    private func dateHeaderText(_ day: Date) -> String {
+        if Calendar.current.isDateInToday(day) { return "Today" }
+        if Calendar.current.isDateInTomorrow(day) { return "Tomorrow" }
+        return day.formatted(.dateTime.weekday(.wide).month(.wide).day())
     }
 
     private var emptyState: some View {

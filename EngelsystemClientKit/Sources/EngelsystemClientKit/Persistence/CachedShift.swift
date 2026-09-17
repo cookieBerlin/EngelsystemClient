@@ -148,4 +148,13 @@ public extension CachedShift {
     static func nextShift(from shifts: [CachedShift]) -> CachedShift? {
         upcomingShifts(from: shifts).first
     }
+
+    /// Groups shifts by calendar day (each `day` is that day's `startOfDay`), sorted by
+    /// day ascending, each day's shifts sorted by start time — backs the iOS Shifts
+    /// screen's date-grouped list (a shift row on its own only shows a time, not a
+    /// date; the day header carries that instead).
+    static func groupedByDay(_ shifts: [CachedShift], calendar: Calendar = .current) -> [(day: Date, shifts: [CachedShift])] {
+        let grouped = Dictionary(grouping: shifts) { calendar.startOfDay(for: $0.startsAt) }
+        return grouped.keys.sorted().map { day in (day, sortedByStartTime(grouped[day] ?? [])) }
+    }
 }
