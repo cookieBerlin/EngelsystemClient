@@ -21,6 +21,7 @@ struct WatchSettingsView: View {
     private var notificationLeadTimeMinutes: Int = NotificationScheduler.defaultMinutesBefore
 
     @State private var isPresentingSetup = false
+    @State private var cloudSyncStatus: CloudSyncStatus = .checking
 
     private var activeInstances: [Instance] { instances.filter(\.isActive) }
     private var inactiveInstances: [Instance] { instances.filter { !$0.isActive } }
@@ -67,16 +68,22 @@ struct WatchSettingsView: View {
             }
 
             Section {
-                Text(AppVersionInfo.displayString)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                VStack(spacing: 4) {
+                    Text(cloudSyncStatus.displayText)
+                    Text(AppVersionInfo.displayString)
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
             .listRowBackground(Color.clear)
         }
         .navigationTitle("Settings")
         .sheet(isPresented: $isPresentingSetup) {
             WatchSetupView()
+        }
+        .task {
+            cloudSyncStatus = await CloudSyncStatus.current(containerIdentifier: ModelContainerFactory.cloudKitContainerIdentifier)
         }
     }
 

@@ -926,14 +926,21 @@ exists without reading the whole diff history.
   section: a "Notify Before Shift" picker (5/10/15/30/60 min) backed by
   `@AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)`, applying
   to all instances (it's a single app-wide preference, not per-instance).
-  At the very bottom, a plain unheadered section shows `AppVersionInfo
-  .displayString` (`Features/Shared`) — marketing version, build number,
-  and the `GitCommitHash` Info.plist key (see Entitlements above),
-  formatted as "Version 1.0 (3) · a1b2c3d" — so a specific installed
-  build can be identified at a glance. `WatchSettingsView` has the same
-  footer via its own duplicate `AppVersionInfo` (`Settings/`, watch
-  target — duplicated rather than shared since `Bundle.main` resolves
-  per-target).
+  At the very bottom, a plain unheadered section shows (2026-09-18)
+  `CloudSyncStatus.current(containerIdentifier:)`'s `displayText`
+  (`EngelsystemClientKit/Services/CloudSyncStatus.swift`, queried via
+  `.task` on appear) above `AppVersionInfo.displayString`
+  (`Features/Shared`) — e.g. "iCloud Sync: Active" over
+  "Version 1.0 (3) · a1b2c3d" — so a real, on-device sync problem (no
+  iCloud account, restricted, temporarily down) and a specific installed
+  build are both visible at a glance, without digging through console
+  logs. Added directly off the back of the `Instance`-sync root-cause
+  fix above — this is the first time sync status was surfaced anywhere
+  in the UI rather than only via `print` diagnostics.
+  `WatchSettingsView` has the same two-line footer, reusing
+  `CloudSyncStatus` from the Kit but its own duplicate `AppVersionInfo`
+  (`Settings/`, watch target — duplicated rather than shared since
+  `Bundle.main` resolves per-target).
 - **Shared feature helpers** (`Features/Shared`): `ErrorBanner` (inline
   red banner for sync errors), `SyncErrorMapper` (maps `APIError`/
   `InstanceCredentialError`/`KeychainError` to the same user-facing

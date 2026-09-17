@@ -23,6 +23,7 @@ struct SettingsView: View {
     let instances: [Instance]
 
     @State private var isPresentingSetup = false
+    @State private var cloudSyncStatus: CloudSyncStatus = .checking
 
     private var activeInstances: [Instance] { instances.filter(\.isActive) }
     private var inactiveInstances: [Instance] { instances.filter { !$0.isActive } }
@@ -81,10 +82,13 @@ struct SettingsView: View {
             }
 
             Section {
-                Text(AppVersionInfo.displayString)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                VStack(spacing: 4) {
+                    Text(cloudSyncStatus.displayText)
+                    Text(AppVersionInfo.displayString)
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
             .listRowBackground(Color.clear)
         }
@@ -97,6 +101,9 @@ struct SettingsView: View {
                     Label("Add Instance", systemImage: "plus")
                 }
             }
+        }
+        .task {
+            cloudSyncStatus = await CloudSyncStatus.current(containerIdentifier: ModelContainerFactory.cloudKitContainerIdentifier)
         }
         .sheet(isPresented: $isPresentingSetup) {
             InstanceSetupView()
