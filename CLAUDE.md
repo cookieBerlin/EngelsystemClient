@@ -399,44 +399,62 @@ files out). If you ever need to add another Info.plist key that doesn't
 synthesize via `INFOPLIST_KEY_*`, add it to these existing fragment
 files rather than creating new ones.
 
-**`BGTaskSchedulerPermittedIdentifiers` added to both fragment files,
-2026-09-18** — fixes a repeating real-device console error the user
-reported from the Watch: `updateTaskRequest failed for
-com.apple.coredata.cloudkit.activity.export.<uuid> / Error updating
-background task request: Error Domain=BGSystemTaskSchedulerErrorDomain
-Code=3 "(null)"`. Code `3` is `BGTaskScheduler.Error.Code.notPermitted`
-per Apple's documented `BackgroundTasks` framework error codes (`1
-unavailable`, `2 tooManyPendingTaskRequests`, `3 notPermitted`) — the
-task identifier isn't declared in Info.plist. `NSPersistentCloudKitContainer`
-(what SwiftData's CloudKit mirroring is built on) registers its own
-periodic export/import housekeeping via `BGTaskScheduler` internally —
-nothing this app's own code calls directly, no `BGTaskScheduler`/
-`BGAppRefreshTask`/`BGProcessingTask` code exists here, as noted above —
-using two fixed identifiers Apple's own CloudKit+Core Data sample code
-and forum guidance document:
-```xml
-<key>BGTaskSchedulerPermittedIdentifiers</key>
-<array>
-    <string>com.apple.coredata.cloudkit.activity.export</string>
-    <string>com.apple.coredata.cloudkit.activity.import</string>
-</array>
-```
-Only `.export` had actually appeared in the pasted log, `.import` is
-added alongside it since it's the documented counterpart and always used
-together — declaring an identifier CloudKit never happens to schedule
-costs nothing. **Does not require any change to `UIBackgroundModes`**
-(still correctly `remote-notification` only, see above) — this is an
-unrelated Info.plist key, and `notPermitted` specifically means "missing
-from the permitted-identifiers list", not "missing background mode".
-Verified by rebuilding both targets and inspecting the built `Info.plist`
-directly with `plutil -p` (same verification discipline as
-`UIBackgroundModes` above, not just trusting a clean build) — the key
-merges into both the iOS and Watch bundles correctly alongside
-`UIBackgroundModes`. Not yet re-verified on the real Watch that the
-console error itself has stopped (that requires a fresh install + a
-CloudKit export actually firing again) — if it recurs after this, the
-"housekeeping" identifiers Apple has since added on some OS versions may
-also need including.
+**Investigated, 2026-09-18: `Error Domain=BGSystemTaskSchedulerErrorDomain
+Code=3` around `com.apple.coredata.cloudkit.activity.export.<uuid>` on
+the real Watch — benign, no fix needed; a first attempt at "fixing" it
+was based on a misread and was reverted the same day.** Full log line:
+`updateTaskRequest failed for com.apple.coredata.cloudkit.activity.export.
+<uuid> / Error updating background task request: Error
+Domain=BGSystemTaskSchedulerErrorDomain Code=3 "(null)"`, immediately
+followed by `updateTaskRequest called for a pre-running task ...` /
+`... called for an already running/updated task ...` for the same
+identifier.
+
+  **First attempt (wrong, reverted): added `BGTaskSchedulerPermittedIdentifiers`
+  (`com.apple.coredata.cloudkit.activity.export`/`.import`) to both
+  Info.plist fragments**, reasoning that `Code=3` matches the
+  *public*, documented `BGTaskScheduler.Error.Code.notPermitted` (the
+  identifier missing from that Info.plist key). This missed that the
+  error domain in the actual log is `BGSystemTaskSchedulerErrorDomain`,
+  not `BGTaskSchedulerErrorDomain` — a different, private/internal
+  system domain (`com.apple.BackgroundSystemTasks`/`BGSTFramework`,
+  visible in the fuller log capture) that `NSPersistentCloudKitContainer`
+  talks to directly for its own housekeeping, not the public API surface
+  `BGTaskSchedulerPermittedIdentifiers` governs. Confirmed wrong hands-on,
+  not just in theory: rebuilt and reinstalled on the real Watch with the
+  key in place, and the exact same error recurred with the *same* task
+  UUID (`05C75F0C-F61C-4388-99D6-CEF50391B051`) — proof the change had
+  zero effect. Reverted both Info.plist fragments back to
+  `UIBackgroundModes` only.
+
+  **Actual finding, via web research** (Apple Developer Forums threads on
+  `NSCloudKitMirroringExportRequest`/`BGSystemTaskScheduler`): this
+  specific error is `NSPersistentCloudKitContainer` trying to schedule a
+  new background export activity while a previous one for the same
+  identifier is still pending or in progress — the system-level scheduler
+  rejects the redundant *new* request with `Code=3`, but this is expected
+  and self-healing, not a failure of sync itself: the immediately-following
+  "pre-running task"/"already running/updated task" log lines are the
+  system confirming it's just continuing to use the existing scheduled
+  activity instead. `NSPersistentCloudKitContainer` re-schedules on its
+  own the next time there's actually new data to export, with no
+  app-code involvement either way (nothing here calls `BGTaskScheduler`
+  directly, still true per the Entitlements section above). Consistent
+  with everything else observed this session: real shift/`Instance` sync
+  keeps working (confirmed both by explicit user confirmation and by
+  `[NextShiftViewModel] synced N shift(s)` in the same log captures this
+  error appears in) — this is console noise from CloudKit's internal
+  scheduling machinery, not a symptom of anything broken in this app.
+  **No Info.plist change needed for this; not planning to revisit unless
+  it's ever shown to correlate with an actual sync failure.**
+
+  Also present in the same real-Watch log, not yet investigated (lower
+  priority, since it hasn't been shown to affect anything observable):
+  `Couldn't read values in CFPrefsPlistSource<...> (Domain:
+  group.net.cuccato.engelsystem.de.shared, ...): Using kCFPreferencesAnyUser
+  with a container is only allowed for System Containers, detaching from
+  cfprefsd` — App Group UserDefaults access, likely from
+  `NextShiftSnapshotStore`.
 
 **`GitCommitHash` Info.plist key + build-number-on-archive (2026-09-17),
 both added via the `xcodeproj` Ruby gem, not by hand-editing

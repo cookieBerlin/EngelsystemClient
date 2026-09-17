@@ -6,10 +6,5 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>com.apple.coredata.cloudkit.activity.export</string>
-		<string>com.apple.coredata.cloudkit.activity.import</string>
-	</array>
 </dict>
 </plist>
