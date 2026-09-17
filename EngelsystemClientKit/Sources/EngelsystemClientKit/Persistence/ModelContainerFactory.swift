@@ -46,6 +46,9 @@ public enum ModelContainerFactory {
         // to "sync is broken" from the UI (an empty instance list) but has a completely
         // different fix (sign into iCloud on *this* device, separately from any other).
         print("[ModelContainerFactory] ICloudAvailability.isAvailable = \(ICloudAvailability.isAvailable), forceLocalOnly = \(forceLocalOnly) -> Instance is \(iCloudAvailable ? "CloudKit-backed" : "local-only, NOT syncing")")
+        if !forceLocalOnly {
+            ICloudAvailability.logCloudKitAccountStatus(containerIdentifier: cloudKitContainerIdentifier)
+        }
         let cloudKitDatabase: ModelConfiguration.CloudKitDatabase = iCloudAvailable
             ? .private(cloudKitContainerIdentifier)
             : .none
