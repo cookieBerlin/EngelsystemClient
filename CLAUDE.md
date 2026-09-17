@@ -399,6 +399,45 @@ files out). If you ever need to add another Info.plist key that doesn't
 synthesize via `INFOPLIST_KEY_*`, add it to these existing fragment
 files rather than creating new ones.
 
+**`BGTaskSchedulerPermittedIdentifiers` added to both fragment files,
+2026-09-18** — fixes a repeating real-device console error the user
+reported from the Watch: `updateTaskRequest failed for
+com.apple.coredata.cloudkit.activity.export.<uuid> / Error updating
+background task request: Error Domain=BGSystemTaskSchedulerErrorDomain
+Code=3 "(null)"`. Code `3` is `BGTaskScheduler.Error.Code.notPermitted`
+per Apple's documented `BackgroundTasks` framework error codes (`1
+unavailable`, `2 tooManyPendingTaskRequests`, `3 notPermitted`) — the
+task identifier isn't declared in Info.plist. `NSPersistentCloudKitContainer`
+(what SwiftData's CloudKit mirroring is built on) registers its own
+periodic export/import housekeeping via `BGTaskScheduler` internally —
+nothing this app's own code calls directly, no `BGTaskScheduler`/
+`BGAppRefreshTask`/`BGProcessingTask` code exists here, as noted above —
+using two fixed identifiers Apple's own CloudKit+Core Data sample code
+and forum guidance document:
+```xml
+<key>BGTaskSchedulerPermittedIdentifiers</key>
+<array>
+    <string>com.apple.coredata.cloudkit.activity.export</string>
+    <string>com.apple.coredata.cloudkit.activity.import</string>
+</array>
+```
+Only `.export` had actually appeared in the pasted log, `.import` is
+added alongside it since it's the documented counterpart and always used
+together — declaring an identifier CloudKit never happens to schedule
+costs nothing. **Does not require any change to `UIBackgroundModes`**
+(still correctly `remote-notification` only, see above) — this is an
+unrelated Info.plist key, and `notPermitted` specifically means "missing
+from the permitted-identifiers list", not "missing background mode".
+Verified by rebuilding both targets and inspecting the built `Info.plist`
+directly with `plutil -p` (same verification discipline as
+`UIBackgroundModes` above, not just trusting a clean build) — the key
+merges into both the iOS and Watch bundles correctly alongside
+`UIBackgroundModes`. Not yet re-verified on the real Watch that the
+console error itself has stopped (that requires a fresh install + a
+CloudKit export actually firing again) — if it recurs after this, the
+"housekeeping" identifiers Apple has since added on some OS versions may
+also need including.
+
 **`GitCommitHash` Info.plist key + build-number-on-archive (2026-09-17),
 both added via the `xcodeproj` Ruby gem, not by hand-editing
 `project.pbxproj`/`.xcscheme` directly** (same tool already used for
