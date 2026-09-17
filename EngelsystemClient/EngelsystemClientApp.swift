@@ -24,6 +24,7 @@ struct EngelsystemClientApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .refreshesOnRemoteCloudKitChange(modelContext: sharedModelContainer.mainContext)
         }
         .modelContainer(sharedModelContainer)
     }
