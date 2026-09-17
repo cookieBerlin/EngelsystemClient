@@ -998,9 +998,22 @@ exists without reading the whole diff history.
   Since the 2026-09-17 multi-active-instance redesign, `WatchMainView`
   passes every `instance.isActive` instance to `NextShiftView` rather
   than resolving a single `@AppStorage`-backed active instance —
-  `ContentView` still only decides between "no instance yet" (→
-  `WatchSetupView`) and "at least one" (→ `WatchMainView`), matching the
-  iOS app's `ContentView`/`MainView` split. `WatchSettingsView` mirrors
+  `ContentView` still only decides between "no instance yet" and "at
+  least one" (→ `WatchMainView`) — but the "no instance yet" branch
+  changed 2026-09-18, at the user's request: it now goes straight to
+  **`WatchSettingsView`** instead of the manual-entry `WatchSetupView`.
+  Reasoning: since `Instance` syncs via CloudKit unconditionally (see
+  the root-cause fix above), an instance created on the iPhone should
+  just appear on the Watch on its own — showing Settings first lets the
+  user watch the `CloudSyncStatus` footer to confirm that's actually
+  happening, rather than being steered straight into manual entry as if
+  sync wasn't an option. `WatchSetupView` (manual entry / "Try Demo
+  Mode") remains one tap away via Settings' existing "Add Instance"
+  button, so CLAUDE.md's "Fallback" path is still fully reachable — this
+  is a routing change, not a removal. Reactive via `@Query`, same as
+  before: once an instance exists (synced in or manually added),
+  `ContentView` automatically switches to `WatchMainView` on its own.
+  `WatchSettingsView` mirrors
   iOS's `SettingsView`: two sections ("Active"/"Inactive") with a swipe
   action per row to move an instance between them, no
   `MultiInstanceDisplayMode` picker here (that setting only affects

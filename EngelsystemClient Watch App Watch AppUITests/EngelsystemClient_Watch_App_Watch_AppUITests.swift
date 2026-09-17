@@ -65,8 +65,27 @@ final class EngelsystemClient_Watch_App_Watch_AppUITests: XCTestCase {
 
         app.launch()
 
-        // watchOS simulator cold launch is slow — give it more room than the iOS test needs.
-        XCTAssertTrue(app.staticTexts["Setup"].waitForExistence(timeout: 30))
+        // ContentView now goes straight to Settings when no instance is configured yet
+        // (2026-09-18, at the user's request) rather than the manual-entry Setup screen
+        // — since Instance now syncs via CloudKit unconditionally, an instance created
+        // on the iPhone should just appear here on its own, and showing Settings first
+        // lets the user watch the CloudSyncStatus footer to confirm that's happening,
+        // instead of being steered straight into manual entry as if sync wasn't an
+        // option. Setup (manual entry / "Try Demo Mode") is one tap away via Settings'
+        // "Add Instance" button. watchOS simulator cold launch is slow — give it more
+        // room than the iOS test needs.
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 30))
+
+        let addInstanceButton = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Add Instance"))
+            .firstMatch
+        for _ in 0..<10 where !addInstanceButton.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(addInstanceButton.waitForExistence(timeout: 10))
+        addInstanceButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+
+        XCTAssertTrue(app.navigationBars["Setup"].waitForExistence(timeout: 15))
 
         // The Form's later sections aren't materialized in the accessibility tree until
         // scrolled into view, so swipe up until the button appears (bounded to avoid an
@@ -80,6 +99,15 @@ final class EngelsystemClient_Watch_App_Watch_AppUITests: XCTestCase {
         }
         XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
         demoButton.tap()
+
+        // Creating the instance flips ContentView's root from WatchSettingsView (which
+        // presented this Setup sheet) to WatchMainView underneath — if that teardown
+        // doesn't also dismiss an already-presented sheet on its own, close it
+        // explicitly via watchOS's auto-added sheet "Close" button.
+        let closeSetupSheetButton = app.buttons["Close"].firstMatch
+        if closeSetupSheetButton.waitForExistence(timeout: 3) {
+            closeSetupSheetButton.tap()
+        }
 
         XCTAssertTrue(app.navigationBars["Next Shift"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.staticTexts["Info Desk Shift"].waitForExistence(timeout: 15))
