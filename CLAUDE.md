@@ -324,8 +324,58 @@ Engelsystem.xcodeproj
 - iCloud → CloudKit, same container: `iCloud.net.cuccato.engelsystem.de`
 - Keychain Sharing, same access group:
   `$(AppIdentifierPrefix)net.cuccato.engelsystem.de.shared`
-- Background Modes (iOS target only): Background fetch, Background processing
-- **No** push-notification entitlement needed (local notifications only)
+- **Background Modes, both targets: `remote-notification` only** — required
+  for CloudKit's silent-push-triggered sync (SwiftData's CloudKit mirroring
+  needs this to receive remote-change notifications in the background;
+  without it, CloudKit itself raises a hard runtime error, `"BUG IN CLIENT
+  OF CLOUDKIT: CloudKit push notifications require the 'remote-notification'
+  background mode in your info plist"`, the first time it tries to register).
+  This entry previously (incorrectly) said "Background fetch, Background
+  processing" — those were **never actually implemented**: no
+  `BGTaskScheduler`/`BGAppRefreshTask`/`BGProcessingTask` code exists
+  anywhere in this codebase, so that line was aspirational documentation
+  that had drifted from reality, not a real capability. Corrected
+  2026-09-17 when the CloudKit runtime error above surfaced during Simulator
+  sync testing and this project.pbxproj gap was found (`grep
+  UIBackgroundModes project.pbxproj` returned nothing at all beforehand).
+- **No** push-notification entitlement needed (local notifications only) —
+  the CloudKit-driven silent push above is handled entirely by the system/
+  CloudKit framework via the Background Mode capability, not by this app
+  requesting `UNAuthorizationOptions` push permission or handling APNs
+  device tokens itself.
+
+**`INFOPLIST_KEY_UIBackgroundModes`/`INFOPLIST_KEY_WKBackgroundModes` do
+not work as build settings on this Xcode version — a real Info.plist
+fragment file is required instead.** Both targets use
+`GENERATE_INFOPLIST_FILE = YES` (no checked-in Info.plist), and most
+Info.plist keys *are* successfully synthesized this way from
+`INFOPLIST_KEY_<Key>` build settings (confirmed working:
+`UISupportedInterfaceOrientations`, `UIApplicationSceneManifest`,
+`WKCompanionAppBundleIdentifier`, etc.) — but `UIBackgroundModes`
+specifically is not on whatever internal list of keys Xcode's
+Info.plist-generation step recognizes for this synthesis: setting
+`INFOPLIST_KEY_UIBackgroundModes` (tried both as a plain string and as a
+proper pbxproj array) resolved correctly per `xcodebuild
+-showBuildSettings`, but never appeared in the built `Info.plist` no
+matter how many times the build was cleaned — confirmed by inspecting
+the built bundle directly with `plutil -p`, not just trusting a
+successful build. **Fix**: add back a real, minimal Info.plist file
+containing just the one key, and reference it via `INFOPLIST_FILE`
+*alongside* keeping `GENERATE_INFOPLIST_FILE = YES` — Xcode merges the
+two (confirmed: every other synthesized key was still present in the
+built plist afterward). The fragment files
+(`EngelsystemClient-Info.plist`, `EngelsystemClientWatchApp-Info.plist`)
+live at the **project root**, sibling to `EngelsystemClient.xcodeproj`,
+**not** inside either target's own folder — both `EngelsystemClient/`
+and `EngelsystemClient Watch App Watch App/` are
+`PBXFileSystemSynchronizedRootGroup`s (see "Project/target structure"
+below), so a loose file dropped inside one gets automatically added to
+that target's "Copy Bundle Resources" build phase, which then collides
+with the same file also being used as `INFOPLIST_FILE` (`"duplicate
+output file ... Info.plist"` — hit this exact error before moving the
+files out). If you ever need to add another Info.plist key that doesn't
+synthesize via `INFOPLIST_KEY_*`, add it to these existing fragment
+files rather than creating new ones.
 - **App Group** `group.net.cuccato.engelsystem.de.shared` (Watch app + `EngelsystemComplication`
   extension only, not iOS): shares the next-shift snapshot with the complication
   process (see Watch App Scope / Implemented Features below). Confirmed working
