@@ -376,6 +376,57 @@ output file ... Info.plist"` — hit this exact error before moving the
 files out). If you ever need to add another Info.plist key that doesn't
 synthesize via `INFOPLIST_KEY_*`, add it to these existing fragment
 files rather than creating new ones.
+
+**`GitCommitHash` Info.plist key + build-number-on-archive (2026-09-17),
+both added via the `xcodeproj` Ruby gem, not by hand-editing
+`project.pbxproj`/`.xcscheme` directly** (same tool already used for
+`EngelsystemComplication` — see "Complication" below):
+- **Every build** (`EngelsystemClient`, `EngelsystemClient Watch App Watch
+  App`, both Debug and Release) runs a `PBXShellScriptBuildPhase` named
+  "Embed Git Commit Hash" — the last build phase, after Copy Bundle
+  Resources — that shells out to `git rev-parse --short HEAD` and writes
+  the result into a `GitCommitHash` key in the already-built
+  `Info.plist` via `PlistBuddy`, so any build (including a plain
+  Simulator debug run) can be traced back to the exact commit it came
+  from. It's marked `always_out_of_date` so the new build system runs it
+  on every build rather than caching it as "up to date".
+  - **This required disabling `ENABLE_USER_SCRIPT_SANDBOXING` for both
+    targets** (`= NO`, overriding the project-level `= YES` default).
+    Xcode 15+'s Run Script sandboxing silently blocks a script's writes
+    to any file not declared in its `outputPaths` — the write appeared
+    to succeed (exit code 0, no logged error) but the built `Info.plist`
+    never actually changed. Declaring the real `Info.plist` path as this
+    phase's `outputPaths` (the obvious fix) doesn't work either: it then
+    collides with Xcode's own `ProcessInfoPlistFile` task, which also
+    claims that path as its output (`"duplicate output file"` build
+    error) — confirmed both failure modes hands-on before landing on
+    disabling sandboxing for these two targets as the practical fix.
+- **Build number (`CURRENT_PROJECT_VERSION`/`CFBundleVersion`) only
+  auto-increments when archiving**, not on every build — deliberately
+  *not* done via a per-target Run Script Build Phase gated on
+  `${ACTION}`, because the iOS app target depends on (and builds after)
+  the Watch app target, so a phase living on the iOS target would bump
+  the version too late for the already-built Watch app's own Info.plist.
+  Instead: `VERSIONING_SYSTEM = apple-generic` on both targets (enables
+  `agvtool`), plus an **Archive-action pre-action** on the
+  `EngelsystemClient.xcscheme` scheme (`<PreActions>` under
+  `<ArchiveAction>`) running `xcrun agvtool next-version -all`, which
+  runs once, before *any* target starts building, and bumps
+  `CURRENT_PROJECT_VERSION` across every target in the project
+  consistently (confirmed hands-on: 1 → 2 across all 14 build configs in
+  one invocation, iOS + Watch + both test targets + Complication).
+  **Scheme pre-actions/post-actions only run when archiving through
+  Xcode's own UI (Product → Archive) — `xcodebuild archive` from the
+  command line does not execute them at all.** This project's testing
+  this session has been almost entirely `xcodebuild` CLI, so this
+  specific behavior could not be (and was not) verified end-to-end the
+  same way as everything else — verify manually via Xcode's Organizer
+  the first time this matters for a real archive. `agvtool` also prints
+  `Cannot find "NO"`/`Cannot find "YES"` noise while doing this (it
+  appears to misinterpret some unrelated `GENERATE_INFOPLIST_FILE`
+  build-setting values elsewhere in the project as candidate Info.plist
+  paths) — harmless, the actual version bump still lands correctly
+  despite the noise.
 - **App Group** `group.net.cuccato.engelsystem.de.shared` (Watch app + `EngelsystemComplication`
   extension only, not iOS): shares the next-shift snapshot with the complication
   process (see Watch App Scope / Implemented Features below). Confirmed working

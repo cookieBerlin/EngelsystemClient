@@ -110,31 +110,43 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7605052530457830002B3D76 /* EngelsystemClient */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = EngelsystemClient;
 			sourceTree = "<group>";
 		};
 		7605053530457832002B3D76 /* EngelsystemClientTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = EngelsystemClientTests;
 			sourceTree = "<group>";
 		};
 		7605053F30457832002B3D76 /* EngelsystemClientUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = EngelsystemClientUITests;
 			sourceTree = "<group>";
 		};
 		76050554304578DE002B3D76 /* EngelsystemClient Watch App Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "EngelsystemClient Watch App Watch App";
 			sourceTree = "<group>";
 		};
 		76050562304578E0002B3D76 /* EngelsystemClient Watch App Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "EngelsystemClient Watch App Watch AppTests";
 			sourceTree = "<group>";
 		};
 		7605056C304578E0002B3D76 /* EngelsystemClient Watch App Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "EngelsystemClient Watch App Watch AppUITests";
 			sourceTree = "<group>";
 		};
@@ -269,6 +281,7 @@
 				7605052030457830002B3D76 /* Frameworks */,
 				7605052130457830002B3D76 /* Resources */,
 				76050577304578E0002B3D76 /* Embed Watch Content */,
+				469D78827F85D99F0CFB2CFE /* Embed Git Commit Hash */,
 			);
 			buildRules = (
 			);
@@ -336,6 +349,7 @@
 				76050550304578DE002B3D76 /* Frameworks */,
 				76050551304578DE002B3D76 /* Resources */,
 				BB559827279462079AE73281 /* Embed Foundation Extensions */,
+				A70801071B8AF514865C281A /* Embed Git Commit Hash */,
 			);
 			buildRules = (
 			);
@@ -528,6 +542,47 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		469D78827F85D99F0CFB2CFE /* Embed Git Commit Hash */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Git Commit Hash";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "GIT_HASH=$(git -C \"${SRCROOT}\" rev-parse --short HEAD 2>/dev/null || echo \"unknown\")\nPLIST=\"${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Delete :GitCommitHash\" \"${PLIST}\" 2>/dev/null\n/usr/libexec/PlistBuddy -c \"Add :GitCommitHash string ${GIT_HASH}\" \"${PLIST}\"\n";
+		};
+		A70801071B8AF514865C281A /* Embed Git Commit Hash */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Git Commit Hash";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "GIT_HASH=$(git -C \"${SRCROOT}\" rev-parse --short HEAD 2>/dev/null || echo \"unknown\")\nPLIST=\"${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Delete :GitCommitHash\" \"${PLIST}\" 2>/dev/null\n/usr/libexec/PlistBuddy -c \"Add :GitCommitHash string ${GIT_HASH}\" \"${PLIST}\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5F98873E19F084EEEB2ECCE1 /* Sources */ = {
@@ -802,8 +857,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8A5FNU94BM;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = EngelsystemClient-Info.plist;
+				INFOPLIST_FILE = "EngelsystemClient-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -823,6 +879,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
 		};
@@ -836,8 +893,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8A5FNU94BM;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = EngelsystemClient-Info.plist;
+				INFOPLIST_FILE = "EngelsystemClient-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -857,6 +915,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;
 		};
@@ -954,8 +1013,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8A5FNU94BM;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = EngelsystemClientWatchApp-Info.plist;
+				INFOPLIST_FILE = "EngelsystemClientWatchApp-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "EngelsystemClient Watch App";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = net.cuccato.engelsystem.de.EngelsystemClient;
@@ -976,6 +1036,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
+				VERSIONING_SYSTEM = "apple-generic";
 				WATCHOS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Debug;
@@ -990,8 +1051,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8A5FNU94BM;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = EngelsystemClientWatchApp-Info.plist;
+				INFOPLIST_FILE = "EngelsystemClientWatchApp-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "EngelsystemClient Watch App";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = net.cuccato.engelsystem.de.EngelsystemClient;
@@ -1012,6 +1074,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
+				VERSIONING_SYSTEM = "apple-generic";
 				WATCHOS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Release;
