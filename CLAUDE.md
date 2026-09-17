@@ -88,11 +88,141 @@ official REST API of the respective Engelsystem instance.
 
 ## Multi-instance concept
 
+**Redesigned 2026-09-17 (planned, not yet implemented — see "Multi-active-
+instance redesign" below for the rollout plan):** originally exactly one
+`Instance` could be "active" at a time (a single `@AppStorage` ID picked
+which instance's data Shifts/News/Profile showed). The user asked for
+**multiple instances to be active simultaneously** (e.g. helping at more
+than one event at once) plus a simpler per-instance settings dialog. New
+binding design:
+
 - `Instance` SwiftData model: `id`, `name`, `baseURL`,
-  `apiKeyKeychainRef`
-- Active instance ID in `@AppStorage`/UserDefaults, not the key itself
+  `apiKeyKeychainRef`, `userID`, **`isActive: Bool` (new)**.
+- **`isActive` replaces the single `@AppStorage("activeInstanceID")`
+  entirely** — any number of instances can be active at once, each has
+  its own on/off toggle (in the instance row/detail in Settings, not
+  buried in the edit form — flipping it is instant, no connection
+  re-test). New instances default to `isActive = true` on creation (so
+  "the first instance created is activated automatically" no longer
+  needs special-case code — every newly created instance already shows
+  up).
+- **`isActive` is CloudKit-synced** (it's just another field on the
+  already CloudKit-backed `Instance` model) — activating/deactivating an
+  instance on the iPhone does the same on the Watch, consistent with how
+  name/server/`userID` already sync.
+- **Combined per-instance settings dialog**: the previous two separate
+  actions/sheets ("Edit Name / Server" and "Update API Key") merge into
+  **one** form — Name, Server URL, User ID (optional), API Key (optional).
+  The API Key field is **left blank by default and blank means "keep the
+  existing key"** — only fill it in to actually change it. Saving always
+  re-tests the connection (with whichever key is in play: the freshly
+  typed one, or the existing one resolved via
+  `InstanceCredentialResolver` when left blank), same "test then save"
+  shape as today, and on success updates name/baseURL/userID and (only if
+  a new key was entered) overwrites the keychain entry. The `isActive`
+  toggle is *not* part of this dialog — it's independent and instant, per
+  above.
+- **Shifts/News/Profile now aggregate across every active instance**,
+  not just one. Each item (shift, news post, worklog entry) is tied to
+  whichever instance it came from via the existing `instanceID` field —
+  nothing new needed there, only the `@Query`/fetch predicates change
+  from "== the one active instance" to "IN the active instance set".
+  **How that aggregate is *displayed* is a user preference** (the user
+  explicitly asked for all three, selectable in Settings, not a single
+  fixed choice) — a new `multiInstanceDisplayMode` setting, iOS-only
+  (see below), one of:
+  - **Merged**: one flat list per screen, sorted as today, each row
+    carries a small instance name/badge label.
+  - **Switcher**: exactly one active instance's data shown at a time
+    (closest to today's behavior), with a segmented control/picker at
+    the top of each screen to switch between the currently-active
+    instances.
+  - **Sectioned**: one list per screen, but grouped into a section per
+    active instance instead of a flat merge.
+
+  This setting is **iOS-only**, not mirrored to the Watch's Settings
+  (breaking `WatchSettingsView`'s usual "full parity with iOS" pattern
+  deliberately) — the Watch has no Shifts/News/Profile catalog screens
+  for it to apply to (see below).
+- **Watch's "next shift" now looks across every active instance**, not
+  just one — still shows exactly one shift (per the Watch's deliberately
+  minimal scope), but it's the chronologically nearest upcoming shift
+  across *all* active instances rather than a single pre-selected one.
+  `NextShiftViewModel` syncs each active instance's shifts (looping the
+  existing per-instance `ShiftSyncService.sync` call) and picks the
+  earliest via `CachedShift.nextShift(from:)` over the combined result.
 - All cache models (`CachedShift`, `CachedNews`, `CachedUser`,
-  `CachedWorklog`, `CachedAngelTypeMembership`) reference an `Instance`
+  `CachedWorklog`, `CachedAngelTypeMembership`) still reference an
+  `Instance` purely via the plain `instanceID: UUID` field (no relationship
+  — see "CloudKit sync for Instance metadata" below for why).
+
+### Multi-active-instance redesign — rollout plan (2026-09-17, planned)
+
+Concrete steps for the design above, in dependency order. Nothing in this
+subsection is implemented yet.
+
+1. **`Instance.isActive: Bool = true`** (new stored property,
+   `EngelsystemClientKit/Persistence/Instance.swift`) — default `true` so
+   newly-inserted instances need no special-casing.
+2. **One-time migration for existing installs**: since every *existing*
+   instance would otherwise come back as `isActive = true` after the
+   schema change (CloudKit/SwiftData lightweight migration applies the
+   new property's default to old rows), on first launch after the update
+   read the legacy `@AppStorage("activeInstanceID")` value once — if
+   present, set only that instance's `isActive = true` and every other
+   existing instance's `isActive = false`, matching what the user had
+   before. Only needed once; the legacy key can be left in place
+   unused afterward (or cleared) rather than removed from `@AppStorage`
+   call sites everywhere.
+3. Remove `@AppStorage("activeInstanceID")` from `SettingsView`/
+   `WatchSettingsView`/`MainView`/`WatchMainView`, replaced by reading
+   `instances.filter(\.isActive)` (a `@Query` predicate or a computed
+   filter over the existing `instances`/`@Query` array).
+4. **Settings UI**: replace the "Use as Active Instance"/"Active
+   Instance" button+label with a `Toggle` bound directly to
+   `instance.isActive` on the instance row (or detail screen), saved
+   immediately (`try? modelContext.save()`) — no connection test, no
+   sheet. Do this for both `SettingsView` and `WatchSettingsView`.
+5. **Combined edit dialog**: merge iOS's `EditInstanceView`+
+   `EditInstanceViewModel` and `UpdateAPIKeyView`+`UpdateAPIKeyViewModel`
+   into one (same for the Watch's `WatchEditInstanceView`/
+   `WatchUpdateAPIKeyView` pair) — one form, one "Save" action. Likely
+   needs a new `InstanceSetupService` method that tests+saves
+   name/baseURL/userID *and* conditionally rewrites the keychain entry
+   only when a new key was actually typed, rather than calling
+   `updateServerDetails` and `updateAPIKey` as two separate operations.
+6. **`multiInstanceDisplayMode` setting** (new `@AppStorage` value, iOS
+   app target only, exposed on `SettingsView`'s existing Notifications-
+   style preferences section): an enum with `.merged`/`.switcher`/
+   `.sectioned` cases, default `.merged` (closest to a single unified
+   list, least surprising default).
+7. **Shifts/News/Profile view models + views**: `refresh(instance:in:)`
+   → `refresh(instances:in:)`, looping the existing per-instance sync
+   calls and aggregating; each screen's `@Query` predicate changes from
+   `instanceID == id` to `activeIDs.contains(instanceID)`; each view
+   renders per `multiInstanceDisplayMode` (merged list with a label,
+   switcher with a segmented control, or sectioned list) — the "Watch
+   for another `SyncErrorMapper.isCancellation(_:)` guard" and similar
+   existing per-instance patterns extend to "per instance in the loop",
+   not a wholesale rewrite of that logic.
+8. **Watch's `NextShiftViewModel`**: same aggregation as Shifts, but
+   collapses to the single nearest-upcoming shift via
+   `CachedShift.nextShift(from:)` over the combined result before
+   updating the App Group snapshot/complication.
+9. **Notification scheduling**: `NotificationScheduler.syncNotifications`
+   needs to be called once with the *combined* upcoming-shift set across
+   all active instances (not once per instance), otherwise its
+   "cancel whatever's no longer in the synced/upcoming set" logic could
+   cancel notifications belonging to a different active instance that
+   simply wasn't part of that particular call.
+10. **Tests**: unit tests in `EngelsystemClientKitTests` for `isActive`
+    default/toggle behavior and the migration step; app-target tests for
+    the combined edit dialog's "blank key = unchanged" behavior (mirroring
+    the existing `EditInstanceViewModelPersistenceTests` pattern); an
+    XCUITest update for the iOS instance-list Toggle and combined edit
+    sheet (the Watch UI test stays off-limits per the Simulator
+    performance ceiling documented below — verify Watch changes via a
+    manual simulator check instead).
 
 ## Sync strategy (iOS ↔ Watch), binding
 
@@ -102,8 +232,11 @@ requirement.
 
 - **API keys:** Keychain access group + `kSecAttrSynchronizable = true`
   (iCloud Keychain sync)
-- **Instance metadata (name, server URL, active instance):** CloudKit-backed
-  SwiftData, same CloudKit container in both targets
+- **Instance metadata (name, server URL, `userID`, active/inactive state
+  per instance):** CloudKit-backed SwiftData, same CloudKit container in
+  both targets — see "Multi-instance concept" above for `isActive`
+  (2026-09-17: any number of instances can now be active simultaneously,
+  each toggle syncs like the rest of `Instance`'s fields)
 - **Fallback:** if iCloud is disabled on the device → allow manual
   key/server entry directly on the Watch (its own local keychain entry,
   independent of sync)
