@@ -10,6 +10,13 @@ import EngelsystemClientKit
 /// be active at once (`Instance.isActive`), so there's no single `activeInstanceID`
 /// anymore — Shifts/News/Profile each receive every active instance and aggregate
 /// across them (see `MultiInstanceDisplayMode`).
+///
+/// Settings is deliberately **not** one of the sidebar rows (2026-09-17) — it's reached
+/// via a gear icon in the sidebar's own toolbar corner instead, since it's app
+/// configuration rather than a data section on the same level as Shifts/News/Profile.
+/// `Section.settings` still exists as a `selection` value (so `goToSettings()`'s
+/// 401-triggers-navigation behavior keeps working unchanged), it's just excluded from
+/// `Section.sidebarCases`, the list of rows the sidebar actually renders.
 struct MainView: View {
     let instances: [Instance]
 
@@ -17,6 +24,10 @@ struct MainView: View {
 
     private enum Section: String, CaseIterable, Identifiable {
         case shifts, news, profile, settings
+
+        /// Rows shown in the sidebar list — excludes `.settings`, reached via the gear
+        /// toolbar button instead.
+        static let sidebarCases: [Section] = [.shifts, .news, .profile]
 
         var id: String { rawValue }
 
@@ -51,10 +62,19 @@ struct MainView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(Section.allCases, selection: $selection) { section in
+            List(Section.sidebarCases, selection: $selection) { section in
                 Label(section.title, systemImage: section.systemImage).tag(section)
             }
             .navigationTitle(navigationTitle)
+            .toolbar {
+                ToolbarItem {
+                    Button {
+                        selection = .settings
+                    } label: {
+                        Label("Settings", systemImage: "gearshape")
+                    }
+                }
+            }
         } detail: {
             NavigationStack {
                 switch selection ?? .shifts {

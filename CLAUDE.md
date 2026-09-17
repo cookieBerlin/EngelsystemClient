@@ -794,14 +794,22 @@ exists without reading the whole diff history.
   normal save flow — no separate demo UI anywhere else.
 - **Main navigation** (`Features/Main/MainView`): the root view once at
   least one instance exists. A single `NavigationSplitView` with a
-  sidebar of four sections (Shifts/News/Profile/Settings) — not a plain
+  sidebar of data sections (Shifts/News/Profile) — not a plain
   `TabView`, per the iPad requirement above; collapses to stack
   navigation on iPhone automatically. Since the 2026-09-17 multi-active-
   instance redesign, resolves every `instance.isActive` instance (not a
   single `@AppStorage` ID) and passes that array to whichever section is
   selected; the sidebar's own navigation title reflects the count ("No
   Active Instance" / the one instance's name / "N Active Instances").
-  Defaults to Shifts on launch.
+  Defaults to Shifts on launch. **Settings is not a sidebar row**
+  (changed 2026-09-17, at the user's request) — it's app configuration
+  rather than a data section at the same level as Shifts/News/Profile,
+  so it's reached via a gear icon in the sidebar's own toolbar corner
+  instead. `Section.settings` still exists internally as a `selection`
+  value (`Section.sidebarCases` is the subset — `.shifts`/`.news`/
+  `.profile` — actually rendered as rows), so `goToSettings()`'s
+  401-triggers-navigation behavior (see Data/code flow below) keeps
+  working unchanged; only the visible row disappeared.
 - **Shifts** (`Features/Shifts`): lists the signed-in user's shifts
   aggregated across every active instance (see "Multi-instance concept"
   above for `MultiInstanceDisplayMode`). `ShiftsViewModel.refresh(instances:
@@ -835,7 +843,8 @@ exists without reading the whole diff history.
   "Multi-instance concept" above) — `.merged`/`.sectioned` show one
   compact row per instance rather than merging them into one card.
 - **Instance management** (`Features/Settings/SettingsView`): reached via
-  the sidebar's Settings section. A plain pushed list (not its own
+  the gear icon in the sidebar's toolbar corner (see "Main navigation"
+  above). A plain pushed list (not its own
   `NavigationSplitView`, since it's already hosted inside `MainView`'s),
   split into "Active"/"Inactive" sections with a swipe action per row to
   move an instance between them (`instance.isActive`, CloudKit-synced —

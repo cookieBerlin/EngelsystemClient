@@ -64,9 +64,12 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Engel"].waitForExistence(timeout: 5))
 
         goBack(app)
-        let settingsRow = app.staticTexts["Settings"]
-        XCTAssertTrue(settingsRow.waitForExistence(timeout: 5))
-        settingsRow.tap()
+        // Settings is reached via a gear icon in the sidebar's toolbar corner, not a
+        // sidebar row (2026-09-17) — it's app configuration, not a data section on the
+        // same level as Shifts/News/Profile.
+        let settingsButton = app.buttons["Settings"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
+        settingsButton.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         let demoInstanceRow = app.staticTexts["Demo"]
         XCTAssertTrue(demoInstanceRow.waitForExistence(timeout: 5))
