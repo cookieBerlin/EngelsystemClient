@@ -235,23 +235,6 @@ private struct EditInstanceView: View {
                 } footer: {
                     Text("Leave blank to keep the current key. Only fill this in if it's expired, been revoked, or you're pointing this instance at a different account.")
                 }
-                Section {
-                    Button {
-                        Task { await viewModel.testConnection(for: instance) }
-                    } label: {
-                        if viewModel.isTesting {
-                            ProgressView()
-                        } else if viewModel.connectionTested {
-                            Label("Connection Verified", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        } else {
-                            Text("Test Connection")
-                        }
-                    }
-                    .disabled(!viewModel.canTest)
-                } footer: {
-                    Text("Re-checks the server/key, and whether automatic user detection works — useful after a server update.")
-                }
                 // Hidden when the last check (at creation, the previous save, or a
                 // fresh "Test Connection" tap) found the server resolves `self`
                 // correctly — unless a value is already configured, so an active
@@ -270,6 +253,23 @@ private struct EditInstanceView: View {
                     Section {
                         Text(errorMessage).foregroundStyle(.red)
                     }
+                }
+                Section {
+                    Button {
+                        Task { await viewModel.testConnection(for: instance) }
+                    } label: {
+                        if viewModel.isTesting {
+                            ProgressView()
+                        } else if viewModel.connectionTested {
+                            Label("Connection Verified", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        } else {
+                            Text("Test Connection")
+                        }
+                    }
+                    .disabled(!viewModel.canTest)
+                } footer: {
+                    Text("Re-checks the server/key, and whether automatic user detection works. Required after changing the server URL or API key before you can save.")
                 }
             }
             .navigationTitle("Edit Instance")

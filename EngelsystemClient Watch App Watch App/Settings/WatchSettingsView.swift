@@ -201,21 +201,6 @@ private struct WatchEditInstanceView: View {
                     Text("Leave blank to keep the current key.")
                         .font(.caption2)
                 }
-                Section {
-                    Button {
-                        Task { await viewModel.testConnection(for: instance) }
-                    } label: {
-                        if viewModel.isTesting {
-                            ProgressView()
-                        } else if viewModel.connectionTested {
-                            Label("Verified", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        } else {
-                            Text("Test Connection")
-                        }
-                    }
-                    .disabled(!viewModel.canTest)
-                }
                 // Hidden unless the last check found the server needs it, or a value
                 // is already configured — see the iOS EditInstanceView equivalent.
                 if !viewModel.selfReferenceWorks || !viewModel.userIDText.isEmpty {
@@ -232,6 +217,24 @@ private struct WatchEditInstanceView: View {
                             .font(.caption2)
                             .foregroundStyle(.red)
                     }
+                }
+                Section {
+                    Button {
+                        Task { await viewModel.testConnection(for: instance) }
+                    } label: {
+                        if viewModel.isTesting {
+                            ProgressView()
+                        } else if viewModel.connectionTested {
+                            Label("Verified", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        } else {
+                            Text("Test Connection")
+                        }
+                    }
+                    .disabled(!viewModel.canTest)
+                } footer: {
+                    Text("Required after changing the server URL or API key before you can save.")
+                        .font(.caption2)
                 }
                 Section {
                     if viewModel.isTesting {

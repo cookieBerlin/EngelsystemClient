@@ -883,9 +883,56 @@ may no longer exist on a given server:
   covering the gating/invalidation/field-clearing behavior above (all
   against the demo credential, since there's no mock server to exercise a
   real `.notFound` end-to-end). `testDemoModeNavigationFlow` (which edits
-  and saves an instance via the Settings dialog) re-verified passing
-  unchanged, confirming Edit's Save still works without requiring an
-  explicit Test tap first.
+  and saves an instance via the Settings dialog, without ever pressing
+  "Test Connection" first) re-verified passing unchanged even after Save
+  became gated on `connectionTested` (see below) — it never changes
+  `baseURL`/`apiKey`, only `name`, so `connectionTested` (which starts
+  `true`) is never invalidated in that flow.
+
+**Edit Instance's Save gated on Test Connection too, and the button moved
+to the bottom of the form (2026-09-21, at the user's explicit request)**:
+originally Edit's Save deliberately stayed enabled regardless of
+`connectionTested`, reasoning that `save()` already silently re-verifies
+internally on every call anyway (see above) — but that meant Save stayed
+clickable immediately after editing the server URL or API key, before
+anything had actually confirmed the new value works. Fixed to match
+Setup's behavior: `EditInstanceViewModel`/`WatchEditInstanceViewModel
+.canSubmit` now also requires `connectionTested`, so editing `baseURL`/
+`apiKey` (which already reset `connectionTested` to `false` via their
+`didSet`) disables Save until "Test Connection" succeeds again. The User
+ID field's visibility is unaffected — still driven by `selfReferenceWorks`
+alone, so it keeps showing/hiding from the last-known result even
+mid-edit, before a fresh test has been run. The "Test Connection" section
+itself moved to the very bottom of both `EditInstanceView`/
+`WatchEditInstanceView`'s form (still above the toolbar's Save on iOS,
+directly above the in-form Save section on Watch), after the User ID and
+error sections — previously it sat right after the API Key field, above
+User ID.
+
+  **Real Xcode/Simulator DerivedData corruption hit and root-caused while
+  verifying this, worth remembering for this machine specifically**: a
+  newly added Swift Testing test method silently didn't run at all
+  (`xcodebuild test` reported one fewer test than actually exists in the
+  source, with no error) even after deleting the compiled `.xctest`
+  bundle and re-running — only fully deleting that target's
+  `Intermediates.noindex/.../EngelsystemClientTests.build` folder made it
+  show up at all, and even then it then reported a *spurious failure*
+  that didn't reproduce when re-verified against a completely separate,
+  fresh `-derivedDataPath`. Confirmed via an isolated `swift
+  <script>.swift` snippet (no Xcode/Simulator involved, matching the
+  `@Observable`/`didSet` pattern used here exactly) that the actual
+  Swift/Observation semantics were correct the whole time — the failure
+  was 100% a stale/corrupted primary DerivedData artifact for this
+  project (`EngelsystemClient-fdkasijsafofufdlimelqdnwevqx`), not a code
+  bug. Deleted that DerivedData folder entirely and rebuilt clean to
+  resolve it. **If a test result here ever looks inexplicable given the
+  actual code** (especially "a test I just added doesn't appear to have
+  run" or "this passes in isolation but fails in the full suite" with no
+  sensible cause), suspect DerivedData corruption before spending time
+  debugging the app code — verify with a quick standalone `swift
+  <file>.swift` reproduction of just the suspect logic (fast, bypasses
+  the simulator entirely) and/or a one-off `-derivedDataPath` pointed at
+  a fresh temp directory before concluding it's a real bug.
 
 ## Implementation order
 

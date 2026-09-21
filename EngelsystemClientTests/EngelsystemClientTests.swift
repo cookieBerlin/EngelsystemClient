@@ -146,6 +146,32 @@ struct EditInstanceViewModelSelfCheckTests {
         #expect(instance.userID == nil) // testConnection never saves
     }
 
+    /// 2026-09-21, user-requested: unlike Setup, Save used to stay enabled here even
+    /// right after editing the server URL or API key — since `save()` already
+    /// re-verifies internally regardless. The user asked for Save to actually be
+    /// disabled until a fresh "Test Connection" succeeds, same as Setup, so an edit
+    /// can't be submitted without ever having been checked.
+    @Test @MainActor func canSubmitIsDisabledAfterEditingServerOrKeyUntilRetested() async throws {
+        let (instance, context) = try makeInstanceWithSeededKey()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+        _ = context
+
+        let viewModel = EditInstanceViewModel(instance: instance)
+        #expect(viewModel.canSubmit) // untouched dialog: reflects the already-verified state
+
+        // Trailing slash keeps this recognized as the demo sentinel (Instance.isDemo
+        // compares normalizedBaseURL, which trims it) while still triggering didSet —
+        // a real, non-demo URL here would attempt an actual network request.
+        viewModel.baseURL = Instance.demoBaseURL + "/"
+        #expect(!viewModel.canSubmit)
+
+        await viewModel.testConnection(for: instance)
+        #expect(viewModel.canSubmit)
+
+        viewModel.apiKey = "new-key"
+        #expect(!viewModel.canSubmit)
+    }
+
     @Test @MainActor func testConnectionClearsUserIDTextWhenSelfNowWorks() async throws {
         let (instance, context) = try makeInstanceWithSeededKey()
         defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }

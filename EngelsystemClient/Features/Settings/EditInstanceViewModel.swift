@@ -30,12 +30,17 @@ final class EditInstanceViewModel {
     var isTesting = false
     var errorMessage: String?
 
-    /// Purely drives the "Test Connection" button's own display (progress/checkmark/
-    /// label); reset whenever `baseURL`/`apiKey` change so the checkmark can't lie
-    /// about an edited-but-unverified value. Does **not** gate the Save button or the
-    /// User ID field's visibility — `save()` already re-verifies the server/key (and
-    /// refreshes `Instance.selfReferenceWorks`) on every save regardless of whether
-    /// "Test Connection" was pressed first, same as before this field existed.
+    /// Gates the Save button (`canSubmit`) and drives the "Test Connection" button's
+    /// own display (progress/checkmark/label); reset whenever `baseURL`/`apiKey`
+    /// change, so editing either forces a fresh "Test Connection" tap before Save
+    /// re-enables (2026-09-21, at the user's explicit request — Save was previously
+    /// left always-enabled here since `save()` already re-verifies internally
+    /// regardless, but that let it stay enabled even right after an edit nobody had
+    /// actually tested yet). Starts `true`, since an already-open dialog for an
+    /// existing instance reflects a state that was already verified at creation or the
+    /// previous save. Does **not** gate the User ID field's visibility — that's driven
+    /// by `selfReferenceWorks` alone, so the field can still show/hide from the
+    /// last-known result even mid-edit, before a fresh test has been run.
     var connectionTested = true
     /// Starts from the already-persisted `instance.selfReferenceWorks` (the last time
     /// this was actually checked, at creation or the previous save) and updates live
@@ -64,7 +69,8 @@ final class EditInstanceViewModel {
     }
 
     var canSubmit: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
+        connectionTested
+            && !name.trimmingCharacters(in: .whitespaces).isEmpty
             && !baseURL.trimmingCharacters(in: .whitespaces).isEmpty
             && !isTesting
     }

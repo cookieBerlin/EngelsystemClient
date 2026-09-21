@@ -28,9 +28,11 @@ final class WatchEditInstanceViewModel {
     var isTesting = false
     var errorMessage: String?
 
-    /// See the iOS `EditInstanceViewModel` counterpart for the full rationale — purely
-    /// drives the "Test Connection" button's own display, doesn't gate Save or the
-    /// User ID field's visibility.
+    /// See the iOS `EditInstanceViewModel` counterpart for the full rationale — gates
+    /// Save (`canSubmit`) and drives the "Test Connection" button's own display; reset
+    /// on `baseURL`/`apiKey` edits, so Save re-enables only after a fresh test. Does
+    /// not gate the User ID field's visibility, which is driven by `selfReferenceWorks`
+    /// alone.
     var connectionTested = true
     /// Starts from the persisted `instance.selfReferenceWorks`, updates live when
     /// "Test Connection" is pressed.
@@ -56,7 +58,8 @@ final class WatchEditInstanceViewModel {
     }
 
     var canSubmit: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
+        connectionTested
+            && !name.trimmingCharacters(in: .whitespaces).isEmpty
             && !baseURL.trimmingCharacters(in: .whitespaces).isEmpty
             && !isTesting
     }
