@@ -34,12 +34,34 @@ struct InstanceSetupView: View {
                 }
 
                 Section {
-                    TextField("User ID (optional)", text: $viewModel.userIDText)
-                        #if os(iOS)
-                        .keyboardType(.numberPad)
-                        #endif
+                    Button {
+                        Task { await viewModel.testConnection() }
+                    } label: {
+                        if viewModel.isTesting {
+                            ProgressView()
+                        } else if viewModel.connectionTested {
+                            Label("Connection Verified", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        } else {
+                            Text("Test Connection")
+                        }
+                    }
+                    .disabled(!viewModel.canTest)
                 } footer: {
-                    Text("Only needed if your server doesn't recognize automatic user detection. Leave blank unless Shifts/Profile show up empty — your numeric user ID is visible in your Engelsystem profile URL.")
+                    Text("Checks the server and API key before adding this instance.")
+                }
+
+                // Only shown once a test has run and determined the server needs it —
+                // see InstanceSetupViewModel.testConnection().
+                if viewModel.connectionTested && !viewModel.selfReferenceWorks {
+                    Section {
+                        TextField("User ID", text: $viewModel.userIDText)
+                            #if os(iOS)
+                            .keyboardType(.numberPad)
+                            #endif
+                    } footer: {
+                        Text("This server doesn't support automatic user detection. Enter your numeric user ID, visible in your Engelsystem profile URL.")
+                    }
                 }
 
                 if let errorMessage = viewModel.errorMessage {
@@ -85,7 +107,7 @@ struct InstanceSetupView: View {
                     } else {
                         Button("Save") {
                             Task {
-                                if await viewModel.testAndSave(in: modelContext) {
+                                if await viewModel.save(in: modelContext) {
                                     onSaved?()
                                     dismiss()
                                 }

@@ -134,3 +134,24 @@ import Testing
         _ = try await APIClient.shared.fetchInfo(credential)
     }
 }
+
+@Test func apiClientSelfUserReferenceWorksIsTrueForDemoInstance() async {
+    let credential = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
+    #expect(await APIClient.shared.selfUserReferenceWorks(credential))
+}
+
+/// `selfUserReferenceWorks`'s actual `.notFound`-detection can't be exercised offline
+/// (no mock HTTP server in this test target — see the file-level note on
+/// `apiClientRejectsEmptyBaseURLForNonDemoInstance` above), so the pure interpretation
+/// logic behind it is tested directly instead (`APIClient.selfWorks(afterProbeError:)`,
+/// `internal`, hence `@testable import`).
+@Test func selfWorksInterpretsNotFoundAsServerDoesNotSupportSelf() {
+    #expect(APIClient.selfWorks(afterProbeError: APIError.notFound) == false)
+}
+
+@Test func selfWorksTreatsSuccessAndUnrelatedErrorsAsSelfWorking() {
+    #expect(APIClient.selfWorks(afterProbeError: nil))
+    #expect(APIClient.selfWorks(afterProbeError: APIError.invalidBaseURL))
+    #expect(APIClient.selfWorks(afterProbeError: APIError.unauthorized))
+    #expect(APIClient.selfWorks(afterProbeError: APIError.network("timed out")))
+}

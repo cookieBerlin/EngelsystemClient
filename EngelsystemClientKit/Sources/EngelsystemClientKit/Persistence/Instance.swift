@@ -20,6 +20,16 @@ public final class Instance {
     // (confirmed to happen on at least one real, older Engelsystem deployment) —
     // nil means "use `self`", the default and normal case. See `userReference` below.
     public var userID: Int?
+    // Whether the connected server actually resolves the `self` user-reference alias —
+    // set by `InstanceSetupService.createInstance`/`updateInstance` from a dedicated
+    // `APIClient.selfUserReferenceWorks` probe (2026-09-21). Root cause: on unpatched
+    // Engelsystem deployments, `GET /users/self/worklogs` specifically 404s (a genuine
+    // server-side bug, distinct from the client-side path-parameter bug fixed
+    // 2026-09-17 — see CLAUDE.md), while the other three `self`-capable endpoints
+    // (`/users/{id}`, `/shifts`, `/angeltypes`) always worked. Defaults optimistically
+    // to `true` (the normal/fixed-server case); the Settings "Edit Instance" dialogs
+    // only show the manual `userID` field when this is `false`, instead of always.
+    public var selfReferenceWorks: Bool = true
     // Whether this instance's data (Shifts/News/Profile, the Watch's next shift) is
     // currently included. Replaces the old single "active instance" concept (2026-09-17
     // multi-active-instance redesign, CLAUDE.md) — any number of instances can be active

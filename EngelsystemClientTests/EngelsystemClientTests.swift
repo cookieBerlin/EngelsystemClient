@@ -23,8 +23,16 @@ import EngelsystemClientKit
 /// on-disk store, rather than re-reading the same in-memory `ModelContext` — the
 /// latter would pass even without an explicit save, since the edit is visible
 /// in-memory regardless of whether it was ever flushed to disk.
+///
+/// Exercises `name` rather than the original bug report's `userID`: since 2026-09-21,
+/// `InstanceSetupService.updateInstance` force-clears `userID` whenever
+/// `selfReferenceWorks` is true (see `InstanceSetupServiceTests
+/// .instanceSetupServiceClearsUserIDWhenSelfReferenceWorks`, Kit), and every demo
+/// credential always reports `selfReferenceWorks == true` — so `userID` can no longer
+/// be used as this test's "any edited field" probe. The persistence mechanism being
+/// tested here is unrelated to which field is edited.
 struct EditInstanceViewModelPersistenceTests {
-    @Test @MainActor func saveExplicitlyPersistsUserIDAcrossAFreshModelContainerLoad() async throws {
+    @Test @MainActor func saveExplicitlyPersistsNameAcrossAFreshModelContainerLoad() async throws {
         let storeURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("EditInstanceViewModelPersistenceTests-\(UUID().uuidString).sqlite")
         defer {
@@ -44,7 +52,7 @@ struct EditInstanceViewModelPersistenceTests {
         defer { try? keyStore.deleteAPIKey(for: instance.apiKeyKeychainRef) }
 
         let viewModel = EditInstanceViewModel(instance: instance)
-        viewModel.userIDText = "42"
+        viewModel.name = "Demo Renamed"
         let succeeded = await viewModel.save(instance: instance, in: context)
         #expect(succeeded)
 
@@ -53,7 +61,7 @@ struct EditInstanceViewModelPersistenceTests {
         let reloadedContainer = try ModelContainer(for: Instance.self, configurations: configuration)
         let reloadedContext = ModelContext(reloadedContainer)
         let reloadedInstance = try #require(try reloadedContext.fetch(FetchDescriptor<Instance>()).first)
-        #expect(reloadedInstance.userID == 42)
+        #expect(reloadedInstance.name == "Demo Renamed")
     }
 }
 
@@ -100,6 +108,108 @@ struct EditInstanceViewModelAPIKeyTests {
 
         #expect(succeeded)
         #expect(try LocalKeychainStore().loadAPIKey(for: instance.apiKeyKeychainRef) == "replacement-key")
+    }
+}
+
+/// Coverage for the "self endpoint check" flow added 2026-09-21 (CLAUDE.md): a
+/// dedicated "Test Connection" step (separate from Save) probes whether the server
+/// resolves the `self` user-reference alias, and the manual User ID field is only
+/// shown once that's known to be needed. `APIClient`'s own probe logic is covered in
+/// the Kit (`EngelsystemClientKitTests`); these exercise the view models built on top,
+/// using the demo credential (which always reports `self` as working) since there's
+/// no mock HTTP server in this test target to exercise the `.notFound` path.
+struct EditInstanceViewModelSelfCheckTests {
+    @MainActor
+    private func makeInstanceWithSeededKey() throws -> (Instance, ModelContext) {
+        let configuration = ModelConfiguration(schema: Schema([Instance.self]), isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        let container = try ModelContainer(for: Instance.self, configurations: configuration)
+        let context = ModelContext(container)
+        let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: UUID().uuidString)
+        context.insert(instance)
+        try LocalKeychainStore().save(apiKey: "demo", for: instance.apiKeyKeychainRef)
+        return (instance, context)
+    }
+
+    @Test @MainActor func testConnectionMarksConnectionTestedWithoutSaving() async throws {
+        let (instance, context) = try makeInstanceWithSeededKey()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = EditInstanceViewModel(instance: instance)
+        #expect(viewModel.connectionTested) // starts true: reflects the already-persisted state
+        viewModel.baseURL = Instance.demoBaseURL // trigger didSet, same value
+        #expect(!viewModel.connectionTested) // any edit invalidates it until re-tested
+
+        await viewModel.testConnection(for: instance)
+
+        #expect(viewModel.connectionTested)
+        #expect(viewModel.selfReferenceWorks)
+        #expect(instance.userID == nil) // testConnection never saves
+    }
+
+    @Test @MainActor func testConnectionClearsUserIDTextWhenSelfNowWorks() async throws {
+        let (instance, context) = try makeInstanceWithSeededKey()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+        _ = context // only needed to keep the in-memory store alive for the keychain-backed instance
+
+        let viewModel = EditInstanceViewModel(instance: instance)
+        viewModel.userIDText = "42"
+
+        await viewModel.testConnection(for: instance)
+
+        #expect(viewModel.selfReferenceWorks)
+        #expect(viewModel.userIDText.isEmpty)
+        // Verify only previews, at the user's explicit request — it must not touch the
+        // persisted store on its own; deleting a now-stale userID happens at Save time
+        // instead (see saveClearsAStaleUserIDEvenWithoutPressingTestConnectionFirst
+        // below), not here.
+        #expect(instance.userID == nil)
+    }
+
+    /// 2026-09-21, user-requested: a stale `userID` (e.g. left over from before the
+    /// server's `self`/worklogs bug was fixed) must be cleared once Save is pressed —
+    /// even if the user never explicitly presses "Test Connection" first, since Save
+    /// always re-probes internally (`InstanceSetupService.updateInstance`).
+    @Test @MainActor func saveClearsAStaleUserIDEvenWithoutPressingTestConnectionFirst() async throws {
+        let (instance, context) = try makeInstanceWithSeededKey()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+        instance.userID = 42 // simulate a pre-existing manual override
+
+        let viewModel = EditInstanceViewModel(instance: instance)
+        viewModel.userIDText = "42" // the form still shows the old value
+
+        let succeeded = await viewModel.save(instance: instance, in: context)
+
+        #expect(succeeded)
+        #expect(instance.selfReferenceWorks)
+        #expect(instance.userID == nil)
+    }
+}
+
+struct InstanceSetupViewModelSelfCheckTests {
+    @Test @MainActor func cannotSubmitBeforeTestingTheConnection() {
+        let viewModel = InstanceSetupViewModel()
+        viewModel.name = "Demo"
+        viewModel.baseURL = Instance.demoBaseURL
+        viewModel.apiKey = "demo"
+
+        #expect(!viewModel.canSubmit) // all fields valid, but never tested
+        #expect(viewModel.canTest)
+    }
+
+    @Test @MainActor func testConnectionEnablesSubmitAndInvalidatesOnFurtherEdits() async {
+        let viewModel = InstanceSetupViewModel()
+        viewModel.name = "Demo"
+        viewModel.baseURL = Instance.demoBaseURL
+        viewModel.apiKey = "demo"
+
+        await viewModel.testConnection()
+        #expect(viewModel.connectionTested)
+        #expect(viewModel.selfReferenceWorks)
+        #expect(viewModel.canSubmit)
+
+        viewModel.baseURL = Instance.demoBaseURL + "/"
+        #expect(!viewModel.connectionTested)
+        #expect(!viewModel.canSubmit)
     }
 }
 

@@ -12,28 +12,45 @@ import EngelsystemClientKit
 @MainActor
 final class WatchEditInstanceViewModel {
     var name: String
-    var baseURL: String
+    var baseURL: String {
+        didSet { connectionTested = false }
+    }
     /// Fallback for servers that 404 on the `self` path-parameter alias — see
     /// `Instance.userID`. Kept as text here since it's an optional numeric field on a
-    /// form; parsed on submit.
+    /// form; parsed on submit. Shown whenever `selfReferenceWorks` says it's needed, or
+    /// a value is already configured (see `WatchSettingsView`'s condition).
     var userIDText: String
     /// Left blank on open; blank on save means "keep the existing key" — see the iOS
     /// `EditInstanceViewModel`'s matching field for the full rationale.
-    var apiKey: String = ""
+    var apiKey: String = "" {
+        didSet { connectionTested = false }
+    }
     var isTesting = false
     var errorMessage: String?
 
+    /// See the iOS `EditInstanceViewModel` counterpart for the full rationale — purely
+    /// drives the "Test Connection" button's own display, doesn't gate Save or the
+    /// User ID field's visibility.
+    var connectionTested = true
+    /// Starts from the persisted `instance.selfReferenceWorks`, updates live when
+    /// "Test Connection" is pressed.
+    var selfReferenceWorks: Bool
+
+    private let apiClient: APIClient
     private let setupService: InstanceSetupService
     private let credentialResolver: InstanceCredentialResolver
 
     init(
         instance: Instance,
+        apiClient: APIClient = .shared,
         setupService: InstanceSetupService = InstanceSetupService(),
         credentialResolver: InstanceCredentialResolver = InstanceCredentialResolver()
     ) {
         self.name = instance.name
         self.baseURL = instance.normalizedBaseURL
         self.userIDText = instance.userID.map(String.init) ?? ""
+        self.selfReferenceWorks = instance.selfReferenceWorks
+        self.apiClient = apiClient
         self.setupService = setupService
         self.credentialResolver = credentialResolver
     }
@@ -42,6 +59,42 @@ final class WatchEditInstanceViewModel {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
             && !baseURL.trimmingCharacters(in: .whitespaces).isEmpty
             && !isTesting
+    }
+
+    var canTest: Bool {
+        !baseURL.trimmingCharacters(in: .whitespaces).isEmpty && !isTesting
+    }
+
+    /// See the iOS `EditInstanceViewModel.testConnection(for:)` counterpart for the
+    /// full rationale.
+    /// See the iOS `EditInstanceViewModel.testConnection(for:)` counterpart for the
+    /// full rationale. Only clears the *form field*, not `instance.userID` itself —
+    /// deleting the persisted value happens at Save time (`InstanceSetupService
+    /// .updateInstance`), not here, so pressing "Test Connection" alone never mutates
+    /// the store.
+    func testConnection(for instance: Instance) async {
+        errorMessage = nil
+        isTesting = true
+        defer { isTesting = false }
+
+        do {
+            let existingCredential = try credentialResolver.credential(for: instance)
+            let trimmedKey = apiKey.trimmingCharacters(in: .whitespaces)
+            let effectiveAPIKey = trimmedKey.isEmpty ? existingCredential.apiKey : trimmedKey
+            let credential = EventCredential(
+                baseURL: Instance.apiBasePath(for: baseURL.trimmingCharacters(in: .whitespaces)),
+                apiKey: effectiveAPIKey
+            )
+            _ = try await apiClient.fetchInfo(credential)
+            selfReferenceWorks = await apiClient.selfUserReferenceWorks(credential)
+            if selfReferenceWorks {
+                userIDText = ""
+            }
+            connectionTested = true
+        } catch {
+            connectionTested = false
+            errorMessage = Self.message(for: error)
+        }
     }
 
     /// Explicit `modelContext.save()` after the mutation — see the matching comment on

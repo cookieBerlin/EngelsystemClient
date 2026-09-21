@@ -14,28 +14,51 @@ import EngelsystemClientKit
 @MainActor
 final class EditInstanceViewModel {
     var name: String
-    var baseURL: String
+    var baseURL: String {
+        didSet { connectionTested = false }
+    }
     /// Fallback for servers that 404 on the `self` path-parameter alias — see
     /// `Instance.userID`. Kept as text here since it's an optional numeric field on a
-    /// form; parsed on submit.
+    /// form; parsed on submit. Shown whenever `selfReferenceWorks` says it's needed, or
+    /// a value is already configured (see `EditInstanceView`'s condition).
     var userIDText: String
     /// Left blank on open (never pre-filled with the existing key, for the same reason
     /// `UpdateAPIKeyView` never showed one) — blank on save means "keep the existing key".
-    var apiKey: String = ""
+    var apiKey: String = "" {
+        didSet { connectionTested = false }
+    }
     var isTesting = false
     var errorMessage: String?
 
+    /// Purely drives the "Test Connection" button's own display (progress/checkmark/
+    /// label); reset whenever `baseURL`/`apiKey` change so the checkmark can't lie
+    /// about an edited-but-unverified value. Does **not** gate the Save button or the
+    /// User ID field's visibility — `save()` already re-verifies the server/key (and
+    /// refreshes `Instance.selfReferenceWorks`) on every save regardless of whether
+    /// "Test Connection" was pressed first, same as before this field existed.
+    var connectionTested = true
+    /// Starts from the already-persisted `instance.selfReferenceWorks` (the last time
+    /// this was actually checked, at creation or the previous save) and updates live
+    /// when "Test Connection" is pressed — lets the field be re-checked on demand, e.g.
+    /// after a server admin deploys the `self`/worklogs fix (see CLAUDE.md), without
+    /// requiring a full Save first.
+    var selfReferenceWorks: Bool
+
+    private let apiClient: APIClient
     private let setupService: InstanceSetupService
     private let credentialResolver: InstanceCredentialResolver
 
     init(
         instance: Instance,
+        apiClient: APIClient = .shared,
         setupService: InstanceSetupService = InstanceSetupService(),
         credentialResolver: InstanceCredentialResolver = InstanceCredentialResolver()
     ) {
         self.name = instance.name
         self.baseURL = instance.normalizedBaseURL
         self.userIDText = instance.userID.map(String.init) ?? ""
+        self.selfReferenceWorks = instance.selfReferenceWorks
+        self.apiClient = apiClient
         self.setupService = setupService
         self.credentialResolver = credentialResolver
     }
@@ -44,6 +67,45 @@ final class EditInstanceViewModel {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
             && !baseURL.trimmingCharacters(in: .whitespaces).isEmpty
             && !isTesting
+    }
+
+    var canTest: Bool {
+        !baseURL.trimmingCharacters(in: .whitespaces).isEmpty && !isTesting
+    }
+
+    /// Re-verifies the server/key (resolving the existing key via
+    /// `InstanceCredentialResolver` when the API Key field is left blank, same
+    /// resolution `save()` uses) and refreshes `selfReferenceWorks` — without saving
+    /// anything. If the server now resolves `self` correctly, the *form field* is
+    /// cleared (which also hides it, see `EditInstanceView`'s visibility condition) —
+    /// but `instance.userID` itself isn't touched here. Deleting the persisted value
+    /// happens at Save time instead (`InstanceSetupService.updateInstance` force-clears
+    /// it whenever `selfReferenceWorks` is true, regardless of what was passed in), so
+    /// pressing "Test Connection" alone never mutates the store — only Save does
+    /// (2026-09-21, at the user's explicit request: Verify previews, Save commits).
+    func testConnection(for instance: Instance) async {
+        errorMessage = nil
+        isTesting = true
+        defer { isTesting = false }
+
+        do {
+            let existingCredential = try credentialResolver.credential(for: instance)
+            let trimmedKey = apiKey.trimmingCharacters(in: .whitespaces)
+            let effectiveAPIKey = trimmedKey.isEmpty ? existingCredential.apiKey : trimmedKey
+            let credential = EventCredential(
+                baseURL: Instance.apiBasePath(for: baseURL.trimmingCharacters(in: .whitespaces)),
+                apiKey: effectiveAPIKey
+            )
+            _ = try await apiClient.fetchInfo(credential)
+            selfReferenceWorks = await apiClient.selfUserReferenceWorks(credential)
+            if selfReferenceWorks {
+                userIDText = ""
+            }
+            connectionTested = true
+        } catch {
+            connectionTested = false
+            errorMessage = SyncErrorMapper.message(for: error)
+        }
     }
 
     /// Tests the (possibly changed) name/server/key against the server and, on success,

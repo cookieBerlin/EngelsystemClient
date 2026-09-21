@@ -789,6 +789,104 @@ deployment), but the *reported* 404s were 100% this client bug.
   `/api/v0-beta/users/typeInt(2)/shifts`, confirming both the diagnosis
   and the fix.
 
+**Real server-side `self` bug found and fixed upstream, 2026-09-21**: after the
+client-side path-parameter bug above was fixed, the user found and fixed a
+*genuine* server-side bug in their own Engelsystem test deployment (upstream
+`engelsystem/engelsystem`, `src/Controllers/Api/UsersController.php`,
+`worklogs()`): unlike the sibling `user()`/`entriesByUser()`/`ofUser()`
+methods, `worklogs()` didn't use the shared `UsesAuth::getUser()` helper —
+it cast the path parameter straight to `(int)`, so `self` became `0` and
+`User::findOrFail(0)` threw, even though the router's own regex
+(`{user_id:(?:\d+|self)}`) explicitly allows `self` there. Confirmed via
+this session fetching the live `main` branch of the upstream repo directly
+(not guessed) — `/users/{id}`, `/shifts`, and `/angeltypes` never had this
+bug, only `/worklogs`. A handoff briefing for an agent to apply this fix
+against a fresh checkout of the server repo was written to
+`engelsystem-server-api-fixes.md` at the project root (this client repo)
+before the user applied the fix directly to their own test server.
+
+**Client-side "does `self` actually work here" check, added the same day**
+so the manual "User ID" fallback field only appears when it's actually
+needed, instead of being a permanently-visible workaround for a bug that
+may no longer exist on a given server:
+- `Instance.selfReferenceWorks: Bool = true` (new field, CloudKit-synced
+  like the rest of `Instance`) — sync between iOS/Watch means a check
+  performed on one device is picked up on the other automatically.
+- `APIClient.selfUserReferenceWorks(_:)` probes `GET /users/self/worklogs`
+  specifically (not `/users/self`) — deliberately picking the one endpoint
+  that's actually shown to be broken on unpatched servers (see above); the
+  other three `self`-capable endpoints never distinguish an old server from
+  a fixed one. A `404` there means "self broken" regardless of whether the
+  user has any worklogs at all (a genuine empty list is a `200`); any other
+  outcome (success, or an unrelated error) is treated as "works", so a
+  single transient network hiccup during the probe can't wrongly reveal the
+  fallback field. The pure interpretation logic is split into
+  `APIClient.selfWorks(afterProbeError:)` specifically so it's unit-testable
+  without a mock HTTP server (there isn't one in this project — the
+  `.notFound` path can't be exercised end-to-end offline, only this pure
+  mapping can).
+- `InstanceSetupService.createInstance`/`updateInstance` run this probe
+  right after the existing `/info` connection test and store the result on
+  `Instance` — always testing the literal `self` value, independent of
+  whatever `userID` is currently configured, so a server that's since been
+  fixed is detected even for an instance that already has a manual
+  override set.
+- **iOS/Watch Setup forms** (`InstanceSetupView`/`InstanceSetupViewModel`,
+  `WatchSetupView`/`WatchSetupViewModel`): Save no longer happens directly
+  off the form. A new **"Test Connection"** button (separate from Save)
+  runs the `/info` + self-probe checks without creating or saving anything;
+  `canSubmit`/Save stays disabled until a test has succeeded
+  (`connectionTested`). The manual User ID field is hidden entirely until
+  that test determines it's actually needed
+  (`connectionTested && !selfReferenceWorks`); editing `baseURL`/`apiKey`
+  afterward invalidates the test (`didSet` resets `connectionTested`),
+  forcing a fresh Test before Save re-enables. If a test finds `self` does
+  work, any previously typed User ID is cleared so it can't be silently
+  saved as a stale, unnecessary override.
+- **iOS/Watch Settings' "Edit Instance" dialogs** (`EditInstanceViewModel`/
+  `WatchEditInstanceViewModel`): same "Test Connection" button added, but
+  unlike Setup it does **not** gate Save — an existing instance already has
+  a last-known-good `selfReferenceWorks` value (from creation or the
+  previous save), and `save()`/`updateInstance` already silently re-probes
+  on every save regardless (unchanged behavior from before this feature).
+  The view model's `connectionTested` here purely drives the Test button's
+  own display (progress/checkmark/label, reset on edit); `selfReferenceWorks`
+  is initialized from `instance.selfReferenceWorks` and only updates when
+  Test is explicitly pressed. The User ID field is shown whenever the
+  latest known result says it's needed, **or** a value is already
+  configured — so an active override is never silently hidden out from
+  under the user just because a fresh check hasn't been run yet.
+
+  **Deleting a now-unnecessary `userID` happens at Save, not at Test
+  Connection** (clarified 2026-09-21, at the user's explicit correction —
+  an earlier version of this persisted the deletion immediately when
+  Test Connection determined `self` works, which is wrong: Verify should
+  only preview, Save should be what commits). `testConnection(for:)`
+  only clears the *form field* (`userIDText = ""`, which also hides the
+  Section) when it finds `self` works — it never touches `instance`
+  itself or calls `modelContext.save()`. The actual deletion happens
+  inside `InstanceSetupService.updateInstance`: whenever the freshly
+  re-probed `selfReferenceWorks` is `true`, it stores `nil` instead of
+  whatever `userID` the caller passed in — so a stale value gets cleared
+  the moment Save is pressed, *even if the user never pressed Test
+  Connection first* (Save always re-probes internally regardless, same
+  as before this feature). Only `updateInstance` (Edit) enforces this;
+  `createInstance` (Setup) stores whatever `userID` it's given as-is,
+  since Setup's own mandatory Test-before-Save gating means it never
+  gets a non-nil `userID` once `self` is known to work in the first
+  place — there's no equivalent "stale leftover value" case there.
+- Tests: `EngelsystemClientKitTests` covers `selfWorks(afterProbeError:)`'s
+  interpretation logic (`.notFound` → false, everything else → true) and
+  that `selfUserReferenceWorks` short-circuits to `true` for the demo
+  credential; `EngelsystemClientTests` adds
+  `EditInstanceViewModelSelfCheckTests`/`InstanceSetupViewModelSelfCheckTests`
+  covering the gating/invalidation/field-clearing behavior above (all
+  against the demo credential, since there's no mock server to exercise a
+  real `.notFound` end-to-end). `testDemoModeNavigationFlow` (which edits
+  and saves an instance via the Settings dialog) re-verified passing
+  unchanged, confirming Edit's Save still works without requiring an
+  explicit Test tap first.
+
 ## Implementation order
 
 1. ✅ Finish `EngelsystemClientKit` package + codegen setup

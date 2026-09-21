@@ -130,6 +130,45 @@ public final class APIClient {
         }
     }
 
+    /// Probes whether this server actually resolves the `self` user-reference alias,
+    /// independent of whatever `UserReference` a caller would otherwise use — always
+    /// tests the literal `self` value, so a server that's since been fixed can be
+    /// detected even for an `Instance` that already has a manual `userID` fallback
+    /// configured (see `Instance.selfReferenceWorks`). Deliberately probes
+    /// `/users/self/worklogs` specifically, not `/users/self`: on the one real-world
+    /// server implementation bug found for this (2026-09-21, CLAUDE.md), the other
+    /// three `self`-capable endpoints always worked — only `/worklogs` ever 404s on an
+    /// unpatched server, so it's the only endpoint that actually distinguishes "old,
+    /// broken server" from "fixed server". A `404` (`.notFound`) there is a resolution
+    /// failure regardless of whether the user has any worklogs at all (PHP's `(int)
+    /// "self"` becomes `0`, and looking up user `0` always throws) — never confuse
+    /// this with a genuine "no worklogs yet" empty list, which is a `200` either way.
+    /// Any outcome other than a definitive `.notFound` (success, or an unrelated error)
+    /// is treated as "self works" — a single transient network hiccup during this probe
+    /// shouldn't be able to flip the UI into showing the fallback field.
+    public func selfUserReferenceWorks(_ credential: EventCredential) async -> Bool {
+        if credential.isDemo {
+            return true
+        }
+        do {
+            _ = try await withCredential(credential) {
+                try await WorklogAPI.usersIdWorklogsGet(id: UserReference.me.parameter).data
+            }
+            return Self.selfWorks(afterProbeError: nil)
+        } catch {
+            return Self.selfWorks(afterProbeError: error)
+        }
+    }
+
+    /// The pure "how to interpret the probe's outcome" logic behind
+    /// `selfUserReferenceWorks`, split out so it's unit-testable without a real network
+    /// round trip (see `EngelsystemClientKitTests`). `nil` means the probe succeeded.
+    static func selfWorks(afterProbeError error: Error?) -> Bool {
+        guard let error else { return true }
+        if case APIError.notFound = error { return false }
+        return true
+    }
+
     public func fetchOwnProfile(for user: UserReference, _ credential: EventCredential) async throws -> UsersIdGet200ResponseData {
         if credential.isDemo {
             await DemoData.simulateLatency()

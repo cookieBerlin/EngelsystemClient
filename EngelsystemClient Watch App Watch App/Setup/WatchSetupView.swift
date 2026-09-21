@@ -20,10 +20,28 @@ struct WatchSetupView: View {
             }
 
             Section {
-                TextField("User ID (optional)", text: $viewModel.userIDText)
-            } footer: {
-                Text("Only needed if your server doesn't recognize automatic user detection.")
-                    .font(.caption2)
+                if viewModel.isTesting {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                } else if viewModel.connectionTested {
+                    Label("Verified", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                } else {
+                    Button("Test Connection") {
+                        Task { await viewModel.testConnection() }
+                    }
+                    .disabled(!viewModel.canTest)
+                }
+            }
+
+            // Only shown once a test has run and determined the server needs it.
+            if viewModel.connectionTested && !viewModel.selfReferenceWorks {
+                Section {
+                    TextField("User ID", text: $viewModel.userIDText)
+                } footer: {
+                    Text("This server doesn't support automatic user detection.")
+                        .font(.caption2)
+                }
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -35,12 +53,9 @@ struct WatchSetupView: View {
             }
 
             Section {
-                if viewModel.isTesting {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
+                if !viewModel.isTesting {
                     Button("Save") {
-                        Task { _ = await viewModel.testAndSave(in: modelContext) }
+                        Task { _ = await viewModel.save(in: modelContext) }
                     }
                     .disabled(!viewModel.canSubmit)
 

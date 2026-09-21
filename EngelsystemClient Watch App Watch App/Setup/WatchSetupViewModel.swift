@@ -9,30 +9,74 @@ import EngelsystemClientKit
 @MainActor
 final class WatchSetupViewModel {
     var name: String = ""
-    var baseURL: String = ""
-    var apiKey: String = ""
+    var baseURL: String = "" {
+        didSet { invalidateTest() }
+    }
+    var apiKey: String = "" {
+        didSet { invalidateTest() }
+    }
     /// Fallback for servers that 404 on the `self` path-parameter alias — see
     /// `Instance.userID`. Kept as text here since it's an optional numeric field on a
-    /// form; parsed on submit.
+    /// form; parsed on submit. Only shown in the UI once `testConnection()` has
+    /// determined it's actually needed (`connectionTested && !selfReferenceWorks`).
     var userIDText: String = ""
 
     var isTesting = false
     var errorMessage: String?
 
+    /// See the iOS `InstanceSetupViewModel` counterpart for the full rationale — gates
+    /// the Save button and whether the User ID field is shown at all.
+    var connectionTested = false
+    var selfReferenceWorks = true
+
+    private let apiClient: APIClient
     private let setupService: InstanceSetupService
 
-    init(setupService: InstanceSetupService = InstanceSetupService()) {
+    init(apiClient: APIClient = .shared, setupService: InstanceSetupService = InstanceSetupService()) {
+        self.apiClient = apiClient
         self.setupService = setupService
     }
 
+    var canTest: Bool {
+        !baseURL.trimmingCharacters(in: .whitespaces).isEmpty
+            && !apiKey.trimmingCharacters(in: .whitespaces).isEmpty
+            && !isTesting
+    }
+
     var canSubmit: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
+        connectionTested
+            && !name.trimmingCharacters(in: .whitespaces).isEmpty
             && !baseURL.trimmingCharacters(in: .whitespaces).isEmpty
             && !apiKey.trimmingCharacters(in: .whitespaces).isEmpty
             && !isTesting
     }
 
-    func testAndSave(in modelContext: ModelContext) async -> Bool {
+    /// Tests the server/key against `/info` and whether it resolves the `self`
+    /// user-reference alias, without creating or saving anything — see the iOS
+    /// `InstanceSetupViewModel.testConnection()` counterpart for the full rationale.
+    func testConnection() async {
+        errorMessage = nil
+        isTesting = true
+        defer { isTesting = false }
+
+        let credential = EventCredential(
+            baseURL: Instance.apiBasePath(for: baseURL.trimmingCharacters(in: .whitespaces)),
+            apiKey: apiKey
+        )
+        do {
+            _ = try await apiClient.fetchInfo(credential)
+            selfReferenceWorks = await apiClient.selfUserReferenceWorks(credential)
+            if selfReferenceWorks {
+                userIDText = ""
+            }
+            connectionTested = true
+        } catch {
+            connectionTested = false
+            errorMessage = Self.message(for: error)
+        }
+    }
+
+    func save(in modelContext: ModelContext) async -> Bool {
         errorMessage = nil
         isTesting = true
         defer { isTesting = false }
@@ -62,7 +106,11 @@ final class WatchSetupViewModel {
         name = "Demo"
         baseURL = Instance.demoBaseURL
         apiKey = "demo"
-        return await testAndSave(in: modelContext)
+        return await save(in: modelContext)
+    }
+
+    private func invalidateTest() {
+        connectionTested = false
     }
 
     private static func message(for error: Error) -> String {

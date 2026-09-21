@@ -196,16 +196,35 @@ private struct WatchEditInstanceView: View {
                         .autocorrectionDisabled()
                 }
                 Section {
-                    TextField("User ID (optional)", text: $viewModel.userIDText)
-                } footer: {
-                    Text("Only needed if your server doesn't recognize automatic user detection.")
-                        .font(.caption2)
-                }
-                Section {
                     SecureField("New API Key (optional)", text: $viewModel.apiKey)
                 } footer: {
                     Text("Leave blank to keep the current key.")
                         .font(.caption2)
+                }
+                Section {
+                    Button {
+                        Task { await viewModel.testConnection(for: instance) }
+                    } label: {
+                        if viewModel.isTesting {
+                            ProgressView()
+                        } else if viewModel.connectionTested {
+                            Label("Verified", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        } else {
+                            Text("Test Connection")
+                        }
+                    }
+                    .disabled(!viewModel.canTest)
+                }
+                // Hidden unless the last check found the server needs it, or a value
+                // is already configured — see the iOS EditInstanceView equivalent.
+                if !viewModel.selfReferenceWorks || !viewModel.userIDText.isEmpty {
+                    Section {
+                        TextField("User ID", text: $viewModel.userIDText)
+                    } footer: {
+                        Text("This server doesn't support automatic user detection.")
+                            .font(.caption2)
+                    }
                 }
                 if let errorMessage = viewModel.errorMessage {
                     Section {
