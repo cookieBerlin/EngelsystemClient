@@ -229,6 +229,65 @@ final class EngelsystemClientUITests: XCTestCase {
         }
     }
 
+    /// 2026-09-22, user-reported (twice): tapping "Read More" on a News row was also
+    /// silently activating that row's "N Comments" `NavigationLink` at the same time
+    /// — a `List` row quirk where an unstyled `Button` sitting in the same row as a
+    /// `NavigationLink` can have its tap "fall through" into the row's navigation
+    /// too. Fixed with `.buttonStyle(.plain)` on the Read More/Show Less button.
+    /// Demo item 1 is the only demo post with both a `[more]` split *and* comments,
+    /// specifically so this combination is exercisable at all.
+    @MainActor
+    func testReadMoreDoesNotAlsoOpenComments() throws {
+        let app = XCUIApplication()
+        addUIInterruptionMonitor(withDescription: "Notification permission") { alert in
+            for label in ["Allow", "Erlauben"] where alert.buttons[label].exists {
+                alert.buttons[label].tap()
+                return true
+            }
+            for label in ["Don't Allow", "Nicht erlauben"] where alert.buttons[label].exists {
+                alert.buttons[label].tap()
+                return true
+            }
+            return false
+        }
+
+        app.launch()
+
+        let demoButton = app.buttons["Try Demo Mode"]
+        XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
+        waitUntilHittable(demoButton, in: app)
+        demoButton.tap()
+        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+        app.navigationBars.firstMatch.tap() // flushes the interruption monitor if needed
+
+        goBack(app)
+        let newsRow = app.staticTexts["News"]
+        XCTAssertTrue(newsRow.waitForExistence(timeout: 5))
+        newsRow.tap()
+        XCTAssertTrue(app.navigationBars["News"].waitForExistence(timeout: 5))
+
+        let readMoreButton = app.buttons["Read More"]
+        XCTAssertTrue(readMoreButton.waitForExistence(timeout: 5))
+        readMoreButton.tap()
+
+        // The bug: this tap also activated the Comments NavigationLink, pushing a
+        // detail screen and leaving the News navigation bar behind.
+        XCTAssertTrue(app.navigationBars["News"].waitForExistence(timeout: 3))
+        let showLessButton = app.buttons["Show Less"]
+        XCTAssertTrue(showLessButton.waitForExistence(timeout: 5))
+
+        // Same check in the other direction: collapsing must not open Comments either.
+        showLessButton.tap()
+        XCTAssertTrue(app.navigationBars["News"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Read More"].waitForExistence(timeout: 5))
+
+        // The Comments link itself must still actually work when tapped directly.
+        let commentsLink = app.buttons["2 Comments"]
+        XCTAssertTrue(commentsLink.waitForExistence(timeout: 5))
+        commentsLink.tap()
+        XCTAssertTrue(app.navigationBars["Welcome to the Demo Congress!"].waitForExistence(timeout: 5))
+    }
+
     @MainActor
     private func goBack(_ app: XCUIApplication) {
         app.navigationBars.buttons.element(boundBy: 0).tap()

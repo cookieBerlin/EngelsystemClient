@@ -53,7 +53,13 @@ enum DemoData {
         return [
             News(
                 id: 1, name: "Welcome to the Demo Congress!",
-                text: "Thanks for trying out the app in demo mode. Everything you see here is sample data — no real server involved.",
+                // Deliberately has both a `[more]` split *and* comments — the only
+                // demo item that does, so the "Read More"/"Show Less" button and the
+                // "N Comments" link both render on the same row at once. That
+                // combination is exactly what's needed to exercise (and regression-
+                // test) the 2026-09-22 bug where tapping one could also silently
+                // activate the other.
+                text: "Thanks for trying out the app in demo mode. [more] Everything you see here is sample data — no real server involved.",
                 isMeeting: false, isPinned: true, isHighlighted: true,
                 createdAt: now.addingTimeInterval(-3600), updatedAt: nil,
                 url: "https://demo.engelsystem.local/news/1",

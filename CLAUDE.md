@@ -1311,7 +1311,36 @@ exists without reading the whole diff history.
   Comments" `NavigationLink` — a distinct, explicitly labeled link, not
   the whole row, since the row already has its own "Read More" button
   and stacking two different tap actions on the same row content isn't
-  worth the ambiguity. Pushes `NewsDetailView` (`Features/News`, new),
+  worth the ambiguity. Shown on the same line as the date,
+  trailing-aligned (`HStack` with a `Spacer()`), which is a reasonable
+  compact layout on its own merits, but **is not what actually fixes tap
+  independence from "Read More"** — an earlier version of this entry
+  claimed the opposite (moving it there to give the two buttons more
+  physical distance) and was wrong; see the real fix below.
+
+  **Real bug, same day, second report**: after the above layout change
+  shipped, the user reported tapping "Read More" *also* silently opened
+  the Comments detail screen in the same tap, and after returning,
+  "Show Less" had become unreachable (same cause, just now hitting the
+  Comments `NavigationLink` instead). This proved the "physical
+  distance" theory wrong — the two controls were never actually
+  overlapping on screen. Root cause: a well-known SwiftUI `List` row
+  quirk — once a row contains a `NavigationLink` *anywhere*, an
+  unstyled `Button` elsewhere in that same row can have its tap "fall
+  through" into also activating the row's `NavigationLink`, regardless
+  of where either control visually sits or how far apart they are.
+  Fix: `.buttonStyle(.plain)` on the "Read More"/"Show Less" `Button` in
+  `NewsRow` — this tells SwiftUI the button owns its own independent
+  tap rather than deferring to the row. Verified via a dedicated
+  XCUITest (`testReadMoreDoesNotAlsoOpenComments`), which needed
+  `DemoData`'s item 1 to gain a `[more]` split alongside its existing
+  comments — no other demo news item has both simultaneously, and both
+  are required to exercise this bug at all. The test asserts the News
+  navigation bar is still present immediately after tapping "Read
+  More" (i.e. Comments did *not* also open), that "Show Less" is then
+  reachable and toggles back correctly (also without opening Comments),
+  and that the Comments link still works when tapped directly.
+  Pushes `NewsDetailView` (`Features/News`, new),
   which shows the full post plus its comments via `NewsDetailViewModel`
   — comments are fetched **live, every time this screen opens, not
   cached** (unlike the rest of this app's data): this is a detail-only

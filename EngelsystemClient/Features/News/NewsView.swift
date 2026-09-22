@@ -227,30 +227,50 @@ private struct NewsRow: View {
                         .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
                         .padding(.leading, 12)
                 }
+                // `.buttonStyle(.plain)` is required, not cosmetic — 2026-09-22,
+                // user-reported (again): tapping "Read More" was *also* opening the
+                // Comments screen at the same time (and after returning, "Show Less"
+                // couldn't be tapped at all — same cause, just now hitting the
+                // now-visible Comments `NavigationLink` below instead). The earlier
+                // "give them more physical distance" fix (moving Comments onto the
+                // date's row) was treating the wrong problem: this wasn't two
+                // independent hit-testing regions overlapping, it's a well-known
+                // `List` row quirk — once a row contains a `NavigationLink`
+                // *anywhere*, an unstyled `Button` elsewhere in that same row can have
+                // its tap "fall through" into activating the row's `NavigationLink`
+                // as well, regardless of where either visually sits. `.plain` tells
+                // SwiftUI this `Button` owns its own independent tap, not the row.
                 Button(isExpanded ? "Show Less" : "Read More") {
                     withAnimation { isExpanded.toggle() }
                 }
                 .font(.caption)
+                .buttonStyle(.plain)
             }
-            Text(item.createdAt, style: .date)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
 
-            // Comments (GET /news/{id}, added 2026-09-22): a distinct, explicitly
-            // labeled link rather than making the whole row tappable — the row
-            // already has its own "Read More" button, and stacking two different
-            // gestures/actions ambiguously on the same row content isn't worth it.
-            if item.commentsCount > 0, let instance {
-                NavigationLink {
-                    NewsDetailView(item: item, instance: instance)
-                } label: {
-                    Label(
-                        item.commentsCount == 1 ? "1 Comment" : "\(item.commentsCount) Comments",
-                        systemImage: "bubble.left.and.bubble.right"
-                    )
-                    .font(.caption)
+            // Comments (GET /news/{id}, added 2026-09-22): on the same line as the
+            // date, trailing-aligned, rather than stacked directly below "Read More" —
+            // originally done for physical hit-testing separation (see the
+            // `.buttonStyle(.plain)` comment above for why that reasoning was wrong),
+            // kept anyway since it's still a reasonable, compact layout on its own
+            // merits now that the real tap-stealing bug above is actually fixed.
+            HStack {
+                Text(item.createdAt, style: .date)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                if item.commentsCount > 0, let instance {
+                    Spacer()
+                    NavigationLink {
+                        NewsDetailView(item: item, instance: instance)
+                    } label: {
+                        Label(
+                            item.commentsCount == 1 ? "1 Comment" : "\(item.commentsCount) Comments",
+                            systemImage: "bubble.left.and.bubble.right"
+                        )
+                        .font(.caption)
+                    }
                 }
             }
+            .padding(.top, 2)
         }
         .padding(.vertical, 4)
     }
