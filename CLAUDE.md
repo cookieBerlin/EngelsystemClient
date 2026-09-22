@@ -1081,7 +1081,12 @@ exists without reading the whole diff history.
   `CachedNews`/`NewsViewModel.refresh(instances:in:)`; pinned items sort
   first, meeting items get a badge, body text renders through
   `AttributedString(markdown:)` since the API docs say news text may
-  contain markdown. ~~`CachedNews.sanitizedText(from:)` strips the
+  contain markdown — **with `interpretedSyntax: .full`** (2026-09-22,
+  user-requested; the default is `.inlineOnlyPreservingWhitespace`,
+  which only renders inline emphasis/links/code, not block-level markdown
+  like headers, lists, or block quotes). Applied to both `NewsRow`'s
+  preview and the expanded `[more]` text (see below) via the same
+  `attributed(_:)` helper. ~~`CachedNews.sanitizedText(from:)` strips the
   `[more]` separator tag the API docs mention before storing — we always
   show the full text, so removing the marker is enough, no truncation
   needed.~~ **Wrong, fixed 2026-09-22 (user-reported): the website

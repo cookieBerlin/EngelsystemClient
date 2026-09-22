@@ -169,8 +169,11 @@ private struct NewsRow: View {
 
     private var textParts: CachedNews.TextParts { CachedNews.textParts(from: item.text) }
 
+    /// `.full` (not the default `.inlineOnlyPreservingWhitespace`) so block-level
+    /// markdown — headers, lists, block quotes — actually renders as such, not just
+    /// inline emphasis/links (2026-09-22, user-requested).
     private func attributed(_ text: String) -> AttributedString {
-        (try? AttributedString(markdown: text)) ?? AttributedString(text)
+        (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .full))) ?? AttributedString(text)
     }
 
     var body: some View {
