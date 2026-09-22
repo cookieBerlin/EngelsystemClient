@@ -28,10 +28,6 @@ struct NewsView: View {
         instances.first(where: { $0.id == selectedInstanceID }) ?? instances.first
     }
 
-    private func instanceName(for item: CachedNews) -> String? {
-        instances.first(where: { $0.id == item.instanceID })?.name
-    }
-
     var body: some View {
         Group {
             if instances.isEmpty {
@@ -54,14 +50,16 @@ struct NewsView: View {
                         // Two active instances pointing at the same actual server
                         // (e.g. different user accounts for one event) would otherwise
                         // each contribute their own cached copy of the same news post —
-                        // see CachedNews.deduplicatedByServer.
-                        let merged = CachedNews.deduplicatedByServer(CachedNews.sortedByRecency(newsItems), instances: instances)
-                        newsRows(merged, labeled: true)
+                        // see CachedNews.mergedAcrossServers. Each surviving item keeps
+                        // the name of *every* contributing instance, not just one, so
+                        // the badge row reflects all of them.
+                        let merged = CachedNews.mergedAcrossServers(CachedNews.sortedByRecency(newsItems), instances: instances)
+                        mergedNewsRows(merged)
                     case .switcher:
                         InstancePicker(instances: instances, selection: $selectedInstanceID)
                             .listRowSeparator(.hidden)
                         let filtered = newsItems.filter { $0.instanceID == switcherInstance?.id }
-                        newsRows(CachedNews.sortedByRecency(filtered), labeled: false)
+                        newsRows(CachedNews.sortedByRecency(filtered))
                     case .sectioned:
                         ForEach(instances) { instance in
                             let instanceNews = CachedNews.sortedByRecency(newsItems.filter { $0.instanceID == instance.id })
@@ -95,12 +93,23 @@ struct NewsView: View {
     }
 
     @ViewBuilder
-    private func newsRows(_ items: [CachedNews], labeled: Bool) -> some View {
+    private func newsRows(_ items: [CachedNews]) -> some View {
         if items.isEmpty && !viewModel.isLoading {
             emptyState
         } else {
             ForEach(items) { item in
-                NewsRow(item: item, instanceName: labeled ? instanceName(for: item) : nil)
+                NewsRow(item: item)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func mergedNewsRows(_ items: [CachedNews.MergedItem]) -> some View {
+        if items.isEmpty && !viewModel.isLoading {
+            emptyState
+        } else {
+            ForEach(items) { merged in
+                NewsRow(item: merged.item, instanceNames: merged.instanceNames)
             }
         }
     }
@@ -116,7 +125,12 @@ struct NewsView: View {
 
 private struct NewsRow: View {
     let item: CachedNews
-    var instanceName: String?
+    /// Every active instance this post actually appears on — usually one, but more
+    /// than one when the same server is configured under multiple instances and this
+    /// row is the merged, deduplicated representative for all of them (see
+    /// `CachedNews.mergedAcrossServers`). Empty in `.switcher`/`.sectioned`, where the
+    /// surrounding context (picker/section header) already makes the instance clear.
+    var instanceNames: [String] = []
 
     private var attributedText: AttributedString {
         (try? AttributedString(markdown: item.text)) ?? AttributedString(item.text)
@@ -138,9 +152,11 @@ private struct NewsRow: View {
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.blue.opacity(0.2)))
                 }
-                if let instanceName {
+                if !instanceNames.isEmpty {
                     Spacer()
-                    InstanceBadge(name: instanceName)
+                    ForEach(instanceNames, id: \.self) { name in
+                        InstanceBadge(name: name)
+                    }
                 }
             }
             Text(attributedText)

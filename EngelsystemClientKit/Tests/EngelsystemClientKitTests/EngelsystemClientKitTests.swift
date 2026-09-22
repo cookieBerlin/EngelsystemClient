@@ -84,8 +84,11 @@ import Testing
 
 /// 2026-09-22, user-reported: two active `Instance`s pointing at the same actual
 /// server (different user accounts for one event) each cache their own copy of the
-/// same news post, which then both show up in the merged cross-instance list.
-@Test func cachedNewsDeduplicatedByServerCollapsesSameServerDuplicates() {
+/// same news post, which then both show up in the merged cross-instance list. A first
+/// version collapsed this to a single row but only showed one instance's badge — the
+/// user reported that as well, so `mergedAcrossServers` also collects every
+/// contributing instance's name, asserted here too.
+@Test func cachedNewsMergedAcrossServersCollapsesDuplicatesButKeepsAllInstanceNames() {
     let sharedServerURL = "https://example.org"
     let instanceA = Instance(name: "A", baseURL: sharedServerURL, apiKeyKeychainRef: "a")
     let instanceB = Instance(name: "B", baseURL: sharedServerURL, apiKeyKeychainRef: "b")
@@ -104,15 +107,18 @@ import Testing
         isMeeting: false, isPinned: false, isHighlighted: false, createdAt: Date(), url: ""
     )
 
-    let deduplicated = CachedNews.deduplicatedByServer(
+    let merged = CachedNews.mergedAcrossServers(
         [newsFromA, sameNewsFromB, differentServerSameID],
         instances: [instanceA, instanceB, instanceC]
     )
 
-    #expect(deduplicated.count == 2)
-    #expect(deduplicated.contains { $0.instanceID == instanceA.id })
-    #expect(!deduplicated.contains { $0.instanceID == instanceB.id }) // collapsed into A's copy
-    #expect(deduplicated.contains { $0.instanceID == instanceC.id }) // different server, same serverID: kept
+    #expect(merged.count == 2) // A+B collapsed into one, C kept separate
+
+    let sharedServerItem = merged.first { $0.item.instanceID == instanceA.id }
+    #expect(sharedServerItem?.instanceNames.sorted() == ["A", "B"]) // both contributors named, not just A
+
+    let otherServerItem = merged.first { $0.item.instanceID == instanceC.id }
+    #expect(otherServerItem?.instanceNames == ["C"])
 }
 
 @Test func eventCredentialDetectsDemoBaseURL() {

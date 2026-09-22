@@ -1091,7 +1091,7 @@ exists without reading the whole diff history.
   each sync and cache their own copy of every news post — `CachedNews
   .uid` includes `instanceID`, so it's a genuinely separate row per
   instance, not a natural duplicate SwiftData would already collapse.
-  `CachedNews.deduplicatedByServer(_:instances:)` (pure, Kit-tested)
+  `CachedNews.mergedAcrossServers(_:instances:)` (pure, Kit-tested)
   collapses these before display, keyed by (the owning `Instance`'s
   `normalizedBaseURL`, the post's server-assigned `serverID`) — not
   `instanceID` alone, since that's what actually identifies "the same
@@ -1101,6 +1101,21 @@ exists without reading the whole diff history.
   groups by instance on purpose, so seeing the same real content once
   per relevant section there is consistent with that mode's design, not
   a bug to fix the same way.
+
+  **Each merged post keeps every contributing instance's name, not just
+  one** (fixed same day, same-day user follow-up report: the first
+  version returned a plain `[CachedNews]` — one representative row per
+  duplicate group — which meant `NewsRow`'s badge showed only *that one*
+  instance, silently dropping the fact that the post also exists on the
+  other same-server instance). `mergedAcrossServers` now returns
+  `[CachedNews.MergedItem]` (`item` + `instanceNames: [String]`,
+  collecting every instance in the duplicate group, not just the
+  surviving representative's own instance); `NewsRow.instanceNames` is
+  now `[String]` (was a single optional `instanceName: String?`) and
+  renders one `InstanceBadge` per name via `ForEach`. Which duplicate's
+  *content* (`item`) survives to represent the group is still arbitrary
+  (harmless — real duplicates share the same content) but the badge row
+  no longer loses information regardless.
 - **Profile** (`Features/Profile`): same pattern via
   `ProfileSyncService`/`ProfileViewModel.refresh(instances:in:)` (profile
   + worklogs + angel type memberships, once per active instance)/

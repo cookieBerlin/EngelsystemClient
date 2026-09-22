@@ -106,6 +106,17 @@ public extension CachedNews {
         }
     }
 
+    /// One news post that survived `mergedAcrossServers`, paired with the name of
+    /// *every* active `Instance` whose own cached copy contributed to it — not just
+    /// the one `item` happens to belong to. Lets the UI show a badge per instance the
+    /// post actually appears on (2026-09-22, user-reported: after deduplication only
+    /// one instance's badge was shown, even when the post existed on both).
+    struct MergedItem: Identifiable {
+        public let item: CachedNews
+        public let instanceNames: [String]
+        public var id: String { item.uid }
+    }
+
     /// Collapses news items that came from *different* `Instance`s pointing at the
     /// *same* actual Engelsystem server — e.g. one physical event configured twice
     /// under two different user accounts/API keys (multi-active-instance concept,
@@ -115,18 +126,31 @@ public extension CachedNews {
     /// cross-instance list (2026-09-22, user-reported).
     ///
     /// A news post is server-assigned (`serverID`), not globally unique across
-    /// servers, so the dedup key is the pair (server base URL, `serverID`) — resolved
+    /// servers, so the merge key is the pair (server base URL, `serverID`) — resolved
     /// via `instances`, not just `instanceID` — since that's what actually identifies
-    /// "the same post" across two `Instance`s. Keeps the first occurrence per key, so
-    /// callers should sort/order `items` deterministically first (e.g. via
-    /// `sortedByRecency`) — which representative survives is otherwise arbitrary, but
-    /// harmless, since duplicates share the same real content.
-    static func deduplicatedByServer(_ items: [CachedNews], instances: [Instance]) -> [CachedNews] {
+    /// "the same post" across two `Instance`s. The *content* of the surviving
+    /// `MergedItem.item` is the first occurrence per key, so callers should
+    /// sort/order `items` deterministically first (e.g. via `sortedByRecency`) — which
+    /// representative's content survives is otherwise arbitrary, but harmless, since
+    /// duplicates share the same real content; `instanceNames` collects every
+    /// contributing instance regardless, so no instance's badge gets lost.
+    static func mergedAcrossServers(_ items: [CachedNews], instances: [Instance]) -> [MergedItem] {
         let baseURLByInstanceID = Dictionary(uniqueKeysWithValues: instances.map { ($0.id, $0.normalizedBaseURL) })
-        var seenKeys = Set<String>()
-        return items.filter { item in
+        let nameByInstanceID = Dictionary(uniqueKeysWithValues: instances.map { ($0.id, $0.name) })
+
+        var order: [String] = []
+        var groupedByKey: [String: [CachedNews]] = [:]
+        for item in items {
             let baseURL = baseURLByInstanceID[item.instanceID] ?? item.instanceID.uuidString
-            return seenKeys.insert("\(baseURL)#\(item.serverID)").inserted
+            let key = "\(baseURL)#\(item.serverID)"
+            if groupedByKey[key] == nil { order.append(key) }
+            groupedByKey[key, default: []].append(item)
+        }
+
+        return order.compactMap { key in
+            guard let group = groupedByKey[key], let representative = group.first else { return nil }
+            let names = group.map { nameByInstanceID[$0.instanceID] ?? "" }.filter { !$0.isEmpty }
+            return MergedItem(item: representative, instanceNames: names)
         }
     }
 }
