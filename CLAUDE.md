@@ -1081,12 +1081,33 @@ exists without reading the whole diff history.
   `CachedNews`/`NewsViewModel.refresh(instances:in:)`; pinned items sort
   first, meeting items get a badge, body text renders through
   `AttributedString(markdown:)` since the API docs say news text may
-  contain markdown — **with `interpretedSyntax: .full`** (2026-09-22,
-  user-requested; the default is `.inlineOnlyPreservingWhitespace`,
-  which only renders inline emphasis/links/code, not block-level markdown
-  like headers, lists, or block quotes). Applied to both `NewsRow`'s
-  preview and the expanded `[more]` text (see below) via the same
-  `attributed(_:)` helper. ~~`CachedNews.sanitizedText(from:)` strips the
+  contain markdown. **Block-level markdown (headers, lists, block quotes)
+  needs manual re-rendering, not just `interpretedSyntax: .full`**
+  (2026-09-22, user-requested, then user-reported broken): switching the
+  parse options to `.full` (from the default
+  `.inlineOnlyPreservingWhitespace`, which only understands inline
+  emphasis/links/code) does correctly *parse* block structure into
+  `PresentationIntent`s — but `Text` silently ignores those; it only
+  renders inline attributes. The list/header markers get consumed as
+  structure with nothing put back in their place, so bullet lists
+  actually got *worse* than before (they'd previously shown at least as
+  a literal "-"/"*" character under inline-only parsing; under `.full`
+  alone they vanished completely). `NewsMarkdownRenderer` (`Features/
+  News`, Kit-independent since it needs `SwiftUI.Font`/`Color`) walks
+  the `.full`-parsed `AttributedString`'s runs and manually re-derives
+  what `Text` won't: a "•"/"1." prefix for list items (a tight single
+  newline between items in the *same* list via matching the enclosing
+  list's `PresentationIntent.identity`, a full blank-line paragraph
+  break between anything else, so multi-paragraph text doesn't visually
+  run together), bold+larger text for headers, and `.secondary` color
+  for block quotes — verified against real `PresentationIntent.Kind`
+  API shape/behavior via a standalone `swift <file>.swift` probe first
+  (case names, associated values, and per-run `identity`/`components`
+  grouping), not guessed from memory, given how easy this API is to get
+  subtly wrong. `NewsRow`'s `attributed(_:)` now calls
+  `NewsMarkdownRenderer.render(_:)` (used for both the preview and the
+  expanded `[more]` text) instead of a bare
+  `AttributedString(markdown:)` call. ~~`CachedNews.sanitizedText(from:)` strips the
   `[more]` separator tag the API docs mention before storing — we always
   show the full text, so removing the marker is enough, no truncation
   needed.~~ **Wrong, fixed 2026-09-22 (user-reported): the website

@@ -241,6 +241,40 @@ struct InstanceSetupViewModelSelfCheckTests {
 
 /// Coverage for the News screen's meeting/non-meeting filter (2026-09-22,
 /// user-requested).
+/// Coverage for `NewsMarkdownRenderer` (2026-09-22, user-reported): switching to
+/// `interpretedSyntax: .full` alone correctly parsed lists/headers/block quotes as
+/// markdown structure, but `Text` doesn't render `PresentationIntent`s on its own, so
+/// the list markers disappeared entirely instead of showing up as bullets. Asserts on
+/// the rendered plain-text content (not individual attributes) since that's what
+/// directly demonstrates the reported bug is fixed.
+struct NewsMarkdownRendererTests {
+    @Test func unorderedListItemsGetABulletPrefixEach() {
+        let result = NewsMarkdownRenderer.render("- First item\n- Second item")
+        #expect(String(result.characters) == "\u{2022} First item\n\u{2022} Second item")
+    }
+
+    @Test func orderedListItemsKeepTheirNumbering() {
+        let result = NewsMarkdownRenderer.render("1. First item\n2. Second item")
+        #expect(String(result.characters) == "1. First item\n2. Second item")
+    }
+
+    @Test func plainParagraphsStaySeparatedByABlankLine() {
+        let result = NewsMarkdownRenderer.render("First paragraph.\n\nSecond paragraph.")
+        #expect(String(result.characters) == "First paragraph.\n\nSecond paragraph.")
+    }
+
+    @Test func inlineEmphasisWithinAListItemIsPreserved() {
+        let result = NewsMarkdownRenderer.render("- Item with **bold** text")
+        #expect(String(result.characters) == "\u{2022} Item with bold text")
+        let boldRun = result.runs.first { $0.inlinePresentationIntent?.contains(.stronglyEmphasized) == true }
+        #expect(boldRun != nil)
+    }
+
+    @Test func emptyTextRendersToEmptyOutput() {
+        #expect(String(NewsMarkdownRenderer.render("").characters).isEmpty)
+    }
+}
+
 struct NewsMeetingFilterTests {
     private func makeNews(isMeeting: Bool) -> CachedNews {
         CachedNews(
