@@ -1085,6 +1085,22 @@ exists without reading the whole diff history.
   separator tag the API docs mention (and trims the whitespace it
   typically sits between) before storing — we always show the full text,
   so removing the marker is enough, no truncation needed.
+  **`.merged` display mode deduplicates across same-server instances**
+  (2026-09-22, user-reported): two active `Instance`s pointing at the
+  same actual server (e.g. two different user accounts for one event)
+  each sync and cache their own copy of every news post — `CachedNews
+  .uid` includes `instanceID`, so it's a genuinely separate row per
+  instance, not a natural duplicate SwiftData would already collapse.
+  `CachedNews.deduplicatedByServer(_:instances:)` (pure, Kit-tested)
+  collapses these before display, keyed by (the owning `Instance`'s
+  `normalizedBaseURL`, the post's server-assigned `serverID`) — not
+  `instanceID` alone, since that's what actually identifies "the same
+  post" across two instances of the same server. Applied only in
+  `.merged` mode (`NewsView`'s only true flat cross-instance list);
+  `.switcher` shows one instance at a time already, and `.sectioned`
+  groups by instance on purpose, so seeing the same real content once
+  per relevant section there is consistent with that mode's design, not
+  a bug to fix the same way.
 - **Profile** (`Features/Profile`): same pattern via
   `ProfileSyncService`/`ProfileViewModel.refresh(instances:in:)` (profile
   + worklogs + angel type memberships, once per active instance)/

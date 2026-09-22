@@ -51,7 +51,12 @@ struct NewsView: View {
 
                     switch displayMode {
                     case .merged:
-                        newsRows(CachedNews.sortedByRecency(newsItems), labeled: true)
+                        // Two active instances pointing at the same actual server
+                        // (e.g. different user accounts for one event) would otherwise
+                        // each contribute their own cached copy of the same news post —
+                        // see CachedNews.deduplicatedByServer.
+                        let merged = CachedNews.deduplicatedByServer(CachedNews.sortedByRecency(newsItems), instances: instances)
+                        newsRows(merged, labeled: true)
                     case .switcher:
                         InstancePicker(instances: instances, selection: $selectedInstanceID)
                             .listRowSeparator(.hidden)

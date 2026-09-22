@@ -82,6 +82,39 @@ import Testing
     #expect(CachedNews.sanitizedText(from: "[more]") == "")
 }
 
+/// 2026-09-22, user-reported: two active `Instance`s pointing at the same actual
+/// server (different user accounts for one event) each cache their own copy of the
+/// same news post, which then both show up in the merged cross-instance list.
+@Test func cachedNewsDeduplicatedByServerCollapsesSameServerDuplicates() {
+    let sharedServerURL = "https://example.org"
+    let instanceA = Instance(name: "A", baseURL: sharedServerURL, apiKeyKeychainRef: "a")
+    let instanceB = Instance(name: "B", baseURL: sharedServerURL, apiKeyKeychainRef: "b")
+    let instanceC = Instance(name: "C", baseURL: "https://other.example.org", apiKeyKeychainRef: "c")
+
+    let newsFromA = CachedNews(
+        serverID: 1, instanceID: instanceA.id, title: "Shared post", text: "text",
+        isMeeting: false, isPinned: false, isHighlighted: false, createdAt: Date(), url: ""
+    )
+    let sameNewsFromB = CachedNews(
+        serverID: 1, instanceID: instanceB.id, title: "Shared post", text: "text",
+        isMeeting: false, isPinned: false, isHighlighted: false, createdAt: Date(), url: ""
+    )
+    let differentServerSameID = CachedNews(
+        serverID: 1, instanceID: instanceC.id, title: "Unrelated post, same numeric ID", text: "text",
+        isMeeting: false, isPinned: false, isHighlighted: false, createdAt: Date(), url: ""
+    )
+
+    let deduplicated = CachedNews.deduplicatedByServer(
+        [newsFromA, sameNewsFromB, differentServerSameID],
+        instances: [instanceA, instanceB, instanceC]
+    )
+
+    #expect(deduplicated.count == 2)
+    #expect(deduplicated.contains { $0.instanceID == instanceA.id })
+    #expect(!deduplicated.contains { $0.instanceID == instanceB.id }) // collapsed into A's copy
+    #expect(deduplicated.contains { $0.instanceID == instanceC.id }) // different server, same serverID: kept
+}
+
 @Test func eventCredentialDetectsDemoBaseURL() {
     let demo = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
     #expect(demo.isDemo)

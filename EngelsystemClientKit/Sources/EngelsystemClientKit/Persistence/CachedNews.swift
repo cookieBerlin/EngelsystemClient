@@ -105,4 +105,28 @@ public extension CachedNews {
             return lhs.createdAt > rhs.createdAt
         }
     }
+
+    /// Collapses news items that came from *different* `Instance`s pointing at the
+    /// *same* actual Engelsystem server — e.g. one physical event configured twice
+    /// under two different user accounts/API keys (multi-active-instance concept,
+    /// CLAUDE.md). Each `Instance` syncs and caches news independently (`CachedNews
+    /// .uid` includes `instanceID`), so the same real-world news post ends up stored
+    /// once per instance and would otherwise show up more than once in a merged,
+    /// cross-instance list (2026-09-22, user-reported).
+    ///
+    /// A news post is server-assigned (`serverID`), not globally unique across
+    /// servers, so the dedup key is the pair (server base URL, `serverID`) — resolved
+    /// via `instances`, not just `instanceID` — since that's what actually identifies
+    /// "the same post" across two `Instance`s. Keeps the first occurrence per key, so
+    /// callers should sort/order `items` deterministically first (e.g. via
+    /// `sortedByRecency`) — which representative survives is otherwise arbitrary, but
+    /// harmless, since duplicates share the same real content.
+    static func deduplicatedByServer(_ items: [CachedNews], instances: [Instance]) -> [CachedNews] {
+        let baseURLByInstanceID = Dictionary(uniqueKeysWithValues: instances.map { ($0.id, $0.normalizedBaseURL) })
+        var seenKeys = Set<String>()
+        return items.filter { item in
+            let baseURL = baseURLByInstanceID[item.instanceID] ?? item.instanceID.uuidString
+            return seenKeys.insert("\(baseURL)#\(item.serverID)").inserted
+        }
+    }
 }
