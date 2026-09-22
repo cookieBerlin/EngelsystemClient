@@ -50,4 +50,48 @@ open class NewsAPI {
 
         return localVariableRequestBuilder.init(method: "GET", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
     }
+
+    /**
+     Get a single news item including its comments
+     
+     - parameter id: (path) News identifier 
+     - returns: NewsIdGet200Response
+     */
+    @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    open class func newsIdGet(id: Int) async throws -> NewsIdGet200Response {
+        return try await newsIdGetWithRequestBuilder(id: id).execute().body
+    }
+
+    /**
+     Get a single news item including its comments
+     - GET /news/{id}
+     - API Key:
+       - type: apiKey x-api-key (HEADER)
+       - name: api-key-header
+     - Bearer Token:
+       - type: http
+       - name: bearer-auth
+     - parameter id: (path) News identifier 
+     - returns: RequestBuilder<NewsIdGet200Response> 
+     */
+    open class func newsIdGetWithRequestBuilder(id: Int) -> RequestBuilder<NewsIdGet200Response> {
+        var localVariablePath = "/news/{id}"
+        let idPreEscape = "\(APIHelper.mapValueToPathItem(id))"
+        let idPostEscape = idPreEscape.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+        localVariablePath = localVariablePath.replacingOccurrences(of: "{id}", with: idPostEscape, options: .literal, range: nil)
+        let localVariableURLString = EngelsystemAPIAPI.basePath + localVariablePath
+        let localVariableParameters: [String: Any]? = nil
+
+        let localVariableUrlComponents = URLComponents(string: localVariableURLString)
+
+        let localVariableNillableHeaders: [String: Any?] = [
+            :
+        ]
+
+        let localVariableHeaderParameters = APIHelper.rejectNilHeaders(localVariableNillableHeaders)
+
+        let localVariableRequestBuilder: RequestBuilder<NewsIdGet200Response>.Type = EngelsystemAPIAPI.requestBuilderFactory.getBuilder()
+
+        return localVariableRequestBuilder.init(method: "GET", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
+    }
 }

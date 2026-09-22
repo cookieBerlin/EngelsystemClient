@@ -29,8 +29,10 @@ public struct News: Codable, JSONEncodable, Hashable {
     public var updatedAt: Date?
     /** Direct link to the news page */
     public var url: String
+    /** Number of comments on this news item */
+    public var commentsCount: Int
 
-    public init(id: Int, name: String, text: String, isMeeting: Bool, isPinned: Bool, isHighlighted: Bool, createdAt: Date, updatedAt: Date?, url: String) {
+    public init(id: Int, name: String, text: String, isMeeting: Bool, isPinned: Bool, isHighlighted: Bool, createdAt: Date, updatedAt: Date?, url: String, commentsCount: Int) {
         self.id = id
         self.name = name
         self.text = text
@@ -40,6 +42,7 @@ public struct News: Codable, JSONEncodable, Hashable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.url = url
+        self.commentsCount = commentsCount
     }
 
     public enum CodingKeys: String, CodingKey, CaseIterable {
@@ -52,6 +55,7 @@ public struct News: Codable, JSONEncodable, Hashable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case url
+        case commentsCount = "comments_count"
     }
 
     // Encodable protocol methods
@@ -67,6 +71,7 @@ public struct News: Codable, JSONEncodable, Hashable {
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(url, forKey: .url)
+        try container.encode(commentsCount, forKey: .commentsCount)
     }
 }
 

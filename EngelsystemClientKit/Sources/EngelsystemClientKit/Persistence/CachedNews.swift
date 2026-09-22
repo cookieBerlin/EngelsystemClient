@@ -20,6 +20,16 @@ public final class CachedNews {
     public var updatedAt: Date?
 
     public var url: String
+    // Added alongside the /news/{id} detail endpoint (2026-09-22) — lets the list show
+    // a comment-count indicator per row without fetching the detail for every item.
+    // The inline `= 0` default is required here, not just on the `init` parameter
+    // below — SwiftData's lightweight migration for adding a new attribute to an
+    // *existing* local store reads the property's own declared default to backfill
+    // old rows with; an init-parameter-only default doesn't help it at all. Confirmed
+    // hands-on: without it, re-running against a simulator with an existing store
+    // crashed with "Cannot migrate store in-place: Validation error missing attribute
+    // values on mandatory destination attribute" for this exact property.
+    public var commentsCount: Int = 0
     public var cachedAt: Date
 
     // No relationship to Instance — it lives in a separate, CloudKit-backed
@@ -35,7 +45,8 @@ public final class CachedNews {
         isHighlighted: Bool,
         createdAt: Date,
         updatedAt: Date? = nil,
-        url: String
+        url: String,
+        commentsCount: Int = 0
     ) {
         self.uid = "\(instanceID.uuidString):\(serverID)"
         self.serverID = serverID
@@ -48,6 +59,7 @@ public final class CachedNews {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.url = url
+        self.commentsCount = commentsCount
         self.cachedAt = Date()
     }
 }
@@ -66,7 +78,8 @@ public extension CachedNews {
             isHighlighted: news.isHighlighted,
             createdAt: news.createdAt,
             updatedAt: news.updatedAt,
-            url: news.url
+            url: news.url,
+            commentsCount: news.commentsCount
         )
     }
 
@@ -81,6 +94,7 @@ public extension CachedNews {
         createdAt = news.createdAt
         updatedAt = news.updatedAt
         url = news.url
+        commentsCount = news.commentsCount
         updateCacheTimestamp()
     }
 

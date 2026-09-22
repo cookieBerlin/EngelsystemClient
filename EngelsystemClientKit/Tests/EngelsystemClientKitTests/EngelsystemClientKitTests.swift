@@ -182,6 +182,26 @@ import Testing
     #expect(profile.name == "demo")
 }
 
+/// Coverage for `fetchNewsDetail` (`GET /news/{id}`, added 2026-09-22 alongside News
+/// comments).
+@Test func apiClientFetchNewsDetailReturnsDemoCommentsAndThrowsNotFoundForUnknownID() async throws {
+    let credential = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
+    let client = APIClient.shared
+
+    let detail = try await client.fetchNewsDetail(id: 1, credential)
+    #expect(detail.comments.count == 2)
+    #expect(detail.commentsCount == 2)
+
+    // Demo item 2 exists but has no comments — the "no comments yet" empty case,
+    // distinct from "unknown id" below.
+    let emptyDetail = try await client.fetchNewsDetail(id: 2, credential)
+    #expect(emptyDetail.comments.isEmpty)
+
+    await #expect(throws: APIError.notFound) {
+        _ = try await client.fetchNewsDetail(id: 999, credential)
+    }
+}
+
 @Test func apiClientRejectsEmptyBaseURLForNonDemoInstance() async throws {
     let credential = EventCredential(baseURL: "", apiKey: "some-key")
     await #expect(throws: APIError.invalidBaseURL) {

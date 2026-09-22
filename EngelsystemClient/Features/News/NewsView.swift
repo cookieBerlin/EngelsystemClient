@@ -30,6 +30,13 @@ struct NewsView: View {
         instances.first(where: { $0.id == selectedInstanceID }) ?? instances.first
     }
 
+    /// The `Instance` a given cached item actually came from — needed to resolve the
+    /// right credential for fetching that item's comments (`NewsDetailView`), since
+    /// `CachedNews` itself only carries a plain `instanceID`, not a live reference.
+    private func instance(for item: CachedNews) -> Instance? {
+        instances.first(where: { $0.id == item.instanceID })
+    }
+
     var body: some View {
         Group {
             if instances.isEmpty {
@@ -68,7 +75,7 @@ struct NewsView: View {
                             if !instanceNews.isEmpty {
                                 Section(instance.name) {
                                     ForEach(instanceNews) { item in
-                                        NewsRow(item: item)
+                                        NewsRow(item: item, instance: instance)
                                     }
                                 }
                             }
@@ -116,7 +123,7 @@ struct NewsView: View {
             emptyState
         } else {
             ForEach(items) { item in
-                NewsRow(item: item)
+                NewsRow(item: item, instance: instance(for: item))
             }
         }
     }
@@ -127,7 +134,7 @@ struct NewsView: View {
             emptyState
         } else {
             ForEach(items) { merged in
-                NewsRow(item: merged.item, instanceNames: merged.instanceNames)
+                NewsRow(item: merged.item, instance: instance(for: merged.item), instanceNames: merged.instanceNames)
             }
         }
     }
@@ -155,6 +162,11 @@ struct NewsView: View {
 
 private struct NewsRow: View {
     let item: CachedNews
+    /// The instance to resolve a credential against for fetching this post's
+    /// comments — `nil` only if the item's own `instanceID` somehow doesn't match
+    /// any currently active instance (e.g. a race with deactivation), in which case
+    /// the comments link just doesn't render rather than link to something broken.
+    var instance: Instance?
     /// Every active instance this post actually appears on — usually one, but more
     /// than one when the same server is configured under multiple instances and this
     /// row is the merged, deduplicated representative for all of them (see
@@ -223,6 +235,22 @@ private struct NewsRow: View {
             Text(item.createdAt, style: .date)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+
+            // Comments (GET /news/{id}, added 2026-09-22): a distinct, explicitly
+            // labeled link rather than making the whole row tappable — the row
+            // already has its own "Read More" button, and stacking two different
+            // gestures/actions ambiguously on the same row content isn't worth it.
+            if item.commentsCount > 0, let instance {
+                NavigationLink {
+                    NewsDetailView(item: item, instance: instance)
+                } label: {
+                    Label(
+                        item.commentsCount == 1 ? "1 Comment" : "\(item.commentsCount) Comments",
+                        systemImage: "bubble.left.and.bubble.right"
+                    )
+                    .font(.caption)
+                }
+            }
         }
         .padding(.vertical, 4)
     }

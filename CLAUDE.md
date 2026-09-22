@@ -44,12 +44,34 @@ official REST API of the respective Engelsystem instance.
     `/shifttypes/{id}/shifts`
   - `/shifttypes`, `/locations`, `/angeltypes`, `/angeltypes/{id}/users`
   - `/users`, `/users/{id}`, `/users/{id}/angeltypes`
-  - `/news`
+  - `/news`, `/news/{id}` (added 2026-09-22, see below)
   - `/users/{id}/worklogs`
   - `/info` (event metadata)
   - `/openapi`
 - `{id}` can also be the string `self` on user endpoints (own account)
 - No server-side push/webhook mechanism exists
+
+**`/news/{id}` added 2026-09-22**, sourced from a fork of the server
+project (`github.com/cookieBerlin/engelsystem`, branch
+`feat/api-news-comments`) via a cross-session message from a separate
+Claude session working on that server — **not merged to that fork's own
+main yet**, only combined into a local-only `develop` branch and
+deployed live on the shared dev test server (`a private LAN host`) at the
+time this was added. Returns a `NewsDetail` (the existing `News` shape
+plus a `comments: [NewsComment]` array, each `{id, text, user:
+Reference, created_at, updated_at}`); the existing `News`/`/news` list
+also gained a new required `comments_count` field. Applied to this
+project's `openapi.yml` by diffing against that branch's copy directly
+(fetched via `raw.githubusercontent.com`) rather than hand-writing the
+schema, then regenerating via `Scripts/generate-api.sh` as usual. Two
+other branches mentioned in the same cross-session conversation
+(`/locations/{id}`, and relaxing the `api` privilege group requirement
+for `/users/self/*`/`/news`/`/locations` down to "just authenticated")
+are **not yet implemented client-side** — only the comments endpoint was
+requested so far. If picking those up later, re-fetch each branch's
+current `openapi.yml` the same way rather than trusting the
+cross-session message's field descriptions verbatim, in case the branch
+has moved on since.
 
 ## Demo mode (for testing without a real server)
 
@@ -1274,6 +1296,36 @@ exists without reading the whole diff history.
   all" from "the filter hid everything" (checks `activeInstanceNewsItems`
   — the pre-filter set — so a real empty instance and an active-but-
   zero-matches filter don't look identical).
+
+  **Comments** (2026-09-22, user-requested, via `/news/{id}` — see "API"
+  above): `CachedNews.commentsCount: Int = 0` is synced/cached like the
+  rest of the list (the inline `= 0` default on the *property itself*,
+  not just the `init` parameter, is required — SwiftData's lightweight
+  migration for adding a new attribute to an existing local store reads
+  the property's own declared default to backfill old rows; an
+  init-only default doesn't help it at all — confirmed hands-on: without
+  it, `ModelContainerFactory` crashed on launch against a
+  pre-2026-09-22 store with "Cannot migrate store in-place ... missing
+  attribute values on mandatory destination attribute" for exactly this
+  property). When a row's `commentsCount > 0`, `NewsRow` shows a "N
+  Comments" `NavigationLink` — a distinct, explicitly labeled link, not
+  the whole row, since the row already has its own "Read More" button
+  and stacking two different tap actions on the same row content isn't
+  worth the ambiguity. Pushes `NewsDetailView` (`Features/News`, new),
+  which shows the full post plus its comments via `NewsDetailViewModel`
+  — comments are fetched **live, every time this screen opens, not
+  cached** (unlike the rest of this app's data): this is a detail-only
+  view, never aggregated across instances the way the News *list* is,
+  so there's no `CachedNews`-style per-instance duplication to prevent
+  in the first place (confirmed with the user before skipping a cache —
+  they'd asked whether comments needed the same cross-server dedup as
+  `mergedAcrossServers`; they don't, precisely because nothing here
+  caches per-instance to begin with). Needs the specific `Instance` a
+  given `CachedNews` row actually came from to resolve a credential
+  (`NewsView.instance(for:)`, matching `item.instanceID` against the
+  active instances array) — `CachedNews` itself only carries a plain ID,
+  never a live reference (see "CloudKit sync for Instance metadata"
+  below for why relationships across `Instance`/`Cached*` don't exist).
 - **Profile** (`Features/Profile`): same pattern via
   `ProfileSyncService`/`ProfileViewModel.refresh(instances:in:)` (profile
   + worklogs + angel type memberships, once per active instance)/

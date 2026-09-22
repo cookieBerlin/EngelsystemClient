@@ -118,6 +118,49 @@ struct EditInstanceViewModelAPIKeyTests {
 /// the Kit (`EngelsystemClientKitTests`); these exercise the view models built on top,
 /// using the demo credential (which always reports `self` as working) since there's
 /// no mock HTTP server in this test target to exercise the `.notFound` path.
+/// Coverage for `NewsDetailViewModel` (`GET /news/{id}` comments, added 2026-09-22).
+struct NewsDetailViewModelTests {
+    private func makeInstanceWithSeededKey() throws -> Instance {
+        let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: UUID().uuidString)
+        try LocalKeychainStore().save(apiKey: "demo", for: instance.apiKeyKeychainRef)
+        return instance
+    }
+
+    @Test @MainActor func loadsCommentsSortedOldestFirst() async throws {
+        let instance = try makeInstanceWithSeededKey()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = NewsDetailViewModel()
+        await viewModel.refresh(newsServerID: 1, instance: instance)
+
+        #expect(viewModel.errorMessage == nil)
+        #expect(viewModel.comments.count == 2)
+        #expect(viewModel.comments.map(\.id) == [1, 2]) // demo data's comment 1 predates comment 2
+    }
+
+    @Test @MainActor func loadsAnEmptyListWhenThePostHasNoComments() async throws {
+        let instance = try makeInstanceWithSeededKey()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = NewsDetailViewModel()
+        await viewModel.refresh(newsServerID: 2, instance: instance)
+
+        #expect(viewModel.errorMessage == nil)
+        #expect(viewModel.comments.isEmpty)
+    }
+
+    @Test @MainActor func setsAnErrorMessageForAnUnknownPost() async throws {
+        let instance = try makeInstanceWithSeededKey()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = NewsDetailViewModel()
+        await viewModel.refresh(newsServerID: 999, instance: instance)
+
+        #expect(viewModel.errorMessage != nil)
+        #expect(viewModel.comments.isEmpty)
+    }
+}
+
 struct EditInstanceViewModelSelfCheckTests {
     @MainActor
     private func makeInstanceWithSeededKey() throws -> (Instance, ModelContext) {

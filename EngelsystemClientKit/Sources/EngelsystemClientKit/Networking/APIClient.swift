@@ -68,6 +68,26 @@ public final class APIClient {
         }
     }
 
+    /// A single news post's full detail, including its comments (`GET /news/{id}`,
+    /// added 2026-09-22). Unlike `fetchNews`, a 404 here is a genuine error (an
+    /// unknown/deleted post), not "empty" — so this goes through `withCredential`,
+    /// not `withCredentialList`.
+    public func fetchNewsDetail(id: Int, _ credential: EventCredential) async throws -> NewsDetail {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            guard let detail = DemoData.newsDetail(id: id) else {
+                throw APIError.notFound
+            }
+            return detail
+        }
+        return try await withCredential(credential) {
+            guard let data = try await NewsAPI.newsIdGet(id: id).data else {
+                throw APIError.decoding("Missing data in /news/{id} response")
+            }
+            return data
+        }
+    }
+
     public func fetchAngelTypes(_ credential: EventCredential) async throws -> [AngelType] {
         if credential.isDemo {
             await DemoData.simulateLatency()

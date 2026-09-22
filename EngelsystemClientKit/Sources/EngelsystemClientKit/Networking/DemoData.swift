@@ -56,16 +56,51 @@ enum DemoData {
                 text: "Thanks for trying out the app in demo mode. Everything you see here is sample data — no real server involved.",
                 isMeeting: false, isPinned: true, isHighlighted: true,
                 createdAt: now.addingTimeInterval(-3600), updatedAt: nil,
-                url: "https://demo.engelsystem.local/news/1"
+                url: "https://demo.engelsystem.local/news/1",
+                commentsCount: 2
             ),
             News(
                 id: 2, name: "Heaven build-up meeting",
                 text: "First helper meeting takes place at Heaven. Please bring your own seating.",
                 isMeeting: true, isPinned: false, isHighlighted: false,
                 createdAt: now.addingTimeInterval(-7200), updatedAt: nil,
-                url: "https://demo.engelsystem.local/news/2"
+                url: "https://demo.engelsystem.local/news/2",
+                commentsCount: 0
             ),
         ]
+    }
+
+    /// Backs `APIClient.fetchNewsDetail` for a demo instance — `nil` for an unknown
+    /// `id`, matching the real endpoint's 404 (`APIClient` maps that to `.notFound`).
+    /// Only item 1 has sample comments, so demo mode also exercises the "no comments
+    /// yet" empty state via item 2.
+    static func newsDetail(id: Int) -> NewsDetail? {
+        guard let item = news.first(where: { $0.id == id }) else { return nil }
+        let now = Date()
+        let comments: [NewsComment]
+        switch id {
+        case 1:
+            comments = [
+                NewsComment(
+                    id: 1, text: "Looking forward to it!",
+                    user: Reference(id: 2, name: "Helper Angel"),
+                    createdAt: now.addingTimeInterval(-3000), updatedAt: nil
+                ),
+                NewsComment(
+                    id: 2, text: "Thanks for the update, see you there.",
+                    user: Reference(id: 3, name: "Another Angel"),
+                    createdAt: now.addingTimeInterval(-1800), updatedAt: nil
+                ),
+            ]
+        default:
+            comments = []
+        }
+        return NewsDetail(
+            id: item.id, name: item.name, text: item.text, isMeeting: item.isMeeting,
+            isPinned: item.isPinned, isHighlighted: item.isHighlighted,
+            createdAt: item.createdAt, updatedAt: item.updatedAt, url: item.url,
+            commentsCount: item.commentsCount, comments: comments
+        )
     }
 
     static var shifts: [Shift] {
