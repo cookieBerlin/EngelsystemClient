@@ -1081,10 +1081,25 @@ exists without reading the whole diff history.
   `CachedNews`/`NewsViewModel.refresh(instances:in:)`; pinned items sort
   first, meeting items get a badge, body text renders through
   `AttributedString(markdown:)` since the API docs say news text may
-  contain markdown. `CachedNews.sanitizedText(from:)` strips the `[more]`
-  separator tag the API docs mention (and trims the whitespace it
-  typically sits between) before storing — we always show the full text,
-  so removing the marker is enough, no truncation needed.
+  contain markdown. ~~`CachedNews.sanitizedText(from:)` strips the
+  `[more]` separator tag the API docs mention before storing — we always
+  show the full text, so removing the marker is enough, no truncation
+  needed.~~ **Wrong, fixed 2026-09-22 (user-reported): the website
+  actually truncates at `[more]` with a "read more" expansion; the app
+  was silently dropping that behavior entirely by stripping the tag and
+  always showing the full text.** `CachedNews.text` now stores the raw
+  text as-is (trimmed, marker kept) instead of pre-stripping it at
+  sync/storage time — that decision has to happen at *display* time, not
+  storage time, or the split point is lost for good. `CachedNews
+  .textParts(from:)` (pure, Kit-tested) splits it into `preview`/`rest`
+  (`rest` is `nil` when there's no tag, or nothing follows it — meaning
+  no "Read more" control should show). `NewsRow` shows `preview` always,
+  collapses `rest` behind a "Read More"/"Show Less" toggle
+  (`@State private var isExpanded`) exactly when `rest != nil`, matching
+  the website. Existing cached rows synced before this fix still have
+  the tag already stripped from a previous version of the app — no
+  migration needed, since the very next sync overwrites `text` via
+  `apply(_:)` with the new raw version anyway.
   **`.merged` display mode deduplicates across same-server instances**
   (2026-09-22, user-reported): two active `Instance`s pointing at the
   same actual server (e.g. two different user accounts for one event)

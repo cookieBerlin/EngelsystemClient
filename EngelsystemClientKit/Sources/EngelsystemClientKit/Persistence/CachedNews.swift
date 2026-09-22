@@ -9,6 +9,9 @@ public final class CachedNews {
     public var instanceID: UUID
 
     public var title: String
+    // Raw text as received from the server (trimmed, but the `[more]` separator tag
+    // is kept in place if present) — see `textParts(from:)` for splitting it into a
+    // preview and the rest at display time.
     public var text: String
     public var isMeeting: Bool
     public var isPinned: Bool
@@ -57,7 +60,7 @@ public extension CachedNews {
             serverID: news.id,
             instanceID: instanceID,
             title: news.name,
-            text: Self.sanitizedText(from: news.text),
+            text: news.text.trimmingCharacters(in: .whitespacesAndNewlines),
             isMeeting: news.isMeeting,
             isPinned: news.isPinned,
             isHighlighted: news.isHighlighted,
@@ -71,7 +74,7 @@ public extension CachedNews {
     /// when a cached row already exists for this news item).
     func apply(_ news: News) {
         title = news.name
-        text = Self.sanitizedText(from: news.text)
+        text = news.text.trimmingCharacters(in: .whitespacesAndNewlines)
         isMeeting = news.isMeeting
         isPinned = news.isPinned
         isHighlighted = news.isHighlighted
@@ -85,14 +88,30 @@ public extension CachedNews {
         "\(instanceID.uuidString):\(serverID)"
     }
 
+    /// The result of splitting a news post's `text` at its `[more]` separator, if
+    /// present — matches the website's "read more" truncation behavior. `rest` is
+    /// `nil` when there's no `[more]` tag (or nothing follows it), meaning `preview`
+    /// is the entire post and no "Read more" control should be shown.
+    struct TextParts: Equatable {
+        public let preview: String
+        public let rest: String?
+    }
+
     /// The API docs say the text "might include a `[more]` tag to be used as a
-    /// separator which must be removed from the text when shown" — since we always
-    /// show the full text (no truncated preview), simply removing the marker satisfies
-    /// that. Also trims the whitespace/newlines the tag typically sits between.
-    static func sanitizedText(from rawText: String) -> String {
-        rawText
-            .replacingOccurrences(of: "[more]", with: "")
+    /// separator" between a short preview and the rest of the post — 2026-09-22,
+    /// user-reported: the app previously just stripped the tag and always showed the
+    /// full text, unlike the website, which actually truncates at it with a "read
+    /// more" expansion. `text` is stored raw (marker included) precisely so this can
+    /// be computed at display time instead of being lost at sync/storage time.
+    static func textParts(from rawText: String) -> TextParts {
+        guard let range = rawText.range(of: "[more]") else {
+            return TextParts(preview: rawText.trimmingCharacters(in: .whitespacesAndNewlines), rest: nil)
+        }
+        let preview = String(rawText[rawText.startIndex..<range.lowerBound])
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        let rest = String(rawText[range.upperBound...])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return TextParts(preview: preview, rest: rest.isEmpty ? nil : rest)
     }
 }
 

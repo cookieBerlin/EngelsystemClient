@@ -74,12 +74,27 @@ import Testing
     #expect(selfBuilder.URLString.hasSuffix("/users/self/shifts"))
 }
 
-// MARK: - CachedNews text sanitization
+// MARK: - CachedNews [more] splitting
 
-@Test func cachedNewsSanitizedTextRemovesMoreTagAndTrims() {
-    #expect(CachedNews.sanitizedText(from: "Intro text.\n[more]\nRest of the story.") == "Intro text.\n\nRest of the story.")
-    #expect(CachedNews.sanitizedText(from: "  No tag here.  ") == "No tag here.")
-    #expect(CachedNews.sanitizedText(from: "[more]") == "")
+/// 2026-09-22, user-reported: the app previously just stripped the `[more]` tag and
+/// always showed the full text; the website actually truncates at it with a "read
+/// more" expansion, and the app should match that.
+@Test func cachedNewsTextPartsSplitsAtMoreTagAndTrimsBothSides() {
+    let parts = CachedNews.textParts(from: "Intro text.\n[more]\nRest of the story.")
+    #expect(parts.preview == "Intro text.")
+    #expect(parts.rest == "Rest of the story.")
+}
+
+@Test func cachedNewsTextPartsHasNoRestWhenTagIsMissing() {
+    let parts = CachedNews.textParts(from: "  No tag here.  ")
+    #expect(parts.preview == "No tag here.")
+    #expect(parts.rest == nil)
+}
+
+@Test func cachedNewsTextPartsHasNoRestWhenNothingFollowsTheTag() {
+    #expect(CachedNews.textParts(from: "Intro only.\n[more]").rest == nil)
+    #expect(CachedNews.textParts(from: "[more]").rest == nil)
+    #expect(CachedNews.textParts(from: "[more]").preview == "")
 }
 
 /// 2026-09-22, user-reported: two active `Instance`s pointing at the same actual

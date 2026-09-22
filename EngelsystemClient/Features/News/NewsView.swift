@@ -162,8 +162,15 @@ private struct NewsRow: View {
     /// surrounding context (picker/section header) already makes the instance clear.
     var instanceNames: [String] = []
 
-    private var attributedText: AttributedString {
-        (try? AttributedString(markdown: item.text)) ?? AttributedString(item.text)
+    /// Collapsed by default whenever there's a `[more]` split — matches the website's
+    /// "read more" behavior (2026-09-22, user-reported: the app previously always
+    /// showed the full text regardless of the tag).
+    @State private var isExpanded = false
+
+    private var textParts: CachedNews.TextParts { CachedNews.textParts(from: item.text) }
+
+    private func attributed(_ text: String) -> AttributedString {
+        (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }
 
     var body: some View {
@@ -189,9 +196,20 @@ private struct NewsRow: View {
                     }
                 }
             }
-            Text(attributedText)
+            Text(attributed(textParts.preview))
                 .font(.body)
                 .foregroundStyle(.secondary)
+            if let rest = textParts.rest {
+                if isExpanded {
+                    Text(attributed(rest))
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+                Button(isExpanded ? "Show Less" : "Read More") {
+                    withAnimation { isExpanded.toggle() }
+                }
+                .font(.caption)
+            }
             Text(item.createdAt, style: .date)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
