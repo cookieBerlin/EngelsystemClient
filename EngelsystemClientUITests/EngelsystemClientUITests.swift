@@ -151,6 +151,84 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(versionFooter.waitForExistence(timeout: 5))
     }
 
+    /// 2026-09-22, user-reported and fixed: with zero active instances, `MainView`'s
+    /// sidebar shows a dedicated empty state (message + "Add Instance" button)
+    /// instead of the normal Shifts/News/Profile rows — but an earlier version of that
+    /// fix silently failed to navigate anywhere when the button (or the toolbar
+    /// Settings gear) was tapped, because it replaced the sidebar's `List(selection:)`
+    /// entirely with a `ContentUnavailableView` instead of keeping the same `List`
+    /// and just changing its rows. `NavigationSplitView`'s automatic column push on
+    /// compact width only fires when the sidebar's content is that `List`. This test
+    /// exercises exactly the reported flow: deactivate the only instance, confirm the
+    /// empty state appears, and confirm tapping its button actually reaches Settings.
+    @MainActor
+    func testAddInstanceButtonAppearsAndNavigatesWhenNoActiveInstance() throws {
+        let app = XCUIApplication()
+
+        // A fresh simulator (this test expects `xcrun simctl erase` beforehand, same
+        // as `testDemoModeNavigationFlow`) shows the real system notification
+        // permission alert the first time Shifts syncs — asynchronously, so it can
+        // appear at any point afterward, not necessarily right when the sync call
+        // itself returns. This test reaches the "Demo Active" toggle much sooner
+        // after that first sync than `testDemoModeNavigationFlow` does (fewer
+        // intermediate screens), which turned out to make it much more likely to
+        // land squarely on that alert's timing window and swallow the toggle tap —
+        // confirmed hands-on (the toggle's value silently failed to flip after
+        // `.tap()`). Same fix as documented for the Watch UI tests: a monitor plus a
+        // no-op tap afterward, since interruption monitors only fire on a subsequent
+        // interaction, not proactively. Locale-dependent label, matching both.
+        addUIInterruptionMonitor(withDescription: "Notification permission") { alert in
+            for label in ["Allow", "Erlauben"] where alert.buttons[label].exists {
+                alert.buttons[label].tap()
+                return true
+            }
+            for label in ["Don't Allow", "Nicht erlauben"] where alert.buttons[label].exists {
+                alert.buttons[label].tap()
+                return true
+            }
+            return false
+        }
+
+        app.launch()
+
+        let demoButton = app.buttons["Try Demo Mode"]
+        XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
+        waitUntilHittable(demoButton, in: app)
+        demoButton.tap()
+        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+        app.navigationBars.firstMatch.tap() // flushes the interruption monitor if the alert has appeared by now
+
+        goBack(app)
+        let settingsButton = app.buttons["Settings"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
+        settingsButton.tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        app.navigationBars.firstMatch.tap()
+
+        let activeToggle = app.switches["Demo Active"]
+        XCTAssertTrue(activeToggle.waitForExistence(timeout: 5))
+        XCTAssertEqual(activeToggle.value as? String, "1")
+        activeToggle.tap()
+        app.navigationBars.firstMatch.tap()
+        XCTAssertEqual(activeToggle.value as? String, "0")
+
+        goBack(app)
+
+        let addInstanceButton = app.buttons["Add Instance"]
+        XCTAssertTrue(addInstanceButton.waitForExistence(timeout: 5))
+        addInstanceButton.tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+
+        // Leave the instance re-activated rather than deactivated, in case a later
+        // test run reuses the same simulator/app state.
+        let reactivateToggle = app.switches["Demo Active"]
+        XCTAssertTrue(reactivateToggle.waitForExistence(timeout: 5))
+        if reactivateToggle.value as? String == "0" {
+            reactivateToggle.tap()
+            XCTAssertEqual(reactivateToggle.value as? String, "1")
+        }
+    }
+
     @MainActor
     private func goBack(_ app: XCUIApplication) {
         app.navigationBars.buttons.element(boundBy: 0).tap()

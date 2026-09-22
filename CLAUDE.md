@@ -1046,9 +1046,63 @@ exists without reading the whole diff history.
   navigation on iPhone automatically. Since the 2026-09-17 multi-active-
   instance redesign, resolves every `instance.isActive` instance (not a
   single `@AppStorage` ID) and passes that array to whichever section is
-  selected; the sidebar's own navigation title reflects the count ("No
-  Active Instance" / the one instance's name / "N Active Instances").
-  Defaults to Shifts on launch. **Settings is not a sidebar row**
+  selected. ~~The sidebar's own navigation title used to reflect the
+  count ("No Active Instance" / the one instance's name / "N Active
+  Instances").~~ **Changed 2026-09-22, at the user's request: no more
+  instance-count text in the title.** `navigationTitle` now shows the
+  one active instance's name when there's exactly one, or a static
+  "Engelsystem" otherwise (zero or several). `navigationTitle`'s logic
+  is a `static func navigationTitle(forActiveInstances:)`, not a
+  `private` computed property, specifically so it's unit-testable
+  (`EngelsystemClientTests.MainViewNavigationTitleTests`, covering all
+  three cases) without needing to construct a full `MainView`/drive its
+  `body` — initially missed when this feature landed, added once the
+  user asked why. Defaults to Shifts on launch.
+
+  **Zero active instances: the sidebar's row content changes, but it
+  must stay the same `List(selection:)` — this broke real navigation
+  when it didn't, same day, user-reported.** The first version replaced
+  the sidebar's entire content with a `ContentUnavailableView` (message
+  + "Add Instance" button) whenever there were no active instances,
+  instead of the normal `List(Section.sidebarCases, selection:
+  $selection)`. Both the button and the toolbar Settings gear icon
+  looked like they worked (`selection` visibly changed, `detail:`'s
+  `switch` re-rendered to `SettingsView`) but **nothing ever became
+  visible** on iPhone/compact width. Root cause: `NavigationSplitView`'s
+  automatic column push in response to a `selection` change, when
+  collapsed to a single visible column, only fires when the sidebar's
+  own top-level content *is* the `List` that binding belongs to —
+  swapping the sidebar to a non-`List` view for the empty state left
+  nothing for that push mechanism to observe, even though the `selection`
+  state itself and the `detail:` view both updated correctly underneath.
+  Fixed by keeping `List(selection: $selection)` as the sidebar's
+  content in *both* branches, unconditionally — only which rows it
+  contains differs: the normal `Section.sidebarCases` rows, or (when
+  `activeInstances.isEmpty`) a plain informational row plus an "Add
+  Instance" row/button (still routes to Settings via the existing
+  `goToSettings()`, since that's also where an existing *inactive*
+  instance can be reactivated, not only where a new one can be added).
+  Needed `SwiftUI.Section` spelled out explicitly inside that branch —
+  the file's own `private enum Section` (the sidebar's feature-selection
+  cases) shadows it otherwise, a real compile error caught immediately.
+  Verified end-to-end via a new dedicated XCUITest,
+  `testAddInstanceButtonAppearsAndNavigatesWhenNoActiveInstance`
+  (deactivate the only instance, confirm the empty-state row appears,
+  confirm tapping "Add Instance" actually reaches Settings) — this gap
+  was called out but left open when the feature first landed; the user
+  asked why no test existed, and hitting this exact regression while
+  writing that test is what surfaced the real bug in the first place.
+  That same new test also hit — and had to work around — the documented
+  notification-permission-alert-interception class of flakiness (see
+  the watchOS UI Testing section below): it reaches the "Demo Active"
+  toggle much sooner after the first Shifts sync than
+  `testDemoModeNavigationFlow` does, which made it land squarely in that
+  alert's async appearance window on a freshly-erased simulator (a tap
+  silently not registering, confirmed hands-on) — same
+  `addUIInterruptionMonitor` + no-op-tap-to-flush fix, previously only
+  documented for the Watch, turns out to apply on iOS too under the
+  right timing.
+  **Settings is not a sidebar row**
   (changed 2026-09-17, at the user's request) — it's app configuration
   rather than a data section at the same level as Shifts/News/Profile,
   so it's reached via a gear icon in the sidebar's own toolbar corner

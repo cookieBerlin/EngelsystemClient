@@ -247,6 +247,29 @@ struct InstanceSetupViewModelSelfCheckTests {
 /// the list markers disappeared entirely instead of showing up as bullets. Asserts on
 /// the rendered plain-text content (not individual attributes) since that's what
 /// directly demonstrates the reported bug is fixed.
+/// Coverage for `MainView.navigationTitle(forActiveInstances:)` (2026-09-22,
+/// user-requested removal of the old "N Active Instances" plural title — this test
+/// was initially missed when that change landed, added as a follow-up once asked why).
+struct MainViewNavigationTitleTests {
+    private func makeInstance(name: String) -> Instance {
+        Instance(name: name, baseURL: "https://\(name).example.org", apiKeyKeychainRef: name)
+    }
+
+    @Test func showsNoInstanceCountTextWhenNoneAreActive() {
+        #expect(MainView.navigationTitle(forActiveInstances: []) == "Engelsystem")
+    }
+
+    @Test func showsTheSingleActiveInstancesOwnName() {
+        let instance = makeInstance(name: "Foo")
+        #expect(MainView.navigationTitle(forActiveInstances: [instance]) == "Foo")
+    }
+
+    @Test func showsNoInstanceCountTextWhenMultipleAreActive() {
+        let instances = [makeInstance(name: "A"), makeInstance(name: "B")]
+        #expect(MainView.navigationTitle(forActiveInstances: instances) == "Engelsystem")
+    }
+}
+
 struct NewsMarkdownRendererTests {
     @Test func unorderedListItemsGetABulletPrefixEach() {
         let result = NewsMarkdownRenderer.render("- First item\n- Second item")

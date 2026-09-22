@@ -52,20 +52,49 @@ struct MainView: View {
 
     private var activeInstances: [Instance] { instances.filter(\.isActive) }
 
-    private var navigationTitle: String {
-        switch activeInstances.count {
-        case 0: return "No Active Instance"
-        case 1: return activeInstances[0].name
-        default: return "\(activeInstances.count) Active Instances"
-        }
+    /// Only shows the one active instance's own name — no instance-count text
+    /// (2026-09-22, user-requested: a plural "N Active Instances" title was removed;
+    /// the zero-active case no longer needs a title of its own either, since the
+    /// sidebar shows a dedicated empty state instead of the section list then, see
+    /// `body` below). A `static` pure function, not a `private` computed property, so
+    /// it's unit-testable via `@testable import EngelsystemClient` without needing to
+    /// construct a full `MainView` and drive its `body` — `EngelsystemClientTests
+    /// .MainViewNavigationTitleTests` covers all three cases (zero/one/many).
+    static func navigationTitle(forActiveInstances activeInstances: [Instance]) -> String {
+        activeInstances.count == 1 ? activeInstances[0].name : "Engelsystem"
     }
 
     var body: some View {
         NavigationSplitView {
-            List(Section.sidebarCases, selection: $selection) { section in
-                Label(section.title, systemImage: section.systemImage).tag(section)
+            // The sidebar's top-level content must stay an actual `List(selection:)`
+            // at all times — 2026-09-22, user-reported: an earlier version replaced it
+            // entirely with a `ContentUnavailableView` whenever there were no active
+            // instances, which broke navigation to Settings from *both* the "Add
+            // Instance" button and the toolbar gear icon. Root cause:
+            // `NavigationSplitView`'s automatic column push on compact width (iPhone)
+            // in response to a `selection` change only fires when the sidebar's own
+            // content is the `List` that binding belongs to — swapping the sidebar to
+            // a non-`List` view for the empty state meant nothing was left to make
+            // that push happen, even though `selection` itself still updated
+            // correctly and `detail:` below re-rendered (just never became visible).
+            // Fixed by always keeping the same `List(selection: $selection)`, only
+            // changing which rows it shows.
+            List(selection: $selection) {
+                if activeInstances.isEmpty {
+                    // `SwiftUI.Section` spelled out: the file's own `Section` enum
+                    // (feature-selection cases) would otherwise shadow it here.
+                    SwiftUI.Section {
+                        Label("No Active Instance", systemImage: "tray")
+                            .foregroundStyle(.secondary)
+                        Button("Add Instance") { goToSettings() }
+                    }
+                } else {
+                    ForEach(Section.sidebarCases) { section in
+                        Label(section.title, systemImage: section.systemImage).tag(section)
+                    }
+                }
             }
-            .navigationTitle(navigationTitle)
+            .navigationTitle(Self.navigationTitle(forActiveInstances: activeInstances))
             .toolbar {
                 ToolbarItem {
                     Button {
