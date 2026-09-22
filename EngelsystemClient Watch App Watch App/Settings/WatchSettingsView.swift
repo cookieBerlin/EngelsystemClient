@@ -19,13 +19,40 @@ import EngelsystemClientKit
 struct WatchSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Instance.createdAt) private var instances: [Instance]
-    @AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)
-    private var notificationLeadTimeMinutes: Int = NotificationScheduler.defaultMinutesBefore
+    @Query private var leadTimeSettingsRows: [NotificationLeadTimeSettings]
     @AppStorage(DeviceSyncPreferences.syncOnAppStartUserDefaultsKey)
     private var syncOnAppStart: Bool = true
 
     @State private var isPresentingSetup = false
     @State private var cloudSyncStatus: CloudSyncStatus = .checking
+
+    /// See the iOS `SettingsView`'s matching properties for why this is a `@Query`
+    /// (CloudKit-synced within a platform) rather than `@AppStorage`, and why it
+    /// resolves the "watch" row specifically — this list is deliberately independent
+    /// from the iOS one (2026-09-22, user-requested).
+    private var leadTimesMinutes: [Int] {
+        (leadTimeSettingsRows.first(where: { $0.platform == NotificationLeadTimeSettings.currentPlatform })?.leadTimesMinutes
+            ?? NotificationLeadTimeSettings.defaultLeadTimesMinutes).sorted()
+    }
+
+    private var leadTimesAvailableToAdd: [Int] {
+        NotificationLeadTimeSettings.availableToAdd(currentlySelected: leadTimesMinutes)
+    }
+
+    private func addLeadTime(_ minutes: Int) {
+        let settings = NotificationLeadTimeSettings.resolve(in: modelContext)
+        guard !settings.leadTimesMinutes.contains(minutes) else { return }
+        settings.leadTimesMinutes.append(minutes)
+        settings.touch()
+        try? modelContext.save()
+    }
+
+    private func removeLeadTime(_ minutes: Int) {
+        let settings = NotificationLeadTimeSettings.resolve(in: modelContext)
+        settings.leadTimesMinutes.removeAll { $0 == minutes }
+        settings.touch()
+        try? modelContext.save()
+    }
 
     var body: some View {
         List {
@@ -47,13 +74,34 @@ struct WatchSettingsView: View {
             }
 
             Section {
-                Picker("Notify Before Shift", selection: $notificationLeadTimeMinutes) {
-                    ForEach(NotificationScheduler.availableLeadTimesInMinutes, id: \.self) { minutes in
-                        Text("\(minutes) min").tag(minutes)
+                ForEach(leadTimesMinutes, id: \.self) { minutes in
+                    HStack {
+                        Text("\(minutes) min")
+                        Spacer()
+                        Button {
+                            removeLeadTime(minutes)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                        .accessibilityLabel("Remove \(minutes) min reminder")
+                    }
+                }
+                // `Menu` isn't available on watchOS — a pushed list of the remaining
+                // presets is the standard watchOS substitute for "tap to pick one
+                // from a short list".
+                if !leadTimesAvailableToAdd.isEmpty {
+                    NavigationLink {
+                        WatchAddReminderView(availableMinutes: leadTimesAvailableToAdd, onAdd: addLeadTime)
+                    } label: {
+                        Label("Add Reminder", systemImage: "plus")
                     }
                 }
             } header: {
                 Text("Notifications")
+            } footer: {
+                Text("Its own list, independent from your iPhone's.")
+                    .font(.caption2)
             }
 
             // 2026-09-22, user-requested background-sync feature: no interval picker
@@ -143,6 +191,28 @@ struct WatchSettingsView: View {
 
         modelContext.delete(instance)
         try? modelContext.save()
+    }
+}
+
+/// The watchOS substitute for iOS's `Menu`-based "Add Reminder" (unavailable on this
+/// platform) — a pushed list of the remaining presets; tapping one adds it and pops
+/// back to `WatchSettingsView` via `dismiss()`.
+private struct WatchAddReminderView: View {
+    let availableMinutes: [Int]
+    let onAdd: (Int) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            ForEach(availableMinutes, id: \.self) { minutes in
+                Button("\(minutes) min") {
+                    onAdd(minutes)
+                    dismiss()
+                }
+            }
+        }
+        .navigationTitle("Add Reminder")
     }
 }
 

@@ -116,6 +116,77 @@ import Testing
     #expect(PollingInterval.minutes360.timeInterval == TimeInterval(360 * 60))
 }
 
+@Test func notificationLeadTimeSettingsParsesAndEncodesTheCommaSeparatedList() {
+    #expect(NotificationLeadTimeSettings.parseLeadTimes("15,60") == [15, 60])
+    #expect(NotificationLeadTimeSettings.parseLeadTimes(" 15 , 60 ") == [15, 60])
+    // Empty parses to `[]`, not the default — a real bug, found and fixed
+    // 2026-09-22: falling back to the default here made removing a user's *last*
+    // reminder immediately reappear as the default, since both "never configured"
+    // and "deliberately cleared to zero" were stored as the same empty string.
+    #expect(NotificationLeadTimeSettings.parseLeadTimes("").isEmpty)
+    #expect(NotificationLeadTimeSettings.parseLeadTimes("not,a,number").isEmpty)
+    #expect(NotificationLeadTimeSettings.encodeLeadTimes([15, 60]) == "15,60")
+}
+
+/// Regression test for the exact bug above: removing the only configured lead time
+/// must result in an empty list, not the default reappearing.
+@MainActor
+@Test func notificationLeadTimeSettingsRemovingTheLastLeadTimeStaysEmpty() throws {
+    let schema = Schema([Instance.self, NotificationLeadTimeSettings.self])
+    let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+    let context = ModelContext(container)
+
+    let settings = NotificationLeadTimeSettings.resolve(for: "ios", in: context)
+    #expect(settings.leadTimesMinutes == NotificationLeadTimeSettings.defaultLeadTimesMinutes)
+
+    settings.leadTimesMinutes.removeAll { $0 == NotificationLeadTimeSettings.defaultLeadTimesMinutes[0] }
+    try context.save()
+
+    let reloaded = NotificationLeadTimeSettings.resolve(for: "ios", in: context)
+    #expect(reloaded.leadTimesMinutes.isEmpty)
+}
+
+@Test func notificationLeadTimeSettingsAvailableToAddExcludesAlreadySelectedPresets() {
+    let available = NotificationLeadTimeSettings.availableToAdd(
+        currentlySelected: [15, 60],
+        presets: NotificationScheduler.availableLeadTimesInMinutes
+    )
+    #expect(available == [5, 10, 30])
+
+    // Nothing left once every preset is selected.
+    let none = NotificationLeadTimeSettings.availableToAdd(
+        currentlySelected: NotificationScheduler.availableLeadTimesInMinutes,
+        presets: NotificationScheduler.availableLeadTimesInMinutes
+    )
+    #expect(none.isEmpty)
+}
+
+/// 2026-09-22, user-requested "multiple reminders" feature: the reminder list syncs
+/// via CloudKit *within* a platform, but not *across* iOS and Watch — modeled as one
+/// row per platform rather than a single shared singleton (see the type's doc
+/// comment). `resolve(for:in:)` takes the platform explicitly so this is testable
+/// without actually compiling for watchOS.
+@MainActor
+@Test func notificationLeadTimeSettingsResolvesASeparateRowPerPlatform() throws {
+    let schema = Schema([Instance.self, NotificationLeadTimeSettings.self])
+    let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+    let context = ModelContext(container)
+
+    let ios = NotificationLeadTimeSettings.resolve(for: "ios", in: context)
+    ios.leadTimesMinutes = [15, 60]
+    try context.save()
+
+    // Re-resolving "ios" returns the same row, unaffected by "watch" being resolved
+    // (and defaulted) independently.
+    let watch = NotificationLeadTimeSettings.resolve(for: "watch", in: context)
+    #expect(watch.leadTimesMinutes == NotificationLeadTimeSettings.defaultLeadTimesMinutes)
+
+    let iosAgain = NotificationLeadTimeSettings.resolve(for: "ios", in: context)
+    #expect(iosAgain.id == ios.id)
+    #expect(iosAgain.leadTimesMinutes == [15, 60])
+    #expect(try context.fetch(FetchDescriptor<NotificationLeadTimeSettings>()).count == 2)
+}
+
 /// The polling interval was originally a CloudKit-synced `SyncSettings` singleton,
 /// shared with the Apple Watch — reverted 2026-09-22, the same day, at the user's
 /// explicit request: Watch background execution isn't implemented at all, so

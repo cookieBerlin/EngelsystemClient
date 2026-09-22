@@ -55,11 +55,28 @@ private func makeShift(id: Int, hoursFromNow: Double, title: String = "Shift") -
     // Starts in 10 minutes — with a 15-minute lead time, the fire date is already in the past.
     let tooSoon = makeShift(id: 3, hoursFromNow: 10.0 / 60.0)
 
-    let planned = NotificationScheduler.plan(for: [upcoming, past, tooSoon], minutesBefore: 15)
+    let planned = NotificationScheduler.plan(for: [upcoming, past, tooSoon], leadTimes: [15])
 
     #expect(planned.count == 1)
     #expect(planned.first?.shiftUID == upcoming.uid)
-    #expect(planned.first?.identifier == NotificationScheduler.identifier(for: upcoming))
+    #expect(planned.first?.identifier == NotificationScheduler.identifier(for: upcoming, minutesBefore: 15))
+}
+
+/// 2026-09-22, "multiple reminders" feature: a single shift can now have more than
+/// one lead time configured, each scheduled as its own independent notification.
+@Test func notificationSchedulerPlansOneNotificationPerConfiguredLeadTime() {
+    let shift = makeShift(id: 1, hoursFromNow: 2)
+    // 90 minutes before a shift 2 hours out is still in the future; 15 minutes before
+    // is too — both should produce a planned notification.
+    let planned = NotificationScheduler.plan(for: [shift], leadTimes: [15, 90])
+
+    #expect(planned.count == 2)
+    #expect(Set(planned.map(\.identifier)) == [
+        NotificationScheduler.identifier(for: shift, minutesBefore: 15),
+        NotificationScheduler.identifier(for: shift, minutesBefore: 90),
+    ])
+    // Distinct fire dates — not two notifications for the same moment.
+    #expect(Set(planned.map(\.fireDate)).count == 2)
 }
 
 @Test func notificationSchedulerSyncSchedulesNewAndCancelsStale() async {
@@ -69,18 +86,18 @@ private func makeShift(id: Int, hoursFromNow: Double, title: String = "Shift") -
     let shiftA = makeShift(id: 1, hoursFromNow: 2, title: "Info Desk")
     let shiftB = makeShift(id: 2, hoursFromNow: 4, title: "Set-up")
 
-    await scheduler.syncNotifications(for: [shiftA, shiftB], minutesBefore: 15)
+    await scheduler.syncNotifications(for: [shiftA, shiftB], leadTimes: [15])
     #expect(center.addedRequests.count == 2)
     #expect(Set(center.addedRequests.map(\.identifier)) == [
-        NotificationScheduler.identifier(for: shiftA),
-        NotificationScheduler.identifier(for: shiftB),
+        NotificationScheduler.identifier(for: shiftA, minutesBefore: 15),
+        NotificationScheduler.identifier(for: shiftB, minutesBefore: 15),
     ])
 
     // Re-syncing with only shiftA left should cancel shiftB's notification and not
     // re-add shiftA's (it's already scheduled).
-    await scheduler.syncNotifications(for: [shiftA], minutesBefore: 15)
+    await scheduler.syncNotifications(for: [shiftA], leadTimes: [15])
     let stillPending = await center.pendingNotificationRequests()
-    #expect(stillPending.map(\.identifier) == [NotificationScheduler.identifier(for: shiftA)])
+    #expect(stillPending.map(\.identifier) == [NotificationScheduler.identifier(for: shiftA, minutesBefore: 15)])
     #expect(center.addedRequests.count == 2) // no duplicate add call for shiftA
 }
 
@@ -89,21 +106,24 @@ private func makeShift(id: Int, hoursFromNow: Double, title: String = "Shift") -
     let scheduler = NotificationScheduler(center: center)
     let shift = makeShift(id: 1, hoursFromNow: 2)
 
-    await scheduler.syncNotifications(for: [shift], minutesBefore: 15)
-    await scheduler.syncNotifications(for: [shift], minutesBefore: 15)
+    await scheduler.syncNotifications(for: [shift], leadTimes: [15])
+    await scheduler.syncNotifications(for: [shift], leadTimes: [15])
 
     #expect(center.addedRequests.count == 1)
 }
 
-@Test func configuredMinutesBeforeFallsBackToDefaultWhenUnset() {
-    let defaults = UserDefaults(suiteName: "net.cuccato.engelsystem.de.tests.\(UUID().uuidString)")!
+/// Removing a lead time from the configured list (e.g. the user deletes the 60-minute
+/// reminder in Settings) must cancel just that shift's 60-minute notification, not
+/// its still-configured 15-minute one.
+@Test func notificationSchedulerCancelsOnlyTheRemovedLeadTimeNotAllOfAShiftsReminders() async {
+    let center = FakeNotificationCenter()
+    let scheduler = NotificationScheduler(center: center)
+    let shift = makeShift(id: 1, hoursFromNow: 2)
 
-    #expect(NotificationScheduler.configuredMinutesBefore(in: defaults) == NotificationScheduler.defaultMinutesBefore)
-}
+    await scheduler.syncNotifications(for: [shift], leadTimes: [15, 60])
+    #expect(center.addedRequests.count == 2)
 
-@Test func configuredMinutesBeforeReflectsStoredSetting() {
-    let defaults = UserDefaults(suiteName: "net.cuccato.engelsystem.de.tests.\(UUID().uuidString)")!
-    defaults.set(30, forKey: NotificationScheduler.leadTimeUserDefaultsKey)
-
-    #expect(NotificationScheduler.configuredMinutesBefore(in: defaults) == 30)
+    await scheduler.syncNotifications(for: [shift], leadTimes: [15])
+    let stillPending = await center.pendingNotificationRequests()
+    #expect(stillPending.map(\.identifier) == [NotificationScheduler.identifier(for: shift, minutesBefore: 15)])
 }

@@ -17,8 +17,6 @@ import EngelsystemClientKit
 /// corrected, just a later preference overriding an earlier one.
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)
-    private var notificationLeadTimeMinutes: Int = NotificationScheduler.defaultMinutesBefore
     @AppStorage(NewsNotifier.enabledUserDefaultsKey)
     private var notifyOnNewNews: Bool = true
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
@@ -30,6 +28,9 @@ struct SettingsView: View {
 
     let instances: [Instance]
 
+    // CloudKit-synced (within iOS — see NotificationLeadTimeSettings), so this is a
+    // @Query, not @AppStorage like the settings above.
+    @Query private var leadTimeSettingsRows: [NotificationLeadTimeSettings]
     @State private var isPresentingSetup = false
     @State private var cloudSyncStatus: CloudSyncStatus = .checking
 
@@ -38,6 +39,38 @@ struct SettingsView: View {
             get: { MultiInstanceDisplayMode(rawValue: multiInstanceDisplayModeRaw) ?? .merged },
             set: { multiInstanceDisplayModeRaw = $0.rawValue }
         )
+    }
+
+    /// 2026-09-22, "multiple reminders" feature: sorted ascending purely for a stable,
+    /// predictable display order (Settings' own list, not the notifications
+    /// themselves — order doesn't matter there). Parameterized by platform, not just
+    /// `currentPlatform`, since iOS's `SettingsView` shows *both* rows now
+    /// (2026-09-22, further user-requested: "also show the Watch's settings in the
+    /// iOS app") — both are equally reachable from here via the same CloudKit-synced
+    /// model, there's no reason to require physical access to the tiny Watch screen
+    /// to edit its own reminder list.
+    private func leadTimesMinutes(for platform: String) -> [Int] {
+        (leadTimeSettingsRows.first(where: { $0.platform == platform })?.leadTimesMinutes
+            ?? NotificationLeadTimeSettings.defaultLeadTimesMinutes).sorted()
+    }
+
+    private func leadTimesAvailableToAdd(for platform: String) -> [Int] {
+        NotificationLeadTimeSettings.availableToAdd(currentlySelected: leadTimesMinutes(for: platform))
+    }
+
+    private func addLeadTime(_ minutes: Int, for platform: String) {
+        let settings = NotificationLeadTimeSettings.resolve(for: platform, in: modelContext)
+        guard !settings.leadTimesMinutes.contains(minutes) else { return }
+        settings.leadTimesMinutes.append(minutes)
+        settings.touch()
+        try? modelContext.save()
+    }
+
+    private func removeLeadTime(_ minutes: Int, for platform: String) {
+        let settings = NotificationLeadTimeSettings.resolve(for: platform, in: modelContext)
+        settings.leadTimesMinutes.removeAll { $0 == minutes }
+        settings.touch()
+        try? modelContext.save()
     }
 
     /// Plain per-device `@AppStorage`, iOS-only — **not** synced to the Apple Watch
@@ -80,16 +113,69 @@ struct SettingsView: View {
             }
 
             Section {
-                Picker("Notify Before Shift", selection: $notificationLeadTimeMinutes) {
-                    ForEach(NotificationScheduler.availableLeadTimesInMinutes, id: \.self) { minutes in
-                        Text("\(minutes) min").tag(minutes)
+                ForEach(leadTimesMinutes(for: NotificationLeadTimeSettings.currentPlatform), id: \.self) { minutes in
+                    HStack {
+                        Text("\(minutes) min")
+                        Spacer()
+                        Button {
+                            removeLeadTime(minutes, for: NotificationLeadTimeSettings.currentPlatform)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                        .accessibilityLabel("Remove \(minutes) min reminder")
+                    }
+                }
+                if !leadTimesAvailableToAdd(for: NotificationLeadTimeSettings.currentPlatform).isEmpty {
+                    Menu {
+                        ForEach(leadTimesAvailableToAdd(for: NotificationLeadTimeSettings.currentPlatform), id: \.self) { minutes in
+                            Button("\(minutes) min") { addLeadTime(minutes, for: NotificationLeadTimeSettings.currentPlatform) }
+                        }
+                    } label: {
+                        Label("Add Reminder", systemImage: "plus")
                     }
                 }
                 Toggle("Notify on New News", isOn: $notifyOnNewNews)
             } header: {
                 Text("Notifications")
             } footer: {
-                Text("How far in advance a local reminder is scheduled before each of your shifts starts, and whether a notification is posted when a News sync finds a new announcement.")
+                Text("A local reminder is scheduled before each of your shifts starts, once per time added here. Shared with other iOS/iPadOS devices on this account. Also whether a notification is posted when a News sync finds a new announcement.")
+            }
+
+            // 2026-09-22, further user-requested: the Apple Watch's own reminder
+            // list, editable right from here too — both rows live in the same
+            // CloudKit-synced `NotificationLeadTimeSettings` model, so there's no
+            // reason editing the Watch's list should require physical access to its
+            // much smaller screen. Distinct accessibility labels ("... Watch
+            // reminder"/"Add Watch Reminder") from the section above, so the two
+            // "Add Reminder"-shaped controls stay unambiguous.
+            Section {
+                ForEach(leadTimesMinutes(for: "watch"), id: \.self) { minutes in
+                    HStack {
+                        Text("\(minutes) min")
+                        Spacer()
+                        Button {
+                            removeLeadTime(minutes, for: "watch")
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                        .accessibilityLabel("Remove \(minutes) min Watch reminder")
+                    }
+                }
+                if !leadTimesAvailableToAdd(for: "watch").isEmpty {
+                    Menu {
+                        ForEach(leadTimesAvailableToAdd(for: "watch"), id: \.self) { minutes in
+                            Button("\(minutes) min") { addLeadTime(minutes, for: "watch") }
+                        }
+                    } label: {
+                        Label("Add Watch Reminder", systemImage: "plus")
+                    }
+                }
+            } header: {
+                Text("Apple Watch Reminders")
+            } footer: {
+                Text("Your Apple Watch's own reminder list — independent from the one above, but editable from here too.")
             }
 
             Section {

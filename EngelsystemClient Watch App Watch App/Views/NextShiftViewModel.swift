@@ -65,8 +65,8 @@ final class NextShiftViewModel {
 
         lastUpdated = Date()
         if await notificationScheduler.requestAuthorizationIfNeeded() {
-            let minutesBefore = NotificationScheduler.configuredMinutesBefore()
-            await notificationScheduler.syncNotifications(for: allShifts, minutesBefore: minutesBefore)
+            let leadTimes = NotificationLeadTimeSettings.resolve(in: modelContext).leadTimesMinutes
+            await notificationScheduler.syncNotifications(for: allShifts, leadTimes: leadTimes)
         }
 
         // Publish to the App Group so the complication (a separate process with no

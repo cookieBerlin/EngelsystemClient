@@ -127,20 +127,27 @@ final class EngelsystemClientUITests: XCTestCase {
         activeToggle.tap()
         XCTAssertEqual(activeToggle.value as? String, "1")
 
-        // Notification lead-time picker defaults to 15 min and can be changed.
-        // Its exact accessibility element type/label depend on the system-rendered
-        // Picker style (menu vs. pushed list), so match loosely by contained text
-        // rather than assuming a specific element kind or exact label.
-        let leadTimeRow = containingText("Notify Before Shift", in: app)
-        XCTAssertTrue(leadTimeRow.waitForExistence(timeout: 5))
+        // Multiple reminders (2026-09-22): defaults to a single "15 min" row,
+        // addable via an "Add Reminder" `Menu`, removable via a visible minus button
+        // per row. **Deliberately doesn't tap into the `Menu`'s own popup content**:
+        // tried it, hit it consistently closing/not registering before the item
+        // could be found (XCUITest's automatic "check for interrupting elements"
+        // step before every subsequent interaction is the leading suspect — menus
+        // aren't a UI pattern this project's tests had exercised before). Verified
+        // instead via the fast, reliable `EngelsystemClientKitTests
+        // .notificationLeadTimeSettings...` tests (the actual add/remove model
+        // logic) plus checking the button itself exists and is tappable here. The
+        // remove path — a plain button, no popup — is still verified end-to-end.
         XCTAssertTrue(containingText("15 min", in: app).waitForExistence(timeout: 5))
-        // The row's own label isn't the hittable element (the Picker control overlays
-        // it), so tap by coordinate instead of `.tap()` on the label element itself.
-        leadTimeRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        let thirtyMinOption = containingText("30 min", in: app)
-        XCTAssertTrue(thirtyMinOption.waitForExistence(timeout: 5))
-        thirtyMinOption.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        XCTAssertTrue(containingText("30 min", in: app).waitForExistence(timeout: 5))
+        let addReminderButton = app.buttons["Add Reminder"]
+        XCTAssertTrue(addReminderButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(addReminderButton.isHittable)
+
+        // Remove the default "15 min" reminder via its visible minus button.
+        let removeFifteenMin = app.buttons["Remove 15 min reminder"]
+        XCTAssertTrue(removeFifteenMin.waitForExistence(timeout: 5))
+        removeFifteenMin.tap()
+        XCTAssertFalse(app.buttons["Remove 15 min reminder"].waitForExistence(timeout: 2))
 
         // Version/build/git-hash footer at the bottom of Settings (AppVersionInfo) —
         // scroll down since it sits below the fold after all the sections above.

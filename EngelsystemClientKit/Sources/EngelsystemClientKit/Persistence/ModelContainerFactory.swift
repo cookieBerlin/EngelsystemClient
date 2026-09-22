@@ -36,9 +36,12 @@ public enum ModelContainerFactory {
         isStoredInMemoryOnly: Bool = false,
         forceLocalOnly: Bool = false
     ) -> ModelContainer {
-        let cloudSchema = Schema([Instance.self])
+        // NotificationLeadTimeSettings (2026-09-22) joins Instance here too — it's
+        // CloudKit-synced like Instance, just partitioned by platform (see its own
+        // doc comment) rather than being a single cross-platform singleton.
+        let cloudSchema = Schema([Instance.self, NotificationLeadTimeSettings.self])
         let localSchema = Schema(localSchemaTypes)
-        let fullSchema = Schema([Instance.self] + localSchemaTypes)
+        let fullSchema = Schema([Instance.self, NotificationLeadTimeSettings.self] + localSchemaTypes)
 
         // Always CloudKit-backed in production — forceLocalOnly is only for tests,
         // which need a fully offline, deterministic container regardless of this

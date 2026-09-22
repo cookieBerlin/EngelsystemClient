@@ -137,8 +137,8 @@ public struct AppSyncCoordinator {
 
         if handleNotifications {
             if allSucceeded, await notificationScheduler.requestAuthorizationIfNeeded() {
-                let minutesBefore = NotificationScheduler.configuredMinutesBefore()
-                await notificationScheduler.syncNotifications(for: allShifts, minutesBefore: minutesBefore)
+                let leadTimes = NotificationLeadTimeSettings.resolve(in: modelContext).leadTimesMinutes
+                await notificationScheduler.syncNotifications(for: allShifts, leadTimes: leadTimes)
             }
 
             if notifyOnNewNews, !newNewsByInstance.isEmpty, await notificationScheduler.requestAuthorizationIfNeeded() {

@@ -26,36 +26,39 @@ public struct NotificationScheduler {
 
     public static let identifierPrefix = "shift-notification-"
 
-    /// Fallback lead time when the user hasn't chosen one yet (e.g. first launch, or
-    /// the Watch app, which has no settings UI of its own for this — see CLAUDE.md's
-    /// "Watch app scope").
+    /// Fallback lead time when no `NotificationLeadTimeSettings` row exists yet for
+    /// this platform (e.g. first launch) — this is the *only* place the number `15`
+    /// is hardcoded; `NotificationLeadTimeSettings.defaultLeadTimesMinutes` is derived
+    /// from it.
     public static let defaultMinutesBefore = 15
 
-    /// Lead times offered in Settings.
+    /// Presets offered in Settings' "Add Reminder" menu — a fixed list, not free-form
+    /// entry, matching the picker this replaced (2026-09-22, "multiple reminders"
+    /// feature — see `NotificationLeadTimeSettings`, which now stores *which subset*
+    /// of these is active, as a list instead of a single value).
     public static let availableLeadTimesInMinutes = [5, 10, 15, 30, 60]
 
-    /// `UserDefaults` key backing the Settings picker for the notification lead time.
-    /// Shared between `SettingsView` (writes it via `@AppStorage`) and this scheduler
-    /// (reads it via `configuredMinutesBefore`), so it's defined once here.
-    public static let leadTimeUserDefaultsKey = "notificationLeadTimeMinutes"
-
-    /// Reads the user-configured lead time, falling back to `defaultMinutesBefore`
-    /// if none has been chosen yet.
-    public static func configuredMinutesBefore(in defaults: UserDefaults = .standard) -> Int {
-        (defaults.object(forKey: leadTimeUserDefaultsKey) as? Int) ?? defaultMinutesBefore
+    /// One identifier per (shift, lead time) pair — 2026-09-22, changed from a plain
+    /// per-shift identifier so a single shift can have more than one reminder
+    /// scheduled independently (e.g. one 60 minutes before, another 15 minutes
+    /// before).
+    public static func identifier(for shift: CachedShift, minutesBefore: Int) -> String {
+        identifierPrefix + shift.uid + "-" + String(minutesBefore)
     }
 
-    public static func identifier(for shift: CachedShift) -> String {
-        identifierPrefix + shift.uid
-    }
-
-    /// Pure planning step (no I/O): which upcoming shifts need a notification, and when.
-    /// Kept separate from `syncNotifications` so it's unit-testable without a
-    /// notification center at all.
-    public static func plan(for shifts: [CachedShift], minutesBefore: Int) -> [PlannedNotification] {
-        CachedShift.upcomingShifts(from: shifts).compactMap { shift in
-            guard let fireDate = shift.notificationDate(minutesBefore: minutesBefore) else { return nil }
-            return PlannedNotification(identifier: identifier(for: shift), shiftUID: shift.uid, fireDate: fireDate)
+    /// Pure planning step (no I/O): which upcoming shifts need a notification, when,
+    /// and for which of the configured lead times. Kept separate from
+    /// `syncNotifications` so it's unit-testable without a notification center at all.
+    public static func plan(for shifts: [CachedShift], leadTimes: [Int]) -> [PlannedNotification] {
+        CachedShift.upcomingShifts(from: shifts).flatMap { shift in
+            leadTimes.compactMap { minutesBefore -> PlannedNotification? in
+                guard let fireDate = shift.notificationDate(minutesBefore: minutesBefore) else { return nil }
+                return PlannedNotification(
+                    identifier: identifier(for: shift, minutesBefore: minutesBefore),
+                    shiftUID: shift.uid,
+                    fireDate: fireDate
+                )
+            }
         }
     }
 
@@ -90,12 +93,15 @@ public struct NotificationScheduler {
     }
 
     /// Schedules a notification for every upcoming shift that doesn't have one yet,
-    /// and cancels any previously scheduled shift notification that's no longer planned
-    /// (the shift became past, or disappeared from the synced set). `minutesBefore` is
-    /// read fresh by the caller on every sync (rather than fixed at init time) so a
-    /// change to the Settings lead-time picker takes effect on the very next sync.
-    public func syncNotifications(for shifts: [CachedShift], minutesBefore: Int) async {
-        let planned = Self.plan(for: shifts, minutesBefore: minutesBefore)
+    /// and cancels any previously scheduled shift notification that's no longer
+    /// planned (the shift became past, disappeared from the synced set, or its lead
+    /// time was removed from Settings). `leadTimes` is read fresh by the caller on
+    /// every sync (rather than fixed at init time) so a change to Settings' reminder
+    /// list takes effect on the very next sync — including a removed lead time: it
+    /// simply stops appearing in `plan(...)`, so the existing "cancel what's no
+    /// longer planned" logic below prunes it without any extra code.
+    public func syncNotifications(for shifts: [CachedShift], leadTimes: [Int]) async {
+        let planned = Self.plan(for: shifts, leadTimes: leadTimes)
         let plannedIdentifiers = Set(planned.map(\.identifier))
 
         let pending = await center.pendingNotificationRequests()

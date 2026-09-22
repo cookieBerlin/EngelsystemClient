@@ -1670,10 +1670,10 @@ exists without reading the whole diff history.
   to this screen so the key can actually be fixed via that same dialog
   (see Data/code flow above). Also a **Multiple Active Instances**
   picker (`MultiInstanceDisplayMode`, see above) and a **Notifications**
-  section: a "Notify Before Shift" picker (5/10/15/30/60 min) backed by
-  `@AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)`, applying
-  to all instances (it's a single app-wide preference, not per-instance).
-  At the very bottom, a plain unheadered section shows (2026-09-18)
+  section — see "Multiple reminders" below for the current shape of
+  this (it used to be a single "Notify Before Shift" picker; now a
+  addable/removable list). At the very bottom, a plain unheadered
+  section shows (2026-09-18)
   `CloudSyncStatus.current(containerIdentifier:)`'s `displayText`
   (`EngelsystemClientKit/Services/CloudSyncStatus.swift`, queried via
   `.task` on appear) above `AppVersionInfo.displayString`
@@ -1724,24 +1724,92 @@ exists without reading the whole diff history.
   after every successful Shifts sync, requests notification authorization
   if not yet determined and schedules a local reminder
   (`CachedShift.notificationDate(minutesBefore:)`) for each upcoming
-  shift, keyed by a stable identifier (`shift-notification-<uid>`) so
-  re-syncing updates in place instead of duplicating. Also cancels any
-  previously scheduled shift notification that's no longer in the
-  synced/upcoming set. Goes through a thin `NotificationCenterScheduling`
-  protocol over `UNUserNotificationCenter` so the scheduling logic is
-  unit-testable with a fake center — no simulator or real permission
-  prompt needed for that. No server push involved, per the "no
-  server-side push" constraint. **The lead time is user-configurable**:
-  `minutesBefore` is a per-call parameter of `syncNotifications(for:
-  minutesBefore:)` (not fixed at init) so a change to the Settings picker
-  takes effect on the very next sync without recreating the scheduler;
-  `NotificationScheduler.configuredMinutesBefore()` reads the value
-  whichever platform's Settings screen last wrote via `@AppStorage`,
-  falling back to `defaultMinutesBefore` (15) if unset — **both** iOS and
-  the Watch app now have this picker (see watchOS app below), each
-  reading/writing its own local `UserDefaults` (no CloudKit sync between
-  the two yet, so the two platforms' choices are independent, same as
-  every other per-device setting until sync is wired up).
+  shift, keyed by a stable identifier so re-syncing updates in place
+  instead of duplicating. Also cancels any previously scheduled shift
+  notification that's no longer in the synced/upcoming set. Goes through
+  a thin `NotificationCenterScheduling` protocol over
+  `UNUserNotificationCenter` so the scheduling logic is unit-testable
+  with a fake center — no simulator or real permission prompt needed for
+  that. No server push involved, per the "no server-side push"
+  constraint.
+
+  **"Multiple reminders" (2026-09-22, user-requested)**: a shift can now
+  have more than one lead time configured at once (e.g. a reminder 60
+  minutes before *and* another 15 minutes before), not just a single
+  value. `identifier(for:minutesBefore:)` now bakes the lead time into
+  the notification's identifier (`"shift-notification-<uid>-<minutes>"`)
+  so multiple independent reminders can coexist per shift;
+  `plan(for:leadTimes:)`/`syncNotifications(for:leadTimes:)` take the
+  full list and produce one planned notification per (shift, lead time)
+  pair. Removing a lead time from the configured list needs no special
+  handling — it just stops appearing in `plan(...)`, and the existing
+  "cancel whatever's no longer planned" logic already prunes exactly
+  that shift's notification for that specific lead time, not the
+  others.
+
+  **Storage: `NotificationLeadTimeSettings`
+  (`EngelsystemClientKit/Persistence/`), CloudKit-backed like `Instance`
+  — but with one row *per platform*, not a single shared singleton.**
+  The user explicitly asked for the list to sync *within* a platform (an
+  iPhone and iPad on the same account should agree) but *not* share one
+  list *across* iOS and Watch — you might legitimately want fewer/
+  different reminders on your wrist than your phone. `platform: String`
+  ("ios"/"watch") is the discriminator; `currentPlatform` resolves it at
+  compile time via `#if os(watchOS)`. `resolve(in:)` fetches-or-creates
+  the row for the calling device's own platform (seeded with
+  `defaultLeadTimesMinutes = [15]` on first creation only);
+  `resolve(for:in:)` takes the platform explicitly, which is what lets
+  iOS's `SettingsView` also read/write the **Watch's** row (see below)
+  and lets tests exercise the "watch" row without compiling for
+  watchOS. `leadTimesMinutesRaw` is a comma-separated `String`
+  (`"15,60"`) — same plain-value storage style as `Instance`'s fields,
+  not a `Codable`-encoded blob.
+
+  **Real bug found and fixed while testing, worth remembering**:
+  `parseLeadTimes` originally fell back to the default list whenever the
+  stored string was empty — reasonable-sounding (handles the
+  CloudKit-required `= ""` property default gracefully), but it meant
+  removing a user's *last* remaining reminder immediately "bounced back"
+  to showing the default again, since "never configured yet" and
+  "deliberately cleared to zero" were both stored as the same empty
+  string and thus indistinguishable. Confirmed hands-on via a UI test,
+  not just reasoned about. Zero reminders is a legitimate, intentional
+  end state (a full opt-out) and must stay zero — fixed by only ever
+  applying `defaultLeadTimesMinutes` in one place, `resolve(...)`'s
+  first-creation path, and letting `parseLeadTimes("")` mean `[]`
+  everywhere else. Covered by a regression test
+  (`notificationLeadTimeSettingsRemovingTheLastLeadTimeStaysEmpty`).
+
+  **Settings UI**: a list of the currently-configured lead times, each
+  with a **visible** remove button (`"minus.circle.fill"`, red — an
+  explicit per-row button was requested over relying on swipe-to-delete
+  alone) plus an **"Add Reminder"** control offering only the presets
+  (5/10/15/30/60 min) not already selected. On iOS this is a `Menu`; on
+  watchOS, `Menu` isn't available at all, so `WatchAddReminderView` (a
+  small pushed `List` of the remaining presets, each a `Button` that
+  adds and pops back via `.dismiss()`) is the substitute. **iOS's
+  `SettingsView` shows *both* platforms' lists** (2026-09-22, further
+  user-requested: "also show the Watch's settings in the iOS app") — a
+  second "Apple Watch Reminders" section, fully editable from the phone,
+  with its own distinctly-labeled controls ("Add Watch Reminder",
+  "Remove N min Watch reminder") so the two "Add Reminder"-shaped
+  buttons stay unambiguous to VoiceOver and UI tests alike. There's no
+  reason editing the Watch's list should require physical access to its
+  much smaller screen, given both rows already live in the same
+  CloudKit-synced model.
+
+  **UI-testing note**: tapping into the `Menu`'s own popup content
+  (to actually pick a preset) was tried and consistently failed to find
+  the item afterward — the leading suspect is XCUITest's automatic
+  "check for interrupting elements" step (run before every subsequent
+  interaction) treating the menu's popup as unexpected UI and dismissing
+  it before the check could run, though this wasn't conclusively
+  isolated. `testDemoModeNavigationFlow` therefore only verifies the
+  "Add Reminder" button exists/is hittable (not what happens after
+  tapping it) and exercises the **remove** path fully end-to-end (a
+  plain button tap, no popup involved, and reliable). The add path's
+  actual logic is still covered by `NotificationLeadTimeSettings`'s Kit
+  unit tests.
 
 ### watchOS app
 
