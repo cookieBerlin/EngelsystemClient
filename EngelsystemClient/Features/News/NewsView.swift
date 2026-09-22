@@ -86,6 +86,11 @@ struct NewsView: View {
                             emptyState
                         }
                     }
+
+                    // `activeInstanceNewsItems`, not the filtered `newsItems` — the
+                    // meeting filter shouldn't make the sync timestamp look stale
+                    // just because it's currently hiding everything.
+                    SyncTimestampFooter(date: activeInstanceNewsItems.map(\.cachedAt).max())
                 }
                 .listStyle(.plain)
                 .toolbar {

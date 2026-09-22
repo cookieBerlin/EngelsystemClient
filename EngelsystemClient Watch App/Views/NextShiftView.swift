@@ -26,6 +26,13 @@ struct NextShiftView: View {
     private var instanceIDs: Set<UUID> { Set(instances.map(\.id)) }
     private var shifts: [CachedShift] { allShifts.filter { instanceIDs.contains($0.instanceID) } }
     private var nextShift: CachedShift? { CachedShift.nextShift(from: shifts) }
+    /// 2026-09-23, user-requested, matching iOS's new Shifts/News/Profile footer:
+    /// the freshest `cachedAt` across the active instance(s)' shifts — unlike the
+    /// `viewModel.lastUpdated` this replaced, this also reflects `WatchMainView`'s
+    /// silent app-start sync, not just an explicit pull-to-refresh on this view
+    /// (`lastUpdated` was only ever set from this view's own `.refreshable`, so it
+    /// stayed `nil` until the user manually pulled to refresh at least once).
+    private var lastSyncedAt: Date? { shifts.map(\.cachedAt).max() }
 
     var body: some View {
         ScrollView {
@@ -63,8 +70,8 @@ struct NextShiftView: View {
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
-                } else if let lastUpdated = viewModel.lastUpdated {
-                    Text("Updated \(lastUpdated.formatted(date: .omitted, time: .shortened))")
+                } else if let lastSyncedAt {
+                    Text("Last Synced: \(lastSyncedAt.formatted(.relative(presentation: .named)))")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }

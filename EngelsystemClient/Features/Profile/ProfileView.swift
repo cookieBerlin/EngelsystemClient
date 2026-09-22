@@ -76,6 +76,17 @@ struct ProfileView: View {
                             sectionedContent(for: instance)
                         }
                     }
+
+                    // Profile is three Cached* types (User/Worklog/AngelTypeMembership)
+                    // synced together in one ProfileSyncService pass — the freshest of
+                    // the three stands in for "when Profile was last synced" as a whole,
+                    // same reasoning (and the same CacheSyncTimestamp.mostRecent helper)
+                    // as Settings' instance-detail "Last Synced" section.
+                    SyncTimestampFooter(date: CacheSyncTimestamp.mostRecent([
+                        users.map(\.cachedAt).max(),
+                        worklogs.map(\.cachedAt).max(),
+                        angelTypeMemberships.map(\.cachedAt).max(),
+                    ]))
                 }
                 .toolbar {
                     if viewModel.isLoading {

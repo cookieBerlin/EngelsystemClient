@@ -88,6 +88,8 @@ struct ShiftsView: View {
                             emptyState
                         }
                     }
+
+                    SyncTimestampFooter(date: shifts.map(\.cachedAt).max())
                 }
                 .listStyle(.plain)
                 .toolbar {

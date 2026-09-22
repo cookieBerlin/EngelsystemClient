@@ -8,7 +8,6 @@ import EngelsystemClientKit
 final class NextShiftViewModel {
     var isLoading = false
     var errorMessage: String?
-    var lastUpdated: Date?
 
     private let syncService: ShiftSyncService
     private let credentialResolver: InstanceCredentialResolver
@@ -63,7 +62,6 @@ final class NextShiftViewModel {
             return
         }
 
-        lastUpdated = Date()
         if await notificationScheduler.requestAuthorizationIfNeeded() {
             let leadTimes = NotificationLeadTimeSettings.resolve(in: modelContext).leadTimesMinutes
             await notificationScheduler.syncNotifications(for: allShifts, leadTimes: leadTimes)

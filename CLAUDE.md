@@ -1706,6 +1706,39 @@ exists without reading the whole diff history.
   `CachedWorklog`/`CachedAngelTypeMembership` at all, per CLAUDE.md's
   Watch App Scope.
 
+  **Extended the same day, further user-requested, onto Shifts/News/
+  Profile themselves** (not just Settings' instance-detail screen): a
+  small shared `SyncTimestampFooter` (`Features/Shared/`, iOS app
+  target) renders a centered "Last Synced: …" row at the bottom of each
+  screen's `List`, styled identically to Settings' own version/sync-
+  status footer. Unlike Settings' per-instance breakdown, this shows
+  **one aggregate timestamp** — the freshest sync across *all*
+  currently active instances contributing to that screen, computed the
+  same way (`.map(\.cachedAt).max()` over each screen's own already-
+  filtered items — `shifts`, `activeInstanceNewsItems` for News
+  specifically (not the meeting-filtered `newsItems`, so the filter
+  can't make the timestamp look stale by hiding everything), and
+  `CacheSyncTimestamp.mostRecent(...)` across Profile's three
+  underlying types for Profile). **Same known limitation as Settings'
+  version**: `nil`/"Never" can't currently be told apart from "synced
+  successfully with zero items returned", since there's no dedicated
+  per-domain sync-attempt timestamp independent of the cached rows
+  themselves.
+
+  **Also added to the Apple Watch's `NextShiftView`**, replacing its
+  previous "Updated HH:mm" line (driven by `NextShiftViewModel
+  .lastUpdated`, now removed entirely — it had become genuinely
+  redundant, not just stylistically inconsistent): that property was
+  only ever set inside this view's own `.refreshable`, so it silently
+  stayed `nil` — showing nothing at all — until the user manually
+  pulled to refresh at least once, even though `WatchMainView`'s silent
+  app-start sync (see "Background sync" above) may already have
+  populated `CachedShift` well before that. The new `cachedAt`-based
+  `lastSyncedAt` (same `.map(\.cachedAt).max()` pattern, over the
+  existing `shifts` computed property) correctly reflects *either*
+  trigger, fixing that gap as a side effect of just chasing wording
+  consistency with iOS.
+
   Removing an
   instance cleans up both keychain stores, since which one was used at
   creation time isn't persisted. The combined **"Edit Instance"**

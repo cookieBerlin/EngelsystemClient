@@ -110,43 +110,31 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7605052530457830002B3D76 /* EngelsystemClient */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = EngelsystemClient;
 			sourceTree = "<group>";
 		};
 		7605053530457832002B3D76 /* EngelsystemClientTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = EngelsystemClientTests;
 			sourceTree = "<group>";
 		};
 		7605053F30457832002B3D76 /* EngelsystemClientUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = EngelsystemClientUITests;
 			sourceTree = "<group>";
 		};
 		76050554304578DE002B3D76 /* EngelsystemClient Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "EngelsystemClient Watch App";
 			sourceTree = "<group>";
 		};
 		76050562304578E0002B3D76 /* EngelsystemClient Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "EngelsystemClient Watch AppTests";
 			sourceTree = "<group>";
 		};
 		7605056C304578E0002B3D76 /* EngelsystemClient Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "EngelsystemClient Watch AppUITests";
 			sourceTree = "<group>";
 		};
