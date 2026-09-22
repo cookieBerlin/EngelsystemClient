@@ -1096,7 +1096,11 @@ exists without reading the whole diff history.
   no "Read more" control should show). `NewsRow` shows `preview` always,
   collapses `rest` behind a "Read More"/"Show Less" toggle
   (`@State private var isExpanded`) exactly when `rest != nil`, matching
-  the website. Existing cached rows synced before this fix still have
+  the website. When expanded, `rest` renders in an indented, tinted
+  rounded box (`Color.secondary.opacity(0.1)`) rather than as a plain
+  extra paragraph — user-requested the same day, so the expanded part
+  reads as "the revealed part," not as if it had been there all along.
+  Existing cached rows synced before this fix still have
   the tag already stripped from a previous version of the app — no
   migration needed, since the very next sync overwrites `text` via
   `apply(_:)` with the new raw version anyway.

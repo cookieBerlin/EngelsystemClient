@@ -201,9 +201,16 @@ private struct NewsRow: View {
                 .foregroundStyle(.secondary)
             if let rest = textParts.rest {
                 if isExpanded {
+                    // Set apart from the preview — an indented box, not just another
+                    // paragraph — so it reads as "the expanded part", not as if it had
+                    // been there all along (2026-09-22, user-requested).
                     Text(attributed(rest))
                         .font(.body)
                         .foregroundStyle(.secondary)
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                        .padding(.leading, 12)
                 }
                 Button(isExpanded ? "Show Less" : "Read More") {
                     withAnimation { isExpanded.toggle() }
