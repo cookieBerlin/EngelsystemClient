@@ -344,6 +344,77 @@ struct MainViewNavigationTitleTests {
     }
 }
 
+/// `MainSyncStatus` drives `SyncProgressBanner` during `MainView`'s app-start sync
+/// (2026-09-22, user-requested background-sync feature) — coverage for its pure
+/// `fraction` math and the `begin()`/`apply()`/`finish()` state transitions, without
+/// needing a real `AppSyncCoordinator` sync to run.
+@MainActor
+struct MainSyncStatusTests {
+    @Test func fractionIsZeroBeforeAnyProgressAndOneWhenComplete() {
+        let status = MainSyncStatus()
+        #expect(status.fraction == 0)
+
+        status.apply(AppSyncCoordinator.Progress(completed: 1, total: 4, description: "Shifts – Demo"))
+        #expect(status.fraction == 0.25)
+
+        status.apply(AppSyncCoordinator.Progress(completed: 4, total: 4, description: "Profile – Demo"))
+        #expect(status.fraction == 1)
+    }
+
+    @Test func beginResetsStateAndFinishRecordsFailure() {
+        let status = MainSyncStatus()
+        status.apply(AppSyncCoordinator.Progress(completed: 3, total: 3, description: "done"))
+        status.finish(succeeded: false)
+        #expect(status.didFail)
+
+        status.begin()
+        #expect(status.isSyncing)
+        #expect(status.completed == 0)
+        #expect(status.total == 0)
+        #expect(!status.didFail)
+
+        status.finish(succeeded: true)
+        #expect(!status.didFail)
+        #expect(status.statusText == "Updated")
+    }
+
+    /// `run` backs Shifts/News/Profile's own pull-to-refresh (2026-09-22,
+    /// user-requested: "the banner should show for every pull-to-refresh, not just
+    /// the app-start sync") — indeterminate (no step count), just a status text and
+    /// success/failure. Includes the real ~1.2s "stay visible briefly" delay, so this
+    /// test is slower than the others in this file by design, not by accident.
+    @Test func runShowsIndeterminateStatusThenHidesAfterSucceeding() async {
+        let status = MainSyncStatus()
+        await status.run(statusText: "Shifts") { true }
+        #expect(!status.isSyncing)
+        #expect(!status.didFail)
+        #expect(status.total == 0)
+    }
+
+    @Test func runRecordsFailureWhenWorkReturnsFalse() async {
+        let status = MainSyncStatus()
+        await status.run(statusText: "News") { false }
+        #expect(!status.isSyncing)
+        #expect(status.didFail)
+    }
+
+    /// `runCoordinated` backs the app-start sync and the main page's own
+    /// pull-to-refresh — both go through `AppSyncCoordinator`, so there *is* a
+    /// multi-step `Progress` to report.
+    @Test func runCoordinatedAppliesProgressUpdatesThenHides() async {
+        let status = MainSyncStatus()
+        await status.runCoordinated { onProgress in
+            onProgress(AppSyncCoordinator.Progress(completed: 1, total: 2, description: "Shifts – Demo"))
+            onProgress(AppSyncCoordinator.Progress(completed: 2, total: 2, description: "News – Demo"))
+            return true
+        }
+        #expect(!status.isSyncing)
+        #expect(status.completed == 2)
+        #expect(status.total == 2)
+        #expect(!status.didFail)
+    }
+}
+
 /// Coverage for resuming on the last selected sidebar section (2026-09-22,
 /// user-requested: the app previously always started on Shifts, regardless of what
 /// was last open).

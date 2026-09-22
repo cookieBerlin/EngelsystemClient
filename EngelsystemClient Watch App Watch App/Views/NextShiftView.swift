@@ -9,13 +9,18 @@ import EngelsystemClientKit
 /// one across all of them, not a single pre-selected instance.
 struct NextShiftView: View {
     let instances: [Instance]
+    /// Set by `WatchMainView` while its own app-start sync is running (2026-09-22) —
+    /// purely a "something is happening" indicator; the shift content itself updates
+    /// reactively via `@Query` regardless of which code path wrote it.
+    var isAppStartSyncing: Bool = false
 
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = NextShiftViewModel()
     @Query private var allShifts: [CachedShift]
 
-    init(instances: [Instance]) {
+    init(instances: [Instance], isAppStartSyncing: Bool = false) {
         self.instances = instances
+        self.isAppStartSyncing = isAppStartSyncing
     }
 
     private var instanceIDs: Set<UUID> { Set(instances.map(\.id)) }
@@ -51,8 +56,13 @@ struct NextShiftView: View {
                 }
 
                 // Sync status display (CLAUDE.md Watch App Scope).
-                if viewModel.isLoading {
+                if viewModel.isLoading || isAppStartSyncing {
                     ProgressView()
+                    if isAppStartSyncing {
+                        Text("Syncing…")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 } else if let lastUpdated = viewModel.lastUpdated {
                     Text("Updated \(lastUpdated.formatted(date: .omitted, time: .shortened))")
                         .font(.caption2)
@@ -73,7 +83,8 @@ struct NextShiftView: View {
             .frame(maxWidth: .infinity)
         }
         .navigationTitle("Next Shift")
-        .task { await viewModel.refresh(instances: instances, in: modelContext) }
+        // No `.task`-on-appear sync (2026-09-22) — `WatchMainView` now owns the
+        // app-start sync; this view only refreshes via an explicit pull-to-refresh.
         .refreshable { await viewModel.refresh(instances: instances, in: modelContext) }
     }
 }

@@ -21,6 +21,23 @@ struct EngelsystemClientApp: App {
         CachedAngelTypeMembership.self,
     ])
 
+    // `BGTaskScheduler.register` must run before the app finishes launching (Apple's
+    // documented requirement) — `init()` is the earliest hook available without an
+    // AppDelegate. Struct property defaults (`sharedModelContainer` above) are already
+    // applied by the time a custom `init()`'s body runs, so it's safe to read here.
+    //
+    // No `scenePhase`-triggered reschedule needed (an earlier version of this had
+    // one, to catch up with a CloudKit-merged interval change made on the Watch) —
+    // the polling interval is a plain per-device `DeviceSyncPreferences` value now
+    // (2026-09-22, reverted the same day: Watch background execution isn't
+    // implemented at all, so syncing/displaying the interval there was pointless —
+    // see CLAUDE.md), and `SettingsView` already reschedules directly the moment it
+    // changes. Cold launch is the only time this needs to run.
+    init() {
+        BackgroundSyncScheduler.register(modelContainer: sharedModelContainer)
+        BackgroundSyncScheduler.scheduleNext()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

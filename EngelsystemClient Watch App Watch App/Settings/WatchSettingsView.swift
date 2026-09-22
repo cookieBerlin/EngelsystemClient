@@ -21,6 +21,8 @@ struct WatchSettingsView: View {
     @Query(sort: \Instance.createdAt) private var instances: [Instance]
     @AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)
     private var notificationLeadTimeMinutes: Int = NotificationScheduler.defaultMinutesBefore
+    @AppStorage(DeviceSyncPreferences.syncOnAppStartUserDefaultsKey)
+    private var syncOnAppStart: Bool = true
 
     @State private var isPresentingSetup = false
     @State private var cloudSyncStatus: CloudSyncStatus = .checking
@@ -52,6 +54,24 @@ struct WatchSettingsView: View {
                 }
             } header: {
                 Text("Notifications")
+            }
+
+            // 2026-09-22, user-requested background-sync feature: no interval picker
+            // here at all (originally shown/settable here too, shared via CloudKit
+            // with iOS — reverted the same day, at the user's explicit request, once
+            // it became clear it did nothing on this platform). Actually *running* a
+            // background sync on watchOS isn't implemented — the `BackgroundTasks`
+            // framework this app uses on iOS isn't available on watchOS at all, and
+            // watchOS's own separate background-refresh API has been reported
+            // unreliable on recent watchOS versions (see CLAUDE.md). Said plainly in
+            // the footer below, rather than showing a setting that would do nothing.
+            Section {
+                Toggle("Sync on App Start", isOn: $syncOnAppStart)
+            } header: {
+                Text("Sync")
+            } footer: {
+                Text("Background sync by interval isn't available on Apple Watch. This app still syncs when you open it or pull to refresh.")
+                    .font(.caption2)
             }
 
             Section {

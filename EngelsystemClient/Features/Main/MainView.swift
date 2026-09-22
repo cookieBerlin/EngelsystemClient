@@ -33,6 +33,8 @@ struct MainView: View {
 
     @AppStorage(Self.lastSelectedSectionKey) private var lastSelectedSectionRaw: String = Section.shifts.rawValue
     @State private var selection: Section?
+    @Environment(\.modelContext) private var modelContext
+    @State private var syncStatus = MainSyncStatus()
 
     init(instances: [Instance]) {
         self.instances = instances
@@ -139,15 +141,21 @@ struct MainView: View {
                     }
                 }
             }
+            // Pull-to-refresh on the main page itself (2026-09-22, user-requested),
+            // separate from each screen's own — runs the same full multi-domain sync
+            // as the app-start sync, regardless of the "Sync on App Start" toggle
+            // (pull-to-refresh is always an explicit user action, per CLAUDE.md's
+            // "pull-to-refresh keeps working regardless" rule for this feature).
+            .refreshable { await runFullSync() }
         } detail: {
             NavigationStack {
                 switch selection ?? .shifts {
                 case .shifts:
-                    ShiftsView(instances: activeInstances, onUnauthorized: goToSettings)
+                    ShiftsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
                 case .news:
-                    NewsView(instances: activeInstances, onUnauthorized: goToSettings)
+                    NewsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
                 case .profile:
-                    ProfileView(instances: activeInstances, onUnauthorized: goToSettings)
+                    ProfileView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
                 case .settings:
                     SettingsView(instances: instances)
                 }
@@ -156,6 +164,45 @@ struct MainView: View {
         .onChange(of: selection) { _, newValue in
             guard let newValue, Self.shouldPersistAsLastSelectedSection(newValue) else { return }
             lastSelectedSectionRaw = newValue.rawValue
+        }
+        .overlay(alignment: .top) {
+            if syncStatus.isSyncing {
+                SyncProgressBanner(
+                    statusText: syncStatus.statusText,
+                    fraction: syncStatus.fraction,
+                    total: syncStatus.total,
+                    didFail: syncStatus.didFail
+                )
+            }
+        }
+        .task { await runAppStartSyncIfNeeded() }
+    }
+
+    /// One-shot per app launch (2026-09-22, user-requested, to reduce server load —
+    /// see CLAUDE.md's polling-interval/background-sync feature): replaces the old
+    /// per-screen "sync every time you open Shifts/News/Profile" behavior. Togglable
+    /// in Settings (`DeviceSyncPreferences`, per-device, not CloudKit-synced — this is
+    /// a "do it on *this* device" convenience, unlike the polling interval itself).
+    private func runAppStartSyncIfNeeded() async {
+        guard DeviceSyncPreferences.syncOnAppStartEnabled() else { return }
+        await runFullSync()
+    }
+
+    /// The actual multi-domain sync + progress reporting, shared by the app-start
+    /// sync above and the main page's own pull-to-refresh (2026-09-22,
+    /// user-requested). Deliberately headless about errors (no banner, no
+    /// `goToSettings()` on 401) — there's no *specific* screen the user is looking at
+    /// to react to here (unlike Shifts/News/Profile's own pull-to-refresh, which still
+    /// surfaces those normally); `SyncProgressBanner` is purely a "something is
+    /// happening" indicator, not an error-reporting UI.
+    private func runFullSync() async {
+        guard !activeInstances.isEmpty else { return }
+        await syncStatus.runCoordinated { onProgress in
+            await AppSyncCoordinator().syncEverything(
+                instances: activeInstances,
+                in: modelContext,
+                onProgress: onProgress
+            )
         }
     }
 

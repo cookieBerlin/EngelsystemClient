@@ -310,6 +310,240 @@ requirement.
   that's a genuinely different iCloud feature (iCloud Keychain sync,
   `kSecAttrSynchronizable`) from both CloudKit and Ubiquity/Documents,
   and hasn't been shown to have the same problem.
+- **Sync preferences (the background-sync polling interval, "Sync on App
+  Start", "Last Background Sync"): plain per-device `@AppStorage`, not
+  CloudKit-synced at all** (`DeviceSyncPreferences`, 2026-09-22). ~~The
+  polling interval was originally a CloudKit-synced `SyncSettings`
+  singleton, shared with the Apple Watch.~~ **Reverted the same day, at
+  the user's explicit request**: since Watch background execution isn't
+  implemented at all (see "Background sync" below), syncing and
+  displaying an interval that does nothing on that platform was
+  pointless — `WatchSettingsView` doesn't show it any more either. A
+  device only knows about its own background runs anyway, so this isn't
+  a loss of a genuinely useful cross-device feature, just the removal of
+  one that never had a payoff on the receiving end.
+
+## Background sync (polling interval), 2026-09-22, user-requested
+
+Added to reduce server load: previously, Shifts/News/Profile each
+synced every single time their screen was opened (a `.task` on
+appear), on top of pull-to-refresh. Replaced with three distinct,
+separately controllable triggers:
+
+1. **Pull-to-refresh** — still available on every screen (Shifts/News/
+   Profile), still shows that screen's own loading/error state via its
+   existing ViewModel. **2026-09-22, further user-requested**: the main
+   page (`MainView`'s sidebar `List`) now supports pull-to-refresh too
+   — runs the same full multi-domain sync as the app-start sync (below),
+   regardless of the "Sync on App Start" toggle, since pull-to-refresh
+   is always an explicit user action. And — the other half of that same
+   request — **every** pull-to-refresh (main page, Shifts, News,
+   Profile) now shows the same `SyncProgressBanner` the app-start sync
+   does, not just the app-start sync: `ShiftsView`/`NewsView`/
+   `ProfileView` each take a shared `syncStatus: MainSyncStatus`
+   (passed down from `MainView`, the only place all four screens are
+   constructed) and wrap their own `viewModel.refresh(...)` call in
+   `MainSyncStatus.run(statusText:_:)` — an *indeterminate* banner (no
+   step count, since these only ever sync their own single domain, not
+   `AppSyncCoordinator`'s three), just a status text ("Shifts"/"News"/
+   "Profile") and success/failure. The main page's own pull-to-refresh
+   and the app-start sync both go through `AppSyncCoordinator` instead,
+   via the sibling `MainSyncStatus.runCoordinated(_:)` (determinate,
+   step-counted, same as before). Both helpers share a private
+   `showBrieflyThenHide()` (the ~1.2s success/failure flash before
+   hiding) so that timing lives in exactly one place.
+
+   **Testing note, worth remembering for this class of problem**: tried
+   to verify the banner's on-screen appearance via a real XCUITest
+   pull-to-refresh gesture first — both `.swipeDown()` (too fast to
+   cross `.refreshable`'s pull threshold at all, confirmed: the gesture
+   completed but nothing visibly refreshed) and a manual, slower
+   `press(forDuration:thenDragTo:)` drag (crossed the threshold, but
+   gesture *synthesis itself* took ~60 real seconds to settle in this
+   Simulator — "App animations complete notification not received, will
+   attempt to continue" — by which point the actual sync, plus its 1.2s
+   success flash, had already finished and hidden long before the test
+   could even start checking for it). This is the same fundamental class
+   of problem already documented for the launch screen ("a UI-test
+   assertion that a short-lived transient element appeared is inherently
+   racy... don't add one"), just triggered by a much slower root cause
+   here. **Each failed attempt also cost 15–100+ minutes of real
+   wall-clock time**, because `xcodebuild`'s own post-test "collecting
+   diagnostics from simulator" step hangs after *any* UI test failure on
+   this machine (documented elsewhere in this file for a different
+   trigger) — don't attempt to re-verify this specific transient banner
+   via a real gesture without budgeting for that. Verified instead via:
+   the fast, reliable `EngelsystemClientTests.MainSyncStatusTests`
+   (`run`/`runCoordinated`'s actual state-machine logic — the part that
+   was genuinely new), code review (the `.refreshable` wiring on
+   Shifts/News/Profile is structurally identical to their pre-existing,
+   already-proven pull-to-refresh, just wrapped), and a fast, non-flaky
+   UI test (`testPullToRefreshOnMainPageDoesNotBreakNavigation`) that
+   confirms pulling to refresh — via the fast default `swipeDown()`,
+   regardless of whether it actually crosses the refresh threshold —
+   doesn't break navigation on either the sidebar or a pushed detail
+   screen.
+2. **App-start sync** — one-shot per app launch, triggered from
+   `MainView`'s `.task` (not from any individual screen), togglable via
+   Settings' **"Sync on App Start"** (`DeviceSyncPreferences`,
+   per-device). Runs the same headless sync as background (below) —
+   Shifts, News, and Profile for every active instance — via
+   `AppSyncCoordinator.syncEverything`, and shows a compact, non-blocking
+   overlay (`SyncProgressBanner`, driven by the `@Observable`
+   `MainSyncStatus`) with a determinate progress bar and per-step status
+   text (e.g. "News – Demo Congress"), so it doesn't look like the
+   screen has frozen — the rest of the app (including navigating into
+   Shifts/News/Profile while it's still running) stays fully usable
+   underneath, since it's an `.overlay`, not a sheet. Deliberately
+   **silent about errors** otherwise (no red banner, no `goToSettings()`
+   redirect on a 401) — there's no screen the user is actively looking
+   at for that to make sense on; a real 401 still surfaces normally the
+   next time the user pulls to refresh the affected screen. Does **not**
+   post a "new news" notification (`notifyOnNewNews: false`) — the user
+   is already in the app when this runs.
+3. **Background/interval sync** — the actual "even when the app is
+   closed" mechanism, iOS only (see the Watch caveat below). Configured
+   via Settings' **"Background Sync"** picker
+   (`PollingInterval`: Manual / 15 / 30 / 60 / 180 / 360 minutes, no
+   preset below 15 — see that type's doc comment for why), stored as a
+   plain per-device `@AppStorage` value on **`DeviceSyncPreferences`**
+   (`EngelsystemClientKit/Services/`) — **not** synced to the Apple
+   Watch (see the "Sync strategy" bullet above for the same-day reversal
+   of an earlier CloudKit-synced version of this; not shown in
+   `WatchSettingsView` at all any more, either). Labeled in the UI as
+   **"at least every X"**, not "every X", with an explicit
+   footer explaining why: `BGAppRefreshTask`'s `earliestBeginDate` is
+   only a lower bound — iOS decides the real cadence based on app usage,
+   battery, and system load, and in practice essentially never honors
+   anything below ~15 minutes regardless of what's requested. This is a
+   documented platform characteristic, not a bug in this feature, and is
+   the reason there's no preset shorter than 15 minutes at all: offering
+   one would promise a precision the platform can't deliver. Settings
+   also shows a per-device **"Last Background Sync"** timestamp
+   (`DeviceSyncPreferences`, plain `@AppStorage`, not CloudKit-synced —
+   each device's own background runs happen independently) next to the
+   existing `CloudSyncStatus` line.
+
+  **`AppSyncCoordinator`** (`EngelsystemClientKit/Services/`) is the
+  shared sync logic behind both app-start and background/interval sync —
+  loops every active instance, resolves a credential, syncs Shifts (+
+  shift notifications, same rule as `ShiftsViewModel`: only rescheduled
+  when every instance synced cleanly), and — unless `shiftsOnly` (the
+  Watch's app-start sync, which has no News/Profile catalog to sync at
+  all) — News and Profile too. Reports one `Progress` update per
+  completed unit of work (including failed ones, so `completed` always
+  reaches `total`), and returns whether every instance synced cleanly.
+  `notifyOnNewNews` (see the News comments feature above for
+  `NewsNotifier`) is the one place that flag is ever `true` — background
+  sync is the only trigger where a "new post found" push notification
+  actually makes sense, since the user isn't already looking at the app.
+  Deliberately headless: no `isLoading`/`errorMessage`/`isUnauthorized`
+  state like the per-screen ViewModels — a 401 here just leaves that
+  instance's data as-is, there's no screen to navigate away from.
+
+  **iOS scheduling** (`EngelsystemClient/Services/
+  BackgroundSyncScheduler.swift`, app target only — see the Watch caveat
+  below for why this can't live in `EngelsystemClientKit`): the classic
+  imperative `BGTaskScheduler.register`/`submit` API
+  (`BGAppRefreshTaskRequest`), not the newer SwiftUI
+  `.backgroundTask(.appRefresh(_:))` scene modifier — deliberately: this
+  project has no practical way to verify a background task's real
+  execution end-to-end (no always-on physical test rig; the Simulator
+  needs a manual LLDB "simulate launch" command per attempt), so the
+  priority was picking the API this session could be most confident
+  about the exact documented shape of, over the newest one.
+  `BGTaskScheduler.shared.register` is called from
+  `EngelsystemClientApp.init()` (must happen before the app finishes
+  launching — `init()` is the earliest hook available without an
+  `AppDelegate`; a struct's property defaults, like
+  `sharedModelContainer`, are already applied by the time a custom
+  `init()`'s body runs, confirmed safe to read there).
+  `BackgroundSyncScheduler.scheduleNext()` submits the next
+  `BGAppRefreshTaskRequest` (or cancels any pending one for `.manual`) —
+  called after every background run and whenever the interval Picker
+  changes in `SettingsView`. ~~Also called on every foreground
+  transition, to catch up with an interval change CloudKit-merged in
+  from the Watch.~~ Removed the same day the interval stopped being
+  CloudKit-synced (see "Sync strategy" above) — it's a plain per-device
+  value now, so there's no other-device change to ever catch up with;
+  cold launch and the Picker's own `set` are the only times this needs
+  to run. `task.expirationHandler` cancels the in-flight sync `Task`
+  cooperatively if the OS's time budget is about to run out, rather than
+  risking the process being killed mid-write.
+  **Entitlements**: `UIBackgroundModes` gained `fetch` alongside the
+  existing `remote-notification` (CloudKit push), and a new
+  `BGTaskSchedulerPermittedIdentifiers` key lists the one task
+  identifier (`net.cuccato.engelsystem.de.backgroundrefresh`) — both in
+  `EngelsystemClient-Info.plist`, the existing Info.plist-fragment
+  mechanism (see Entitlements below). **Not verified end-to-end this
+  session** (same caveat as the Archive scheme pre-action elsewhere in
+  this file): confirmed the app builds, launches, and doesn't crash with
+  registration/scheduling wired in, but actually observing a real
+  background execution needs either patient real-device testing or the
+  LLDB simulate-launch command — treat as unverified until one of those
+  happens.
+
+  **Watch: background *execution* isn't implemented at all, by
+  deliberate scope decision, not an oversight — and, since the same
+  day, the interval setting isn't shown or shared there either.**
+  Confirmed via research before starting this: the `BackgroundTasks`
+  framework (`BGTaskScheduler`, what iOS uses above) **isn't available
+  on watchOS at all** — watchOS has a separate, older
+  `WKApplicationRefreshBackgroundTask`/`WKExtension
+  .scheduleBackgroundRefresh` API instead, and as of watchOS 26 there
+  are user reports on Apple's own developer forums of that API no longer
+  reliably firing at all. Given that combination — a materially
+  different, more awkward API, on top of a currently-reported reliability
+  problem on the exact watchOS version this project targets — actually
+  implementing Watch background execution was scoped out of this pass
+  rather than built on a foundation already reported broken.
+  ~~`WatchSettingsView` originally still showed and could set the
+  interval, shared via CloudKit with iOS.~~ **Reverted the same day, at
+  the user's explicit request**: since Watch never actually runs a
+  background sync at all, showing (or syncing) a setting that does
+  nothing there was pointless, not just unused — `WatchSettingsView` now
+  has no interval picker whatsoever, only a footer note explaining that
+  background-by-interval sync isn't available on this platform. The
+  Watch's own app-start sync (`WatchMainView`, still per-device, still
+  togglable via the same, now-also-per-device "Sync on App Start"
+  preference) covers the "don't sync on every screen open" half of this
+  feature there; the "even when fully closed" half simply doesn't exist
+  on Watch at all, not even as a dormant, unused setting.
+
+  **`NextShiftView`/`ShiftsView`/`NewsView`/`ProfileView` all lost their
+  `.task`-on-appear sync trigger** as part of this change — they now
+  only sync via `.refreshable` (pull-to-refresh); the app-start/
+  background sync above is what populates their `@Query`-backed data
+  before the screen is ever opened. `WatchMainView` now owns the Watch's
+  app-start sync itself (previously `NextShiftView`'s own `.task`) and
+  passes a plain `isAppStartSyncing: Bool` down so `NextShiftView` can
+  show a one-line "Syncing…" indicator — no `SyncProgressBanner`-style
+  overlay there, the watch screen is too small for it; the shift *data*
+  itself still updates reactively via `@Query` regardless of which code
+  path wrote it.
+
+  **Testing note: `NotificationScheduler.requestAuthorizationIfNeeded()`
+  can't be exercised with a fake center at all** — it calls
+  `UNUserNotificationCenter.notificationSettings()`, which returns
+  `UNNotificationSettings`, a type with no public initializer, so no
+  fake can honestly stand in for it (the existing `FakeNotificationCenter`
+  in `NotificationSchedulerTests` already `fatalError`s on that one
+  method for the same reason — this was a pre-existing, not newly
+  discovered, gap). `AppSyncCoordinator.syncEverything` therefore has a
+  `handleNotifications: Bool = true` parameter, always `true` in
+  production, only ever passed `false` from
+  `EngelsystemClientKitTests.SyncServiceTests`'s `AppSyncCoordinator`
+  tests — those construct it with an explicit `NotificationScheduler`/
+  `NewsNotifier` whose center `fatalError`s on every method, relying on
+  `handleNotifications: false` to guarantee none of them are ever
+  actually called. Also worth remembering: `AppSyncCoordinator()`'s
+  *default* parameters construct the real `NotificationScheduler()`
+  (→ the real `UNUserNotificationCenter.current()`), which crashes
+  immediately (`bundleProxyForCurrentProcess is nil`) under `swift
+  test`'s bare CLI harness — hit this exact crash once while writing
+  these tests; the fix is always constructing `AppSyncCoordinator`
+  explicitly with the dummy center in tests, never relying on its
+  defaults.
 
 ## Watch app scope (deliberately minimal)
 
@@ -1296,6 +1530,35 @@ exists without reading the whole diff history.
   all" from "the filter hid everything" (checks `activeInstanceNewsItems`
   — the pre-filter set — so a real empty instance and an active-but-
   zero-matches filter don't look identical).
+
+  **Local notification for genuinely new posts** (2026-09-22,
+  user-requested): `NewsSyncService.sync` returns a `NewsSyncResult`
+  (`items` — everything synced, matching the previous plain-array shape
+  — plus `insertedItems`, the subset that didn't already exist in
+  `CachedNews` before this sync) instead of a bare `[CachedNews]`, since
+  the insert-vs-update distinction already existed internally but had no
+  way out to callers. `NewsNotifier` (`Services/`) turns any non-empty
+  `insertedItems` into a **single** local notification per sync pass —
+  one bundled "N New Announcements" summary rather than one notification
+  per item, so an instance that's been dormant for a while doesn't spam
+  the user with a dozen banners the moment it's synced again. For exactly
+  one new item, the notification shows that post's own title + preview
+  text instead of a generic summary. Gated by a Settings toggle,
+  **"Notify on New News"** (`NewsNotifier.enabledUserDefaultsKey`,
+  default on — framed as an opt-out) in the Notifications section, next
+  to the shift lead-time picker.
+
+  **Only fires from the background/interval sync, not from
+  `NewsViewModel.refresh` (pull-to-refresh) — moved there once the
+  background-sync feature landed** (see "Background sync" above for the
+  full feature). `NewsViewModel.refresh` briefly fired this
+  unconditionally on every sync when this feature first shipped (there
+  was no background-sync path yet for it to live in), which meant pulling
+  to refresh the News screen you were already looking at could trigger a
+  notification about content you were about to see anyway — noise, not
+  useful. Now lives in `AppSyncCoordinator.syncEverything`'s
+  `notifyOnNewNews` parameter, which only the background-sync call site
+  ever sets to `true`; `NewsViewModel.refresh` just syncs, nothing more.
 
   **Comments** (2026-09-22, user-requested, via `/news/{id}` — see "API"
   above): `CachedNews.commentsCount: Int = 0` is synced/cached like the

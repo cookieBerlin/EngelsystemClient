@@ -19,8 +19,14 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)
     private var notificationLeadTimeMinutes: Int = NotificationScheduler.defaultMinutesBefore
+    @AppStorage(NewsNotifier.enabledUserDefaultsKey)
+    private var notifyOnNewNews: Bool = true
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var multiInstanceDisplayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
+    @AppStorage(DeviceSyncPreferences.syncOnAppStartUserDefaultsKey)
+    private var syncOnAppStart: Bool = true
+    @AppStorage(DeviceSyncPreferences.pollingIntervalUserDefaultsKey)
+    private var pollingIntervalMinutes: Int = PollingInterval.manual.rawValue
 
     let instances: [Instance]
 
@@ -31,6 +37,22 @@ struct SettingsView: View {
         Binding(
             get: { MultiInstanceDisplayMode(rawValue: multiInstanceDisplayModeRaw) ?? .merged },
             set: { multiInstanceDisplayModeRaw = $0.rawValue }
+        )
+    }
+
+    /// Plain per-device `@AppStorage`, iOS-only — **not** synced to the Apple Watch
+    /// (2026-09-22, reverted the same day it originally shipped as a CloudKit-synced
+    /// singleton: Watch background execution isn't implemented at all — see
+    /// CLAUDE.md — so `WatchSettingsView` doesn't show this setting any more either).
+    /// Changing it re-schedules this device's own background task immediately, not
+    /// just on the next launch.
+    private var pollingInterval: Binding<PollingInterval> {
+        Binding(
+            get: { PollingInterval(minutes: pollingIntervalMinutes) },
+            set: { newValue in
+                pollingIntervalMinutes = newValue.rawValue
+                BackgroundSyncScheduler.scheduleNext()
+            }
         )
     }
 
@@ -63,15 +85,32 @@ struct SettingsView: View {
                         Text("\(minutes) min").tag(minutes)
                     }
                 }
+                Toggle("Notify on New News", isOn: $notifyOnNewNews)
             } header: {
                 Text("Notifications")
             } footer: {
-                Text("How far in advance a local reminder is scheduled before each of your shifts starts.")
+                Text("How far in advance a local reminder is scheduled before each of your shifts starts, and whether a notification is posted when a News sync finds a new announcement.")
+            }
+
+            Section {
+                Picker("Background Sync", selection: pollingInterval) {
+                    ForEach(PollingInterval.allCases) { interval in
+                        Text(interval.title).tag(interval)
+                    }
+                }
+                Toggle("Sync on App Start", isOn: $syncOnAppStart)
+            } header: {
+                Text("Sync")
+            } footer: {
+                Text("The operating system decides exactly when a background sync actually happens — depending on battery, usage, and system load, it can take longer than the interval you pick here. Both settings are per device, not shared with your Apple Watch.")
             }
 
             Section {
                 VStack(spacing: 4) {
                     Text(cloudSyncStatus.displayText)
+                    if let lastBackgroundSync = DeviceSyncPreferences.lastBackgroundSyncDate() {
+                        Text("Last Background Sync: \(lastBackgroundSync.formatted(.relative(presentation: .named)))")
+                    }
                     Text(AppVersionInfo.displayString)
                 }
                 .font(.footnote)

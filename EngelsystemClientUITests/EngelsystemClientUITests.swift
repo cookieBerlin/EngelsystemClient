@@ -288,6 +288,50 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Welcome to the Demo Congress!"].waitForExistence(timeout: 5))
     }
 
+    /// 2026-09-22, user-requested: the main page (the sidebar list) should support
+    /// pull-to-refresh too, and it — like Shifts/News/Profile's own pull-to-refresh —
+    /// should show the same `SyncProgressBanner` the app-start sync does.
+    ///
+    /// **Deliberately does not assert the banner text itself appears** — tried this
+    /// first via a real gesture (both `.swipeDown()` and a manual slow press-then-drag)
+    /// and hit the same class of problem CLAUDE.md already documents for the launch
+    /// screen: a short-lived transient element is inherently racy to catch via
+    /// XCUITest, and in this case dramatically more so — gesture synthesis for a
+    /// slow drag took **~60 real seconds** to settle in this Simulator, by which point
+    /// the banner (a demo-mode sync, done in under 2s including its own 1.2s success
+    /// flash) had already come and gone long before the test could even start
+    /// checking. Confirmed hands-on, not assumed. Verified instead via the fast,
+    /// reliable `EngelsystemClientTests.MainSyncStatusTests.run.../runCoordinated...`
+    /// unit tests (the actual state-machine logic) plus code review (the `.refreshable`
+    /// wiring here is structurally identical to Shifts/News/Profile's pre-existing,
+    /// already-proven pull-to-refresh, just wrapped in `syncStatus.run`/
+    /// `.runCoordinated`). This test instead confirms the mechanical, non-flaky part:
+    /// pulling to refresh (via the fast default `swipeDown()`, regardless of whether
+    /// it crosses `.refreshable`'s pull threshold) doesn't break navigation, on both
+    /// the sidebar itself and a pushed detail screen.
+    @MainActor
+    func testPullToRefreshOnMainPageDoesNotBreakNavigation() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let demoButton = app.buttons["Try Demo Mode"]
+        XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
+        waitUntilHittable(demoButton, in: app)
+        demoButton.tap()
+        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+
+        goBack(app)
+        XCTAssertTrue(app.staticTexts["News"].waitForExistence(timeout: 5))
+        app.swipeDown()
+        XCTAssertTrue(app.staticTexts["News"].waitForExistence(timeout: 5))
+
+        app.staticTexts["Shifts"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+        app.swipeDown()
+        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Info Desk Shift"].waitForExistence(timeout: 5))
+    }
+
     @MainActor
     private func goBack(_ app: XCUIApplication) {
         app.navigationBars.buttons.element(boundBy: 0).tap()

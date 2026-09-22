@@ -7,6 +7,11 @@ import EngelsystemClientKit
 /// preference (merged/switcher/sectioned) rather than a single fixed instance.
 struct ShiftsView: View {
     let instances: [Instance]
+    /// Shared with `MainView`, so this screen's own pull-to-refresh shows the same
+    /// `SyncProgressBanner` the app-start/main-page sync does (2026-09-22,
+    /// user-requested: "the banner should show for every pull-to-refresh, not just
+    /// the app-start sync").
+    let syncStatus: MainSyncStatus
     var onUnauthorized: () -> Void = {}
 
     @Environment(\.modelContext) private var modelContext
@@ -90,8 +95,17 @@ struct ShiftsView: View {
                         ToolbarItem { ProgressView() }
                     }
                 }
-                .refreshable { await viewModel.refresh(instances: instances, in: modelContext) }
-                .task { await viewModel.refresh(instances: instances, in: modelContext) }
+                // No `.task`-on-appear sync (2026-09-22, user-requested, to reduce
+                // server load — see CLAUDE.md's polling-interval/background-sync
+                // feature): this screen now only refreshes via an explicit
+                // pull-to-refresh, plus whatever the app-start/background sync
+                // already wrote to `CachedShift` before this screen was even opened.
+                .refreshable {
+                    await syncStatus.run(statusText: "Shifts") {
+                        await viewModel.refresh(instances: instances, in: modelContext)
+                        return viewModel.errorMessage == nil
+                    }
+                }
                 .onChange(of: viewModel.isUnauthorized) { _, isUnauthorized in
                     if isUnauthorized { onUnauthorized() }
                 }

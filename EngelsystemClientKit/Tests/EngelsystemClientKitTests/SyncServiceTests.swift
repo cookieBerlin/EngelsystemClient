@@ -1,7 +1,30 @@
 import Foundation
 import SwiftData
+import UserNotifications
 import Testing
 @testable import EngelsystemClientKit
+
+/// Never actually invoked in these tests (`AppSyncCoordinator` is always called with
+/// `handleNotifications: false` here) — exists only so `AppSyncCoordinator`'s init
+/// doesn't fall back to its literal `NotificationScheduler()` default, which would
+/// construct the real `UNUserNotificationCenter.current()` and crash immediately
+/// under `swift test`'s CLI harness (no host app bundle). See the doc comment on
+/// `AppSyncCoordinator.syncEverything`'s `handleNotifications` parameter.
+private final class UnusedNotificationCenter: NotificationCenterScheduling, @unchecked Sendable {
+    func notificationSettings() async -> UNNotificationSettings { fatalError("not used with handleNotifications: false") }
+    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool { fatalError("not used with handleNotifications: false") }
+    func pendingNotificationRequests() async -> [UNNotificationRequest] { fatalError("not used with handleNotifications: false") }
+    func add(_ request: UNNotificationRequest) async throws { fatalError("not used with handleNotifications: false") }
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) { fatalError("not used with handleNotifications: false") }
+}
+
+@MainActor
+private func makeTestCoordinator() -> AppSyncCoordinator {
+    AppSyncCoordinator(
+        notificationScheduler: NotificationScheduler(center: UnusedNotificationCenter()),
+        newsNotifier: NewsNotifier(center: UnusedNotificationCenter())
+    )
+}
 
 @MainActor
 private func makeInMemoryContext() throws -> ModelContext {
@@ -38,10 +61,91 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     context.insert(instance)
 
     let service = NewsSyncService()
-    _ = try await service.sync(instance: instance, credential: demoCredential, in: context)
-    _ = try await service.sync(instance: instance, credential: demoCredential, in: context)
+    let first = try await service.sync(instance: instance, credential: demoCredential, in: context)
+    #expect(first.items.count == 2)
+    #expect(first.insertedItems.count == 2)
 
+    // Syncing again must update the existing rows in place (reporting them as
+    // already-known, not newly inserted), not duplicate them.
+    let second = try await service.sync(instance: instance, credential: demoCredential, in: context)
+    #expect(second.items.count == 2)
+    #expect(second.insertedItems.isEmpty)
     #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 2)
+}
+
+/// `AppSyncCoordinator` resolves its own credential internally (unlike the other
+/// tests in this file, which pass `demoCredential` straight into a sync service) —
+/// needs a real Keychain entry under the instance's `apiKeyKeychainRef`, same as
+/// `InstanceSetupServiceTests` already does elsewhere in this suite. Cleans the entry
+/// up afterward so repeat runs stay deterministic.
+@Test @MainActor func appSyncCoordinatorSyncsShiftsNewsAndProfileAndReportsProgress() async throws {
+    let context = try makeInMemoryContext()
+    let ref = "app-sync-coordinator-test-\(UUID().uuidString)"
+    let store = LocalKeychainStore()
+    try store.save(apiKey: "demo", for: ref)
+    defer { try? store.deleteAPIKey(for: ref) }
+
+    let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: ref)
+    context.insert(instance)
+
+    var progressUpdates: [AppSyncCoordinator.Progress] = []
+    let succeeded = await makeTestCoordinator().syncEverything(
+        instances: [instance],
+        in: context,
+        handleNotifications: false,
+        onProgress: { progressUpdates.append($0) }
+    )
+
+    #expect(succeeded)
+    #expect(progressUpdates.count == 3) // Shifts + News + Profile, one active instance
+    #expect(progressUpdates.last?.completed == 3)
+    #expect(progressUpdates.last?.total == 3)
+    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedUser>()).count == 1)
+}
+
+@Test @MainActor func appSyncCoordinatorShiftsOnlySkipsNewsAndProfile() async throws {
+    let context = try makeInMemoryContext()
+    let ref = "app-sync-coordinator-test-\(UUID().uuidString)"
+    let store = LocalKeychainStore()
+    try store.save(apiKey: "demo", for: ref)
+    defer { try? store.deleteAPIKey(for: ref) }
+
+    let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: ref)
+    context.insert(instance)
+
+    var progressUpdates: [AppSyncCoordinator.Progress] = []
+    _ = await makeTestCoordinator().syncEverything(
+        instances: [instance],
+        in: context,
+        shiftsOnly: true,
+        handleNotifications: false,
+        onProgress: { progressUpdates.append($0) }
+    )
+
+    #expect(progressUpdates.count == 1)
+    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedNews>()).isEmpty)
+}
+
+@Test @MainActor func appSyncCoordinatorFailsGracefullyWhenNoCredentialIsStored() async throws {
+    let context = try makeInMemoryContext()
+    // No Keychain entry saved for this ref at all.
+    let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: "missing-\(UUID().uuidString)")
+    context.insert(instance)
+
+    var progressUpdates: [AppSyncCoordinator.Progress] = []
+    let succeeded = await makeTestCoordinator().syncEverything(
+        instances: [instance],
+        in: context,
+        handleNotifications: false,
+        onProgress: { progressUpdates.append($0) }
+    )
+
+    #expect(!succeeded)
+    #expect(progressUpdates.count == 3) // still reports every planned step
+    #expect(try context.fetch(FetchDescriptor<CachedShift>()).isEmpty)
 }
 
 @Test @MainActor func profileSyncServiceInsertsAndUpdatesWithoutDuplicating() async throws {

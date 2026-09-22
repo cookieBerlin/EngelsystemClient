@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import EngelsystemClientKit
 
@@ -95,6 +96,91 @@ import Testing
     #expect(CachedNews.textParts(from: "Intro only.\n[more]").rest == nil)
     #expect(CachedNews.textParts(from: "[more]").rest == nil)
     #expect(CachedNews.textParts(from: "[more]").preview == "")
+}
+
+@Test func pollingIntervalMapsRawMinutesToTheClosestKnownPreset() {
+    #expect(PollingInterval(minutes: 0) == .manual)
+    #expect(PollingInterval(minutes: 15) == .minutes15)
+    #expect(PollingInterval(minutes: 360) == .minutes360)
+    // An unrecognized stored value (e.g. from a future version offering a preset this
+    // one doesn't know) falls back to manual rather than crashing or guessing.
+    #expect(PollingInterval(minutes: 999) == .manual)
+}
+
+@Test func pollingIntervalTimeIntervalIsNilOnlyForManual() {
+    #expect(PollingInterval.manual.timeInterval == nil)
+    // Explicit `TimeInterval(...)` on the RHS, not a bare Int literal: `Double? == Int`
+    // type-checks (via a looser, dynamically-typed fallback) but always compares
+    // false, since the two sides end up boxed as different underlying types.
+    #expect(PollingInterval.minutes15.timeInterval == TimeInterval(15 * 60))
+    #expect(PollingInterval.minutes360.timeInterval == TimeInterval(360 * 60))
+}
+
+/// The polling interval was originally a CloudKit-synced `SyncSettings` singleton,
+/// shared with the Apple Watch — reverted 2026-09-22, the same day, at the user's
+/// explicit request: Watch background execution isn't implemented at all, so
+/// syncing/showing an interval that does nothing there was pointless. It's a plain
+/// per-device `DeviceSyncPreferences` value now, same as `syncOnAppStartEnabled`
+/// below.
+@Test func deviceSyncPreferencesPollingIntervalDefaultsToManualButRespectsAStoredValue() {
+    let defaults = UserDefaults(suiteName: "DeviceSyncPreferencesTests-\(UUID().uuidString)")!
+    #expect(DeviceSyncPreferences.pollingInterval(in: defaults) == .manual)
+
+    defaults.set(PollingInterval.minutes30.rawValue, forKey: DeviceSyncPreferences.pollingIntervalUserDefaultsKey)
+    #expect(DeviceSyncPreferences.pollingInterval(in: defaults) == .minutes30)
+}
+
+@Test func deviceSyncPreferencesSyncOnAppStartDefaultsToTrueButRespectsAnExplicitFalse() {
+    let defaults = UserDefaults(suiteName: "DeviceSyncPreferencesTests-\(UUID().uuidString)")!
+    #expect(DeviceSyncPreferences.syncOnAppStartEnabled(in: defaults))
+
+    defaults.set(false, forKey: DeviceSyncPreferences.syncOnAppStartUserDefaultsKey)
+    #expect(!DeviceSyncPreferences.syncOnAppStartEnabled(in: defaults))
+}
+
+@Test func deviceSyncPreferencesRecordsAndReadsBackTheLastBackgroundSyncDate() {
+    let defaults = UserDefaults(suiteName: "DeviceSyncPreferencesTests-\(UUID().uuidString)")!
+    #expect(DeviceSyncPreferences.lastBackgroundSyncDate(in: defaults) == nil)
+
+    let date = Date()
+    DeviceSyncPreferences.recordBackgroundSync(at: date, in: defaults)
+    #expect(DeviceSyncPreferences.lastBackgroundSyncDate(in: defaults) == date)
+}
+
+@Test func newsNotifierContentIsNilWhenThereIsNothingNew() {
+    #expect(NewsNotifier.content(for: [], instanceName: "Demo") == nil)
+}
+
+@Test func newsNotifierContentForASingleItemUsesItsOwnTitleAndPreviewText() {
+    let item = CachedNews(
+        serverID: 1, instanceID: UUID(), title: "Heaven build-up meeting",
+        text: "Bring your own seating. [more] See you there.",
+        isMeeting: true, isPinned: false, isHighlighted: false, createdAt: Date(), url: ""
+    )
+
+    let withoutInstanceName = NewsNotifier.content(for: [item], instanceName: nil)
+    #expect(withoutInstanceName == .init(title: "Heaven build-up meeting", body: "Bring your own seating."))
+
+    // Only mentioned when there's more than one active instance (see NewsViewModel) —
+    // otherwise it'd just be redundant noise.
+    let withInstanceName = NewsNotifier.content(for: [item], instanceName: "Demo Congress")
+    #expect(withInstanceName == .init(title: "Heaven build-up meeting", body: "Demo Congress — Bring your own seating."))
+}
+
+@Test func newsNotifierContentForMultipleItemsIsASingleBundledSummary() {
+    let items = [
+        CachedNews(
+            serverID: 1, instanceID: UUID(), title: "First post", text: "text",
+            isMeeting: false, isPinned: false, isHighlighted: false, createdAt: Date(), url: ""
+        ),
+        CachedNews(
+            serverID: 2, instanceID: UUID(), title: "Second post", text: "text",
+            isMeeting: false, isPinned: false, isHighlighted: false, createdAt: Date(), url: ""
+        ),
+    ]
+
+    let content = NewsNotifier.content(for: items, instanceName: "Demo Congress")
+    #expect(content == .init(title: "2 New Announcements", body: "First post, Second post"))
 }
 
 /// 2026-09-22, user-reported: two active `Instance`s pointing at the same actual

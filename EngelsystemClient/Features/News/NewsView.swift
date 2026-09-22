@@ -7,6 +7,8 @@ import EngelsystemClientKit
 /// `ShiftsView` for the shared pattern.
 struct NewsView: View {
     let instances: [Instance]
+    /// Shared with `MainView` — see `ShiftsView`'s matching property for why.
+    let syncStatus: MainSyncStatus
     var onUnauthorized: () -> Void = {}
 
     @Environment(\.modelContext) private var modelContext
@@ -107,8 +109,13 @@ struct NewsView: View {
                         }
                     }
                 }
-                .refreshable { await viewModel.refresh(instances: instances, in: modelContext) }
-                .task { await viewModel.refresh(instances: instances, in: modelContext) }
+                // No `.task`-on-appear sync — see ShiftsView's matching comment.
+                .refreshable {
+                    await syncStatus.run(statusText: "News") {
+                        await viewModel.refresh(instances: instances, in: modelContext)
+                        return viewModel.errorMessage == nil
+                    }
+                }
                 .onChange(of: viewModel.isUnauthorized) { _, isUnauthorized in
                     if isUnauthorized { onUnauthorized() }
                 }
