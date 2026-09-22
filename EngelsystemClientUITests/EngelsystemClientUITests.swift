@@ -115,24 +115,17 @@ final class EngelsystemClientUITests: XCTestCase {
         goBack(app)
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
 
-        // 2026-09-17 multi-active-instance redesign: instances move between "Active"/
-        // "Inactive" sections via a swipe action, not a per-row Toggle or a single
-        // "active instance" concept.
-        let renamedRow = app.staticTexts["Demo Renamed"]
-        XCTAssertTrue(renamedRow.waitForExistence(timeout: 5))
-        renamedRow.swipeLeft()
-        let deactivateButton = app.buttons["Deactivate"]
-        XCTAssertTrue(deactivateButton.waitForExistence(timeout: 5))
-        deactivateButton.tap()
-        XCTAssertTrue(containingText("No active instances", in: app).waitForExistence(timeout: 5))
-
-        let inactiveRow = app.staticTexts["Demo Renamed"]
-        XCTAssertTrue(inactiveRow.waitForExistence(timeout: 5))
-        inactiveRow.swipeLeft()
-        let activateButton = app.buttons["Activate"]
-        XCTAssertTrue(activateButton.waitForExistence(timeout: 5))
-        activateButton.tap()
-        XCTAssertTrue(containingText("No inactive instances", in: app).waitForExistence(timeout: 5))
+        // 2026-09-22: superseded the "Active"/"Inactive" sections + swipe-action
+        // design — back to a single flat list with a per-row Toggle (accessibility
+        // label "<name> Active", since `.labelsHidden()` + an `EmptyView()` label
+        // otherwise leaves it unnamed).
+        let activeToggle = app.switches["Demo Renamed Active"]
+        XCTAssertTrue(activeToggle.waitForExistence(timeout: 5))
+        XCTAssertEqual(activeToggle.value as? String, "1")
+        activeToggle.tap()
+        XCTAssertEqual(activeToggle.value as? String, "0")
+        activeToggle.tap()
+        XCTAssertEqual(activeToggle.value as? String, "1")
 
         // Notification lead-time picker defaults to 15 min and can be changed.
         // Its exact accessibility element type/label depend on the system-rendered

@@ -1214,12 +1214,24 @@ exists without reading the whole diff history.
 - **Instance management** (`Features/Settings/SettingsView`): reached via
   the gear icon in the sidebar's toolbar corner (see "Main navigation"
   above). A plain pushed list (not its own
-  `NavigationSplitView`, since it's already hosted inside `MainView`'s),
-  split into "Active"/"Inactive" sections with a swipe action per row to
-  move an instance between them (`instance.isActive`, CloudKit-synced —
-  see "Multi-instance concept" above; this replaced a single
-  `@AppStorage`-backed active instance and a `Toggle` was explicitly
-  rejected in favor of this two-section-plus-swipe layout). Removing an
+  `NavigationSplitView`, since it's already hosted inside `MainView`'s).
+  ~~Originally split into "Active"/"Inactive" sections with a swipe
+  action per row to move an instance between them — a per-row `Toggle`
+  was explicitly rejected in favor of this at the time.~~ **Superseded
+  2026-09-22, at the user's explicit request**: a single flat list, one
+  row per instance, with a `Toggle` bound directly to `instance.isActive`
+  (CloudKit-synced — see "Multi-instance concept" above). People change
+  their minds about UI decisions; this isn't a mistake being corrected.
+  The row still navigates to `InstanceDetailView` on tap (for Edit/
+  Remove) — a `NavigationLink(value:)` made invisible (`.opacity(0)`)
+  and layered *behind* the visible row content via `ZStack`, so the
+  `Toggle` can handle its own taps instead of the whole row navigating
+  (a standard SwiftUI `List` pattern for "row navigates, but also has
+  its own accessory control"; confirmed working end-to-end via
+  `testDemoModeNavigationFlow`, which taps the toggle by its explicit
+  `.accessibilityLabel("\(instance.name) Active")` — `.labelsHidden()` +
+  an `EmptyView()` label otherwise leaves a `Toggle` with no accessible
+  name at all, bad for VoiceOver and unfindable by a UI test). Removing an
   instance cleans up both keychain stores, since which one was used at
   creation time isn't persisted. The combined **"Edit Instance"**
   dialog (`EditInstanceViewModel`) merges what used to be two separate
@@ -1329,8 +1341,10 @@ exists without reading the whole diff history.
   before: once an instance exists (synced in or manually added),
   `ContentView` automatically switches to `WatchMainView` on its own.
   `WatchSettingsView` mirrors
-  iOS's `SettingsView`: two sections ("Active"/"Inactive") with a swipe
-  action per row to move an instance between them, no
+  iOS's `SettingsView`: a single flat list with a per-row `Toggle` bound
+  to `instance.isActive` (2026-09-22, superseded from the original
+  two-section/swipe-action design, same as iOS — see "Implemented
+  features" → iOS `SettingsView` above for why and how). No
   `MultiInstanceDisplayMode` picker here (that setting only affects
   iOS's Shifts/News/Profile catalog screens, which the Watch doesn't
   have), and the notification lead-time picker — reached from

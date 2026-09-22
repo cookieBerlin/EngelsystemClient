@@ -9,10 +9,12 @@ import EngelsystemClientKit
 ///
 /// 2026-09-17 multi-active-instance redesign (CLAUDE.md): any number of instances can
 /// be active simultaneously, so the single "Use as Active Instance" button/label is
-/// gone, replaced by two sections ("Active"/"Inactive") with a swipe action per row to
-/// move an instance between them — chosen over a per-row `Toggle` (rejected) and over
-/// drag-and-drop between sections (doesn't translate to watchOS, where Settings
-/// otherwise mirrors iOS's).
+/// gone. ~~Originally two sections ("Active"/"Inactive") with a swipe action per row
+/// to move an instance between them — a per-row `Toggle` was explicitly rejected at
+/// the time.~~ **Superseded 2026-09-22, at the user's explicit request**: back to a
+/// single flat list with a per-row `Toggle` bound directly to `instance.isActive`, no
+/// sections. People change their minds about UI decisions; this isn't a mistake being
+/// corrected, just a later preference overriding an earlier one.
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage(NotificationScheduler.leadTimeUserDefaultsKey)
@@ -25,9 +27,6 @@ struct SettingsView: View {
     @State private var isPresentingSetup = false
     @State private var cloudSyncStatus: CloudSyncStatus = .checking
 
-    private var activeInstances: [Instance] { instances.filter(\.isActive) }
-    private var inactiveInstances: [Instance] { instances.filter { !$0.isActive } }
-
     private var multiInstanceDisplayMode: Binding<MultiInstanceDisplayMode> {
         Binding(
             get: { MultiInstanceDisplayMode(rawValue: multiInstanceDisplayModeRaw) ?? .merged },
@@ -37,24 +36,13 @@ struct SettingsView: View {
 
     var body: some View {
         List {
-            Section("Active") {
-                if activeInstances.isEmpty {
-                    Text("No active instances.")
+            Section("Instances") {
+                if instances.isEmpty {
+                    Text("No instances configured.")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(activeInstances) { instance in
-                        instanceRow(for: instance, activate: false)
-                    }
-                }
-            }
-
-            Section("Inactive") {
-                if inactiveInstances.isEmpty {
-                    Text("No inactive instances.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(inactiveInstances) { instance in
-                        instanceRow(for: instance, activate: true)
+                    ForEach(instances) { instance in
+                        instanceRow(for: instance)
                     }
                 }
             }
@@ -113,18 +101,32 @@ struct SettingsView: View {
         }
     }
 
+    /// A `NavigationLink` alone would make the whole row (including the toggle) into
+    /// a single tap target, navigating instead of toggling whenever the toggle itself
+    /// is tapped. Layering an invisible `NavigationLink` behind the real row content
+    /// keeps the chevron/row-tap-to-detail behavior while letting the `Toggle` handle
+    /// its own taps — a standard SwiftUI `List` pattern for "row navigates, but has
+    /// its own accessory control too".
     @ViewBuilder
-    private func instanceRow(for instance: Instance, activate: Bool) -> some View {
-        NavigationLink(value: instance) {
-            InstanceRow(instance: instance)
-        }
-        .swipeActions {
-            if activate {
-                Button("Activate") { setActive(instance, isActive: true) }
-                    .tint(.green)
-            } else {
-                Button("Deactivate") { setActive(instance, isActive: false) }
-                    .tint(.orange)
+    private func instanceRow(for instance: Instance) -> some View {
+        ZStack {
+            NavigationLink(value: instance) { EmptyView() }
+                .opacity(0)
+            HStack {
+                InstanceRow(instance: instance)
+                Spacer()
+                Toggle(isOn: Binding(
+                    get: { instance.isActive },
+                    set: { setActive(instance, isActive: $0) }
+                )) {
+                    EmptyView()
+                }
+                .labelsHidden()
+                // `.labelsHidden()` + an `EmptyView()` label leaves the switch with no
+                // accessible name of its own — bad for VoiceOver, and unfindable by a
+                // UI test — so name it explicitly instead of relying on positional
+                // queries.
+                .accessibilityLabel("\(instance.name) Active")
             }
         }
     }

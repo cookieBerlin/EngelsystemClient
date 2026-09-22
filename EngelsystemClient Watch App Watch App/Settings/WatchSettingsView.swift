@@ -9,11 +9,13 @@ import EngelsystemClientKit
 /// just via its own `@Query` instead of an `instances` parameter, since the Watch app
 /// has no `MainView`-equivalent already holding that array.
 ///
-/// 2026-09-17 multi-active-instance redesign (CLAUDE.md): mirrors iOS's two-section
-/// ("Active"/"Inactive") + swipe-action-to-move layout, replacing the old single list
-/// with a "Use as Active Instance" button. No `multiInstanceDisplayMode` picker here —
-/// that setting only affects iOS's Shifts/News/Profile catalog screens, which the Watch
-/// doesn't have (see `MultiInstanceDisplayMode`).
+/// 2026-09-17 multi-active-instance redesign (CLAUDE.md): replaced the old single list
+/// with a "Use as Active Instance" button. ~~Originally a two-section ("Active"/
+/// "Inactive") + swipe-action-to-move layout.~~ **Superseded 2026-09-22, mirroring
+/// iOS's `SettingsView`**: a single flat list with a per-row `Toggle` bound to
+/// `instance.isActive`. No `multiInstanceDisplayMode` picker here — that setting only
+/// affects iOS's Shifts/News/Profile catalog screens, which the Watch doesn't have
+/// (see `MultiInstanceDisplayMode`).
 struct WatchSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Instance.createdAt) private var instances: [Instance]
@@ -23,31 +25,16 @@ struct WatchSettingsView: View {
     @State private var isPresentingSetup = false
     @State private var cloudSyncStatus: CloudSyncStatus = .checking
 
-    private var activeInstances: [Instance] { instances.filter(\.isActive) }
-    private var inactiveInstances: [Instance] { instances.filter { !$0.isActive } }
-
     var body: some View {
         List {
-            Section("Active") {
-                if activeInstances.isEmpty {
-                    Text("No active instances.")
+            Section("Instances") {
+                if instances.isEmpty {
+                    Text("No instances configured.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(activeInstances) { instance in
-                        instanceRow(for: instance, activate: false)
-                    }
-                }
-            }
-
-            Section("Inactive") {
-                if inactiveInstances.isEmpty {
-                    Text("No inactive instances.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(inactiveInstances) { instance in
-                        instanceRow(for: instance, activate: true)
+                    ForEach(instances) { instance in
+                        instanceRow(for: instance)
                     }
                 }
                 Button {
@@ -90,21 +77,29 @@ struct WatchSettingsView: View {
     // Destination-closure NavigationLink rather than `NavigationLink(value:)` +
     // `.navigationDestination(for:)` — the value-based flavor didn't reliably push on
     // watchOS in testing here (UI tests confirmed the tap registers but no navigation
-    // occurs); this style is confirmed working.
+    // occurs); this style is confirmed working. Made invisible and layered behind the
+    // real row content (same technique as iOS's `SettingsView.instanceRow`) so the
+    // `Toggle` handles its own taps instead of the whole row navigating.
     @ViewBuilder
-    private func instanceRow(for instance: Instance, activate: Bool) -> some View {
-        NavigationLink {
-            WatchInstanceDetailView(instance: instance, onDelete: { delete(instance) })
-        } label: {
-            WatchInstanceRow(instance: instance)
-        }
-        .swipeActions {
-            if activate {
-                Button("Activate") { setActive(instance, isActive: true) }
-                    .tint(.green)
-            } else {
-                Button("Deactivate") { setActive(instance, isActive: false) }
-                    .tint(.orange)
+    private func instanceRow(for instance: Instance) -> some View {
+        ZStack {
+            NavigationLink {
+                WatchInstanceDetailView(instance: instance, onDelete: { delete(instance) })
+            } label: {
+                EmptyView()
+            }
+            .opacity(0)
+            HStack {
+                WatchInstanceRow(instance: instance)
+                Spacer()
+                Toggle(isOn: Binding(
+                    get: { instance.isActive },
+                    set: { setActive(instance, isActive: $0) }
+                )) {
+                    EmptyView()
+                }
+                .labelsHidden()
+                .accessibilityLabel("\(instance.name) Active")
             }
         }
     }
