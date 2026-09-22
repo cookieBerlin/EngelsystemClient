@@ -597,6 +597,36 @@ Engelsystem.xcodeproj
 `Package.swift` note: `platforms` must come directly after `name`, before
 `products`/`dependencies`/`targets`, otherwise it's a compiler error.
 
+**2026-09-23, renamed: the Watch app's folder/target/product names were
+doubled** (`EngelsystemClient Watch App Watch App`, plus matching
+`...Watch App Watch AppTests`/`...UITests`) — an artifact of how Xcode
+originally created the target (the product's own display name,
+`INFOPLIST_KEY_CFBundleDisplayName`, was already correctly
+"EngelsystemClient Watch App" the whole time, so this never showed up
+to an actual user; it was purely an internal Xcode/project-file
+naming glitch). Fixed via the `xcodeproj` Ruby gem (same tool this
+project already uses for structural `project.pbxproj` changes — see
+"Complication" below) rather than hand-editing the pbxproj text: renamed
+the three targets' `name`/`productName`, the three
+`PBXFileSystemSynchronizedRootGroup` paths, the `Products` group's
+`.app`/`.xctest` file references, `CODE_SIGN_ENTITLEMENTS`/`TEST_HOST`/
+`TEST_TARGET_NAME` build settings, and the `PBXContainerItemProxy.
+remoteInfo` fields (cosmetic Xcode-UI hints, easy to miss — grep for
+the old name again afterward if you ever touch this area, rather than
+trusting the gem's higher-level rename helpers alone caught everything).
+Also renamed the actual directories/files on disk (`git mv`, preserving
+history) — the entitlements file, the two doubled-scheme `.xcscheme`
+files (the Watch app's own, and `EngelsystemComplication.xcscheme`,
+which references the Watch app target as its host), and three Swift
+files whose *filenames* were doubled too
+(`EngelsystemClient_Watch_App_Watch_App{Tests,UITests,UITestsLaunchTests}.swift`).
+**The generated Swift module name changed as a side effect** (Xcode
+derives it from `PRODUCT_NAME`, which was `$(TARGET_NAME)`): the Watch
+unit test target's `@testable import EngelsystemClient_Watch_App_Watch_App`
+had to become `@testable import EngelsystemClient_Watch_App` — easy to
+miss since nothing else about that line looks related to the rename at
+a glance.
+
 ## Entitlements (both targets: iOS app + Watch app)
 
 - iCloud → CloudKit, same container: `iCloud.net.cuccato.engelsystem.de`
@@ -645,7 +675,7 @@ built plist afterward). The fragment files
 (`EngelsystemClient-Info.plist`, `EngelsystemClientWatchApp-Info.plist`)
 live at the **project root**, sibling to `EngelsystemClient.xcodeproj`,
 **not** inside either target's own folder — both `EngelsystemClient/`
-and `EngelsystemClient Watch App Watch App/` are
+and `EngelsystemClient Watch App/` are
 `PBXFileSystemSynchronizedRootGroup`s (see "Project/target structure"
 below), so a loose file dropped inside one gets automatically added to
 that target's "Copy Bundle Resources" build phase, which then collides
@@ -2202,7 +2232,7 @@ schedule anyway, and there's no reason to sync them.
 
   Fix: `refreshesOnRemoteCloudKitChange(modelContext:)` (a `View`
   extension, duplicated per target — `EngelsystemClient/Features/Shared/
-  RemoteChangeRefresh.swift` and `EngelsystemClient Watch App Watch App/
+  RemoteChangeRefresh.swift` and `EngelsystemClient Watch App/
   Settings/RemoteChangeRefresh.swift`, kept out of `EngelsystemClientKit`
   since it's SwiftUI view-layer code) observes Core Data's
   `NSPersistentStoreRemoteChange` notification (SwiftData is built on

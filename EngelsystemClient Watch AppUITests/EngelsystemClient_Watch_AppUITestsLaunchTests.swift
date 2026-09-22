@@ -1,13 +1,13 @@
 //
-//  EngelsystemClient_Watch_App_Watch_AppUITestsLaunchTests.swift
-//  EngelsystemClient Watch App Watch AppUITests
+//  EngelsystemClient_Watch_AppUITestsLaunchTests.swift
+//  EngelsystemClient Watch AppUITests
 //
 //  Created by Angelo Cuccato on 31.08.26.
 //
 
 import XCTest
 
-final class EngelsystemClient_Watch_App_Watch_AppUITestsLaunchTests: XCTestCase {
+final class EngelsystemClient_Watch_AppUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

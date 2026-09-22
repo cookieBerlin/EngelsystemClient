@@ -1,13 +1,13 @@
 //
-//  EngelsystemClient_Watch_App_Watch_AppUITests.swift
-//  EngelsystemClient Watch App Watch AppUITests
+//  EngelsystemClient_Watch_AppUITests.swift
+//  EngelsystemClient Watch AppUITests
 //
 //  Created by Angelo Cuccato on 31.08.26.
 //
 
 import XCTest
 
-final class EngelsystemClient_Watch_App_Watch_AppUITests: XCTestCase {
+final class EngelsystemClient_Watch_AppUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

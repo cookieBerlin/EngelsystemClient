@@ -1,6 +1,6 @@
 //
 //  EngelsystemClient_Watch_AppApp.swift
-//  EngelsystemClient Watch App Watch App
+//  EngelsystemClient Watch App
 //
 //  Created by Angelo Cuccato on 31.08.26.
 //
@@ -10,7 +10,7 @@ import SwiftData
 import EngelsystemClientKit
 
 @main
-struct EngelsystemClient_Watch_App_Watch_AppApp: App {
+struct EngelsystemClient_Watch_AppApp: App {
     // Instance syncs via CloudKit (same container as the iOS app), so instances added
     // on the iPhone appear here automatically; CachedShift stays local-only, a
     // per-device cache re-fetched on every sync — see ModelContainerFactory. The Watch

@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  EngelsystemClient Watch App Watch App
+//  EngelsystemClient Watch App
 //
 //  Created by Angelo Cuccato on 31.08.26.
 //
