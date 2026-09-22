@@ -1681,7 +1681,32 @@ exists without reading the whole diff history.
   `testDemoModeNavigationFlow`, which taps the toggle by its explicit
   `.accessibilityLabel("\(instance.name) Active")` — `.labelsHidden()` +
   an `EmptyView()` label otherwise leaves a `Toggle` with no accessible
-  name at all, bad for VoiceOver and unfindable by a UI test). Removing an
+  name at all, bad for VoiceOver and unfindable by a UI test).
+
+  **"Last Synced" section (2026-09-23, user-requested)**: `InstanceDetailView`
+  shows a per-domain last-sync timestamp (Shifts/News/Profile) for that
+  one instance, e.g. "2 minutes ago" or "Never". Backed by
+  `CacheSyncTimestamp` (`EngelsystemClientKit/Persistence/
+  CacheTimestamped.swift`) — every `Cached*` model already carries
+  `cachedAt` (set on insert, refreshed by `updateCacheTimestamp()` on
+  every update via `apply(_:)`), so it already *means* "last synced from
+  the server"; this just picks the freshest one for a given
+  `instanceID` out of an unfiltered `@Query`, same fetch-everything-and-
+  filter-in-Swift pattern already used by Shifts/News/Profile
+  themselves. `CacheTimestamped` is a small protocol (`instanceID` +
+  `cachedAt`) all five `Cached*` types conform to, so
+  `lastSyncDate(for:in:)` works generically instead of five near-
+  identical call sites. "Profile" specifically is the freshest across
+  *three* underlying types (`CachedUser`/`CachedWorklog`/
+  `CachedAngelTypeMembership`, via `CacheSyncTimestamp.mostRecent`) —
+  they're three separate `Cached*` models but always synced together in
+  one `ProfileSyncService` pass, matching how the sidebar presents them
+  as a single "Profile" screen. Watch's `WatchInstanceDetailView` shows
+  only "Shifts" — its schema doesn't include `CachedNews`/`CachedUser`/
+  `CachedWorklog`/`CachedAngelTypeMembership` at all, per CLAUDE.md's
+  Watch App Scope.
+
+  Removing an
   instance cleans up both keychain stores, since which one was used at
   creation time isn't persisted. The combined **"Edit Instance"**
   dialog (`EditInstanceViewModel`) merges what used to be two separate

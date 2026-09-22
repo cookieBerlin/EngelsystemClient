@@ -146,6 +146,41 @@ import Testing
     #expect(reloaded.leadTimesMinutes.isEmpty)
 }
 
+/// Backs the "Last Synced" section on the instance detail screens (2026-09-23,
+/// user-requested). `cachedAt` already means "last synced" per item — this just
+/// verifies picking the right one out of a mixed-instance set.
+@Test func cacheSyncTimestampLastSyncDateReturnsTheFreshestItemForThatInstanceOnly() {
+    let instanceA = UUID()
+    let instanceB = UUID()
+    let older = CachedShift(
+        serverID: 1, instanceID: instanceA, title: "Old", startsAt: Date(), endsAt: Date(),
+        locationID: 1, shiftTypeID: 1, url: ""
+    )
+    older.cachedAt = Date().addingTimeInterval(-3600)
+    let newer = CachedShift(
+        serverID: 2, instanceID: instanceA, title: "New", startsAt: Date(), endsAt: Date(),
+        locationID: 1, shiftTypeID: 1, url: ""
+    )
+    newer.cachedAt = Date().addingTimeInterval(-60)
+    let otherInstance = CachedShift(
+        serverID: 3, instanceID: instanceB, title: "Other", startsAt: Date(), endsAt: Date(),
+        locationID: 1, shiftTypeID: 1, url: ""
+    )
+    otherInstance.cachedAt = Date()
+
+    let result = CacheSyncTimestamp.lastSyncDate(for: instanceA, in: [older, newer, otherInstance])
+    #expect(result == newer.cachedAt)
+
+    #expect(CacheSyncTimestamp.lastSyncDate(for: UUID(), in: [older, newer]) == nil)
+}
+
+@Test func cacheSyncTimestampMostRecentPicksTheLatestAcrossMultipleDomains() {
+    let a = Date().addingTimeInterval(-100)
+    let b = Date().addingTimeInterval(-10)
+    #expect(CacheSyncTimestamp.mostRecent([a, b, nil]) == b)
+    #expect(CacheSyncTimestamp.mostRecent([nil, nil]) == nil)
+}
+
 @Test func notificationLeadTimeSettingsAvailableToAddExcludesAlreadySelectedPresets() {
     let available = NotificationLeadTimeSettings.availableToAdd(
         currentlySelected: [15, 60],

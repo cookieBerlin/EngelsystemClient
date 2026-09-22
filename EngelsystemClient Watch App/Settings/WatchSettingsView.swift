@@ -230,6 +230,11 @@ private struct WatchInstanceDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var isPresentingEdit = false
+    // Watch's schema only includes CachedShift (CLAUDE.md's Watch App Scope) — no
+    // News/Profile row to show here, unlike iOS's equivalent screen.
+    @Query private var allShifts: [CachedShift]
+
+    private var lastShiftsSync: Date? { CacheSyncTimestamp.lastSyncDate(for: instance.id, in: allShifts) }
 
     var body: some View {
         List {
@@ -238,6 +243,14 @@ private struct WatchInstanceDetailView: View {
                 LabeledContent("Server", value: instance.normalizedBaseURL)
                 LabeledContent("Status", value: instance.isActive ? "Active" : "Inactive")
                 Button("Edit Instance") { isPresentingEdit = true }
+            }
+
+            Section("Last Synced") {
+                if let lastShiftsSync {
+                    LabeledContent("Shifts", value: lastShiftsSync.formatted(.relative(presentation: .named)))
+                } else {
+                    LabeledContent("Shifts", value: "Never")
+                }
             }
 
             Section {

@@ -304,6 +304,28 @@ private struct InstanceDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isPresentingEdit = false
 
+    // Unfiltered `@Query`s, same pattern as Shifts/News/Profile — filtered down to
+    // this one instance below. 2026-09-23, user-requested "last sync timestamps".
+    @Query private var allShifts: [CachedShift]
+    @Query private var allNews: [CachedNews]
+    @Query private var allUsers: [CachedUser]
+    @Query private var allWorklogs: [CachedWorklog]
+    @Query private var allAngelTypeMemberships: [CachedAngelTypeMembership]
+
+    private var lastShiftsSync: Date? { CacheSyncTimestamp.lastSyncDate(for: instance.id, in: allShifts) }
+    private var lastNewsSync: Date? { CacheSyncTimestamp.lastSyncDate(for: instance.id, in: allNews) }
+    // Profile/Worklogs/AngelTypes are three separate Cached* types but always synced
+    // together by ProfileSyncService in one pass (see ProfileViewModel) — the
+    // freshest of the three stands in for "when Profile was last synced" as a whole,
+    // matching how the sidebar groups them into a single "Profile" screen.
+    private var lastProfileSync: Date? {
+        CacheSyncTimestamp.mostRecent([
+            CacheSyncTimestamp.lastSyncDate(for: instance.id, in: allUsers),
+            CacheSyncTimestamp.lastSyncDate(for: instance.id, in: allWorklogs),
+            CacheSyncTimestamp.lastSyncDate(for: instance.id, in: allAngelTypeMemberships),
+        ])
+    }
+
     var body: some View {
         Form {
             Section {
@@ -311,6 +333,12 @@ private struct InstanceDetailView: View {
                 LabeledContent("Server", value: instance.normalizedBaseURL)
                 LabeledContent("Status", value: instance.isActive ? "Active" : "Inactive")
                 Button("Edit Instance") { isPresentingEdit = true }
+            }
+
+            Section("Last Synced") {
+                syncRow("Shifts", lastShiftsSync)
+                syncRow("News", lastNewsSync)
+                syncRow("Profile", lastProfileSync)
             }
 
             Section {
@@ -323,6 +351,15 @@ private struct InstanceDetailView: View {
         .navigationTitle(instance.name)
         .sheet(isPresented: $isPresentingEdit) {
             EditInstanceView(instance: instance)
+        }
+    }
+
+    @ViewBuilder
+    private func syncRow(_ label: String, _ date: Date?) -> some View {
+        if let date {
+            LabeledContent(label, value: date.formatted(.relative(presentation: .named)))
+        } else {
+            LabeledContent(label, value: "Never")
         }
     }
 }
