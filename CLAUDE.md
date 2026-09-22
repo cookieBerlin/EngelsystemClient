@@ -1331,6 +1331,29 @@ exists without reading the whole diff history.
   error-message switch statement), `InstancePicker` (the segmented
   control backing `MultiInstanceDisplayMode.switcher` on Shifts/News/
   Profile), and `MultiInstanceDisplayMode` itself.
+
+  **`InstancePicker` didn't preselect a tab, 2026-09-22, user-reported**:
+  the segmented control's `selection` binding starts `nil`
+  (`ShiftsView`/`NewsView`/`ProfileView` each own their own
+  `@State private var selectedInstanceID: UUID?`), and rows are only
+  ever tagged with a real instance ID — never `nil` — so `nil` never
+  matches any row and the control showed no highlighted segment at all.
+  Each caller separately falls back to `instances.first` via its own
+  `switcherInstance` computed property to decide *which data* to show,
+  but that only ever fixed the content, never the picker's own visual
+  selection. Fixed inside `InstancePicker` itself (`.onAppear` +
+  `.onChange(of: instances.map(\.id))`, comparing IDs rather than
+  `instances` directly since relying on `Instance: Equatable` felt like
+  an assumption worth not making) calling a new pure
+  `static func resolvedSelection(current:instances:)` — falls back to
+  the first instance when the current selection doesn't match any (also
+  handles the previously-selected instance dropping out of the active
+  set, e.g. via deactivation, not just the initial-`nil` case) — kept as
+  a `static` function specifically so it's unit-testable
+  (`EngelsystemClientTests.InstancePickerSelectionTests`) without
+  needing to construct the `View`/drive its `body`, matching this
+  session's usual pattern once "why wasn't this tested" got asked about
+  a previous fix.
 - **Local shift-start notifications** (`Services/NotificationScheduler`):
   after every successful Shifts sync, requests notification authorization
   if not yet determined and schedules a local reminder

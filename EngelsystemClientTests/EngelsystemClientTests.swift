@@ -250,6 +250,37 @@ struct InstanceSetupViewModelSelfCheckTests {
 /// Coverage for `MainView.navigationTitle(forActiveInstances:)` (2026-09-22,
 /// user-requested removal of the old "N Active Instances" plural title — this test
 /// was initially missed when that change landed, added as a follow-up once asked why).
+/// Coverage for `InstancePicker.resolvedSelection(current:instances:)` (2026-09-22,
+/// user-reported: in switcher mode, no tab was preselected — the segmented control's
+/// `selection` started `nil`, which never matches any row's tag, so it showed no
+/// highlighted segment at all even though the views separately fell back to the first
+/// instance for *which data* to show).
+struct InstancePickerSelectionTests {
+    private func makeInstance(name: String) -> Instance {
+        Instance(name: name, baseURL: "https://\(name).example.org", apiKeyKeychainRef: name)
+    }
+
+    @Test func fallsBackToTheFirstInstanceWhenNoneIsSelectedYet() {
+        let instances = [makeInstance(name: "A"), makeInstance(name: "B")]
+        #expect(InstancePicker.resolvedSelection(current: nil, instances: instances) == instances[0].id)
+    }
+
+    @Test func keepsAnAlreadyValidSelection() {
+        let instances = [makeInstance(name: "A"), makeInstance(name: "B")]
+        #expect(InstancePicker.resolvedSelection(current: instances[1].id, instances: instances) == instances[1].id)
+    }
+
+    @Test func reAnchorsWhenTheSelectedInstanceIsNoLongerInTheList() {
+        let instances = [makeInstance(name: "A"), makeInstance(name: "B")]
+        let noLongerActive = UUID()
+        #expect(InstancePicker.resolvedSelection(current: noLongerActive, instances: instances) == instances[0].id)
+    }
+
+    @Test func returnsNilWhenThereAreNoInstancesAtAll() {
+        #expect(InstancePicker.resolvedSelection(current: nil, instances: []) == nil)
+    }
+}
+
 struct MainViewNavigationTitleTests {
     private func makeInstance(name: String) -> Instance {
         Instance(name: name, baseURL: "https://\(name).example.org", apiKeyKeychainRef: name)
