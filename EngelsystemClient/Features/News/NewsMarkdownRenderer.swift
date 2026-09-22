@@ -9,9 +9,10 @@ import SwiftUI
 /// rather than at least showing as a literal "-"/"*" like before this was attempted).
 ///
 /// Works around this by walking the parsed `AttributedString`'s runs and manually
-/// re-injecting what `Text` won't: a "•"/"1." prefix for list items (tight single
-/// newline between items in the same list, a blank line between other blocks so
-/// paragraphs stay visually separated) and bold/larger text for headers, `.secondary`
+/// re-injecting what `Text` won't: a "•"/"1." prefix for list items, indented two
+/// spaces per nesting level (a tight single newline for anything inside a list,
+/// regardless of depth changes — see below — a blank line between other blocks so
+/// paragraphs stay visually separated), bold/larger text for headers, `.secondary`
 /// color for block quotes. Inline emphasis (bold/italic/links/code) still renders
 /// correctly on its own via `Text`, since those runs are copied through unchanged.
 enum NewsMarkdownRenderer {
@@ -28,16 +29,20 @@ enum NewsMarkdownRenderer {
         // within the same block (e.g. plain text and a **bold** sub-run inside it)
         // don't each get their own newline/prefix — only the first run of a new block does.
         var lastParagraphIdentity: Int?
-        // Tracks the enclosing list's identity so consecutive items in the *same* list
-        // get a tight single-newline separator, while switching to/from a different
-        // block type still gets a full blank-line paragraph break.
-        var lastListIdentity: Int?
 
         for run in input.runs {
             let components = run.presentationIntent?.components ?? []
             let paragraphIdentity = components.first { isParagraph($0.kind) }?.identity
+            // `components` is ordered innermost-to-outermost, so `.first` here is the
+            // *immediately* enclosing list/item — the one that actually determines this
+            // run's own bullet/number. Nesting depth is simply how many `.listItem`s are
+            // in the chain (2026-09-22, user-reported: a first version only ever looked
+            // at the single innermost list, so a nested list rendered with no
+            // indentation and — since its own identity differed from the outer list's —
+            // an incorrect blank-line gap instead of sitting right under its parent item).
             let listItemComponent = components.first { isListItem($0.kind) }
             let listComponent = components.first { isList($0.kind) }
+            let nestingDepth = components.count { isListItem($0.kind) }
             let headerLevel = components.compactMap { headerLevel(of: $0.kind) }.first
             let isBlockQuote = components.contains { isBlockQuote($0.kind) }
 
@@ -50,15 +55,20 @@ enum NewsMarkdownRenderer {
             }
 
             if paragraphIdentity != lastParagraphIdentity {
-                let continuesSameList = listComponent != nil && listComponent?.identity == lastListIdentity
+                // Any run that's part of a list — whichever depth, same or different
+                // from the previous run's — stays tightly attached to the list rather
+                // than getting a paragraph-style blank-line gap. Only entering/leaving
+                // list context entirely (a plain paragraph, header, or block quote)
+                // gets the wider break.
+                let isListContext = listItemComponent != nil
                 if !output.characters.isEmpty {
-                    output += AttributedString(continuesSameList ? "\n" : "\n\n")
+                    output += AttributedString(isListContext ? "\n" : "\n\n")
                 }
                 if let listItemComponent, let listComponent {
-                    output += AttributedString(listPrefix(item: listItemComponent.kind, list: listComponent.kind))
+                    let indent = String(repeating: "  ", count: max(nestingDepth - 1, 0))
+                    output += AttributedString(indent + listPrefix(item: listItemComponent.kind, list: listComponent.kind))
                 }
                 lastParagraphIdentity = paragraphIdentity
-                lastListIdentity = listComponent?.identity
             }
 
             output += runAttributed

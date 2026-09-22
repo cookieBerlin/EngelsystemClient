@@ -273,6 +273,32 @@ struct NewsMarkdownRendererTests {
     @Test func emptyTextRendersToEmptyOutput() {
         #expect(String(NewsMarkdownRenderer.render("").characters).isEmpty)
     }
+
+    /// 2026-09-22, user-reported: a first version only ever looked at the single
+    /// innermost list/item, so a nested list rendered with no indentation and an
+    /// incorrect blank-line gap (instead of sitting tightly under its parent item).
+    @Test func nestedListItemsAreIndentedAndStayTightlyAttached() {
+        let markdown = "- Item 1\n  - Nested 1a\n  - Nested 1b\n- Item 2"
+        let result = NewsMarkdownRenderer.render(markdown)
+        #expect(String(result.characters) == """
+        \u{2022} Item 1
+          \u{2022} Nested 1a
+          \u{2022} Nested 1b
+        \u{2022} Item 2
+        """)
+    }
+
+    @Test func threeLevelsOfNestingIndentProportionally() {
+        let markdown = "1. Top\n   1. Mid\n      - Deep"
+        let result = NewsMarkdownRenderer.render(markdown)
+        #expect(String(result.characters) == "1. Top\n  1. Mid\n    \u{2022} Deep")
+    }
+
+    @Test func leavingAListForAPlainParagraphStillGetsABlankLine() {
+        let markdown = "- Item\n\nAfterwards."
+        let result = NewsMarkdownRenderer.render(markdown)
+        #expect(String(result.characters) == "\u{2022} Item\n\nAfterwards.")
+    }
 }
 
 struct NewsMeetingFilterTests {

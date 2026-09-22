@@ -1095,16 +1095,34 @@ exists without reading the whole diff history.
   alone they vanished completely). `NewsMarkdownRenderer` (`Features/
   News`, Kit-independent since it needs `SwiftUI.Font`/`Color`) walks
   the `.full`-parsed `AttributedString`'s runs and manually re-derives
-  what `Text` won't: a "•"/"1." prefix for list items (a tight single
-  newline between items in the *same* list via matching the enclosing
-  list's `PresentationIntent.identity`, a full blank-line paragraph
-  break between anything else, so multi-paragraph text doesn't visually
-  run together), bold+larger text for headers, and `.secondary` color
-  for block quotes — verified against real `PresentationIntent.Kind`
-  API shape/behavior via a standalone `swift <file>.swift` probe first
-  (case names, associated values, and per-run `identity`/`components`
-  grouping), not guessed from memory, given how easy this API is to get
-  subtly wrong. `NewsRow`'s `attributed(_:)` now calls
+  what `Text` won't: a "•"/"1." prefix for list items, a full blank-line
+  paragraph break between anything else (so multi-paragraph text doesn't
+  visually run together), bold+larger text for headers, and `.secondary`
+  color for block quotes — verified against real `PresentationIntent
+  .Kind` API shape/behavior via a standalone `swift <file>.swift` probe
+  first (case names, associated values, and per-run `identity`/
+  `components` grouping), not guessed from memory, given how easy this
+  API is to get subtly wrong.
+
+  **Nested lists (indentation, spacing) fixed same day, user-reported
+  again**: the first version only ever inspected the single *innermost*
+  list/item via `.first { isListItem(...) }` — correct for that run's
+  own bullet/number, since `PresentationIntent.components` is ordered
+  innermost-to-outermost, but insufficient on its own: it also
+  determined list-vs-not-list purely by comparing that innermost list's
+  `identity` against the *previous* run's, so descending into or back
+  out of a nested list looked like "a different list entirely" and got
+  a blank-line paragraph gap instead of sitting tightly under its parent
+  item — and nothing added any indentation in the first place. Fixed by
+  (1) counting how many `.listItem` components appear in the chain at
+  all (nesting depth — one per level, confirmed via the same probe
+  methodology) and indenting two spaces per extra level, and (2)
+  simplifying the tight-vs-blank-line decision to "is this run part of
+  *any* list, at *any* depth" rather than "does its specific list
+  identity match the previous run's" — any list context now stays
+  tightly attached regardless of depth changes; only actually leaving
+  list context (a plain paragraph/header/block quote) gets the wider
+  break. `NewsRow`'s `attributed(_:)` now calls
   `NewsMarkdownRenderer.render(_:)` (used for both the preview and the
   expanded `[more]` text) instead of a bare
   `AttributedString(markdown:)` call. ~~`CachedNews.sanitizedText(from:)` strips the
