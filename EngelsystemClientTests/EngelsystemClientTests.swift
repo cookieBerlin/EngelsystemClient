@@ -301,6 +301,41 @@ struct MainViewNavigationTitleTests {
     }
 }
 
+/// Coverage for resuming on the last selected sidebar section (2026-09-22,
+/// user-requested: the app previously always started on Shifts, regardless of what
+/// was last open).
+struct MainViewLastSelectedSectionTests {
+    @Test func fallsBackToShiftsWhenNothingWasStoredYet() {
+        #expect(MainView.initialSelection(fromStoredRawValue: nil) == .shifts)
+    }
+
+    @Test func fallsBackToShiftsForAnUnrecognizedStoredValue() {
+        #expect(MainView.initialSelection(fromStoredRawValue: "not-a-real-section") == .shifts)
+    }
+
+    @Test func resumesOnAPreviouslyStoredDataSection() {
+        #expect(MainView.initialSelection(fromStoredRawValue: "news") == .news)
+        #expect(MainView.initialSelection(fromStoredRawValue: "profile") == .profile)
+    }
+
+    /// `.settings` is a real, storable raw value (`Section` itself doesn't know
+    /// anything is special about it), but the app should never actually resume
+    /// straight into Settings — `shouldPersistAsLastSelectedSection` is what keeps it
+    /// from ever being written in the first place; this only proves the *read* side
+    /// would honor it if it somehow got stored anyway (e.g. by a future bug), which
+    /// is why `shouldPersistAsLastSelectedSection` below matters on the write side.
+    @Test func wouldResumeOnSettingsIfItWereEverActuallyStored() {
+        #expect(MainView.initialSelection(fromStoredRawValue: "settings") == .settings)
+    }
+
+    @Test func onlyDataSectionsShouldBePersisted() {
+        #expect(MainView.shouldPersistAsLastSelectedSection(.shifts))
+        #expect(MainView.shouldPersistAsLastSelectedSection(.news))
+        #expect(MainView.shouldPersistAsLastSelectedSection(.profile))
+        #expect(!MainView.shouldPersistAsLastSelectedSection(.settings))
+    }
+}
+
 struct NewsMarkdownRendererTests {
     @Test func unorderedListItemsGetABulletPrefixEach() {
         let result = NewsMarkdownRenderer.render("- First item\n- Second item")

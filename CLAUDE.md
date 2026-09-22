@@ -1057,7 +1057,29 @@ exists without reading the whole diff history.
   (`EngelsystemClientTests.MainViewNavigationTitleTests`, covering all
   three cases) without needing to construct a full `MainView`/drive its
   `body` — initially missed when this feature landed, added once the
-  user asked why. Defaults to Shifts on launch.
+  user asked why. ~~Defaults to Shifts on launch.~~ **Changed
+  2026-09-22, at the user's request: resumes on whichever data section
+  (Shifts/News/Profile) was last selected**, instead of always starting
+  on Shifts — `Section.shifts` is now only the fallback for "nothing
+  stored yet"/an unrecognized value. `.settings` itself is deliberately
+  never remembered as the resume target, even though it's a real,
+  storable `Section` raw value — landing back in Settings on next launch
+  just because that's where the 401-triggered `goToSettings()` happened
+  to leave things would be surprising, not a deliberate "I was browsing
+  Settings" choice. Persisted via `@AppStorage` (`lastSelectedSectionRaw`,
+  key `"mainViewLastSelectedSection"`), but the *initial* `@State
+  selection` value can't be seeded from another property's `@AppStorage`
+  default directly, so `init` reads `UserDefaults.standard` by hand
+  instead. The actual decision logic — what to resume on given a raw
+  stored value, and whether a given section should be persisted at all —
+  is two `static` pure functions (`initialSelection(fromStoredRawValue:)`
+  /`shouldPersistAsLastSelectedSection(_:)`), not inlined into `init`/
+  `.onChange`, so it's unit-testable
+  (`EngelsystemClientTests.MainViewLastSelectedSectionTests`) without
+  touching `UserDefaults` — needed relaxing the file's own `Section` enum
+  from `private` to internal (module-visible) first, since a `private`
+  type can't appear in a signature `@testable import` can see from
+  another file, even though `@testable` otherwise relaxes `internal`.
 
   **Zero active instances: the sidebar's row content changes, but it
   must stay the same `List(selection:)` — this broke real navigation

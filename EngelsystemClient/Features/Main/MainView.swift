@@ -20,9 +20,44 @@ import EngelsystemClientKit
 struct MainView: View {
     let instances: [Instance]
 
-    @State private var selection: Section? = .shifts
+    /// Resumes on whichever *data* section (Shifts/News/Profile) was last selected,
+    /// instead of always starting on Shifts (2026-09-22, user-requested). Deliberately
+    /// never remembers `.settings` itself — it's reached via a one-off gear tap or the
+    /// 401-triggered `goToSettings()`, not something to relaunch straight into (that
+    /// would be surprising after an auto-redirect that had nothing to do with a
+    /// deliberate choice to browse Settings). `@AppStorage` can't seed another
+    /// property's `@State` default value directly, so the initial value is read from
+    /// `UserDefaults` by hand in `init` instead — `@AppStorage`'s own default (`.shifts`)
+    /// only applies once something actually writes to the key for the first time.
+    private static let lastSelectedSectionKey = "mainViewLastSelectedSection"
 
-    private enum Section: String, CaseIterable, Identifiable {
+    @AppStorage(Self.lastSelectedSectionKey) private var lastSelectedSectionRaw: String = Section.shifts.rawValue
+    @State private var selection: Section?
+
+    init(instances: [Instance]) {
+        self.instances = instances
+        let storedRawValue = UserDefaults.standard.string(forKey: Self.lastSelectedSectionKey)
+        _selection = State(initialValue: Self.initialSelection(fromStoredRawValue: storedRawValue))
+    }
+
+    /// Resolves the section to start on from a raw stored value — `nil` (never
+    /// stored yet) or anything unrecognized (a raw value from a future version, say)
+    /// falls back to `.shifts`. A `static` pure function, not inlined into `init`, so
+    /// it's unit-testable (`EngelsystemClientTests.MainViewLastSelectedSectionTests`)
+    /// without touching `UserDefaults` at all.
+    static func initialSelection(fromStoredRawValue rawValue: String?) -> Section {
+        rawValue.flatMap(Section.init(rawValue:)) ?? .shifts
+    }
+
+    /// Whether a given selection should actually be persisted as "the last selected
+    /// section" — only the sidebar's own data sections, never `.settings` (see the
+    /// type-level doc comment above for why). Same testability rationale as
+    /// `initialSelection`.
+    static func shouldPersistAsLastSelectedSection(_ section: Section) -> Bool {
+        Section.sidebarCases.contains(section)
+    }
+
+    enum Section: String, CaseIterable, Identifiable {
         case shifts, news, profile, settings
 
         /// Rows shown in the sidebar list — excludes `.settings`, reached via the gear
@@ -117,6 +152,10 @@ struct MainView: View {
                     SettingsView(instances: instances)
                 }
             }
+        }
+        .onChange(of: selection) { _, newValue in
+            guard let newValue, Self.shouldPersistAsLastSelectedSection(newValue) else { return }
+            lastSelectedSectionRaw = newValue.rawValue
         }
     }
 
