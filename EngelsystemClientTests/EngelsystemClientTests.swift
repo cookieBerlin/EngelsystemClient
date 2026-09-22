@@ -239,6 +239,32 @@ struct InstanceSetupViewModelSelfCheckTests {
     }
 }
 
+/// Coverage for the News screen's meeting/non-meeting filter (2026-09-22,
+/// user-requested).
+struct NewsMeetingFilterTests {
+    private func makeNews(isMeeting: Bool) -> CachedNews {
+        CachedNews(
+            serverID: 1, instanceID: UUID(), title: "Post", text: "text",
+            isMeeting: isMeeting, isPinned: false, isHighlighted: false, createdAt: Date(), url: ""
+        )
+    }
+
+    @Test func allMatchesEverything() {
+        #expect(NewsMeetingFilter.all.matches(makeNews(isMeeting: true)))
+        #expect(NewsMeetingFilter.all.matches(makeNews(isMeeting: false)))
+    }
+
+    @Test func meetingsOnlyMatchesOnlyMeetings() {
+        #expect(NewsMeetingFilter.meetingsOnly.matches(makeNews(isMeeting: true)))
+        #expect(!NewsMeetingFilter.meetingsOnly.matches(makeNews(isMeeting: false)))
+    }
+
+    @Test func nonMeetingsOnlyMatchesOnlyNonMeetings() {
+        #expect(!NewsMeetingFilter.nonMeetingsOnly.matches(makeNews(isMeeting: true)))
+        #expect(NewsMeetingFilter.nonMeetingsOnly.matches(makeNews(isMeeting: false)))
+    }
+}
+
 struct SyncErrorMapperTests {
     @Test func isUnauthorizedIsTrueOnlyForAPIErrorUnauthorized() {
         #expect(SyncErrorMapper.isUnauthorized(APIError.unauthorized))

@@ -12,6 +12,7 @@ struct NewsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = NewsViewModel()
     @State private var selectedInstanceID: UUID?
+    @State private var meetingFilter: NewsMeetingFilter = .all
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var displayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
     @Query private var allNewsItems: [CachedNews]
@@ -22,7 +23,8 @@ struct NewsView: View {
     }
 
     private var instanceIDs: Set<UUID> { Set(instances.map(\.id)) }
-    private var newsItems: [CachedNews] { allNewsItems.filter { instanceIDs.contains($0.instanceID) } }
+    private var activeInstanceNewsItems: [CachedNews] { allNewsItems.filter { instanceIDs.contains($0.instanceID) } }
+    private var newsItems: [CachedNews] { activeInstanceNewsItems.filter(meetingFilter.matches) }
 
     private var switcherInstance: Instance? {
         instances.first(where: { $0.id == selectedInstanceID }) ?? instances.first
@@ -81,6 +83,22 @@ struct NewsView: View {
                     if viewModel.isLoading {
                         ToolbarItem { ProgressView() }
                     }
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu {
+                            Picker("Filter", selection: $meetingFilter) {
+                                ForEach(NewsMeetingFilter.allCases) { filter in
+                                    Text(filter.title).tag(filter)
+                                }
+                            }
+                        } label: {
+                            Label(
+                                "Filter",
+                                systemImage: meetingFilter == .all
+                                    ? "line.3.horizontal.decrease.circle"
+                                    : "line.3.horizontal.decrease.circle.fill"
+                            )
+                        }
+                    }
                 }
                 .refreshable { await viewModel.refresh(instances: instances, in: modelContext) }
                 .task { await viewModel.refresh(instances: instances, in: modelContext) }
@@ -114,12 +132,24 @@ struct NewsView: View {
         }
     }
 
+    /// Distinguishes "there's genuinely no news" from "the filter hid everything" —
+    /// otherwise a `.meetingsOnly`/`.nonMeetingsOnly` filter with zero matches would
+    /// misleadingly look identical to an instance with no news at all.
+    @ViewBuilder
     private var emptyState: some View {
-        ContentUnavailableView(
-            "No News",
-            systemImage: "newspaper",
-            description: Text("There's no news yet.")
-        )
+        if meetingFilter != .all && !activeInstanceNewsItems.isEmpty {
+            ContentUnavailableView(
+                "No Matching News",
+                systemImage: "line.3.horizontal.decrease.circle",
+                description: Text("No news matches the current filter.")
+            )
+        } else {
+            ContentUnavailableView(
+                "No News",
+                systemImage: "newspaper",
+                description: Text("There's no news yet.")
+            )
+        }
     }
 }
 

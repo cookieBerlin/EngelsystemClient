@@ -1116,6 +1116,25 @@ exists without reading the whole diff history.
   *content* (`item`) survives to represent the group is still arbitrary
   (harmless — real duplicates share the same content) but the badge row
   no longer loses information regardless.
+
+  **Meeting/non-meeting filter** (2026-09-22, user-requested):
+  `NewsMeetingFilter` (`Features/News`, iOS-only — no News screen on the
+  Watch, per its minimal scope) is a `.all`/`.meetingsOnly`/
+  `.nonMeetingsOnly` enum with a pure `matches(_:)` over `CachedNews
+  .isMeeting`, session-scoped `@State` on `NewsView` (not `@AppStorage`
+  like `MultiInstanceDisplayMode`) — this is a transient list filter, not
+  a standing display preference, so it deliberately resets to `.all` on
+  next launch rather than being remembered. Reached via a toolbar `Menu`
+  (filter icon, filled when a filter other than `.all` is active,
+  matching the Mail/Files app convention) rather than an inline segmented
+  control, to avoid competing for space with `InstancePicker` in
+  `.switcher` mode. Applied once, in the shared `newsItems` computed
+  property, so all three `MultiInstanceDisplayMode`s (including the
+  cross-server dedup above, which only ever sees already-filtered items)
+  stay consistent automatically. `emptyState` distinguishes "no news at
+  all" from "the filter hid everything" (checks `activeInstanceNewsItems`
+  — the pre-filter set — so a real empty instance and an active-but-
+  zero-matches filter don't look identical).
 - **Profile** (`Features/Profile`): same pattern via
   `ProfileSyncService`/`ProfileViewModel.refresh(instances:in:)` (profile
   + worklogs + angel type memberships, once per active instance)/
