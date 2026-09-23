@@ -1392,8 +1392,7 @@ exists without reading the whole diff history.
     `.denied` case. `NewsNotifier.notify(newItems:instanceName:)` logs
     "skipped — disabled", "posted", or "failed to post". `APIClient`'s
     `withCredential`/`withCredentialList` helpers log every request's
-    outcome by a literal endpoint-template path string (e.g.
-    `"GET /users/{id}/shifts"`, not the resolved value) — success with
+    outcome by path string — success with
     item count for list endpoints, `.notFound` on a list endpoint as
     "treating as empty list" (harmless overlap: a list-endpoint 404
     produces two log lines, the generic failure and this one — accepted
@@ -1402,6 +1401,28 @@ exists without reading the whole diff history.
     invalid base URL at `.error`. `ModelContainerFactory` and
     `ICloudAvailability.logCloudKitAccountStatus` also migrated their
     pre-existing `print`s.
+  - **Fixed, 2026-09-23, same day, user-reported from the log viewer
+    itself**: the four `/users/{id}/...` endpoints
+    (`fetchShifts`/`fetchWorklogs`/`fetchOwnAngelTypes`/`fetchOwnProfile`)
+    originally passed a literal, unresolved endpoint-template string
+    (e.g. `"GET /users/{id}/shifts"`) as the log label — a deliberate
+    simplification at the time, to avoid re-deriving the resolved path
+    parameter just for the log message. The user noticed `DebugLogView`
+    always showed the literal `{id}` text and asked whether this meant
+    the app wasn't actually resolving `self`/the numeric ID in the real
+    request. **It was — this was purely a log-cosmetics gap, not a
+    networking bug**: the real HTTP request, built separately via the
+    generated `*API.usersId...Get(id: user.parameter)` calls, has
+    correctly resolved `user.parameter` to `"self"` or the real numeric
+    ID since the 2026-09-17 `CustomStringConvertible` fix documented
+    above (verified by that fix's own regression test, which asserts
+    the actual request URL). Fixed anyway, since a log message that
+    looks like the ID was never substituted is a reasonable thing to be
+    suspicious of: all four call sites now build the log's path string
+    with `\(user.parameter)` interpolated in (which dispatches to that
+    same `CustomStringConvertible` conformance, so it prints `"self"`/
+    the numeric ID, not `"{id}"`) instead of the static template.
+    Verified via the full Kit test suite (67/67) after the change.
 
 ### iOS/iPadOS app
 

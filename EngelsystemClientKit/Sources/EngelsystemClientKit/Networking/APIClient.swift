@@ -105,7 +105,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.ownAngelTypes
         }
-        return try await withCredentialList("GET /users/{id}/angeltypes", credential) {
+        return try await withCredentialList("GET /users/\(user.parameter)/angeltypes", credential) {
             try await UserAPI.usersIdAngeltypesGet(id: user.parameter).data ?? []
         }
     }
@@ -135,7 +135,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.shifts
         }
-        return try await withCredentialList("GET /users/{id}/shifts", credential) {
+        return try await withCredentialList("GET /users/\(user.parameter)/shifts", credential) {
             try await ShiftAPI.usersIdShiftsGet(id: user.parameter).data ?? []
         }
     }
@@ -145,7 +145,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.worklogs
         }
-        return try await withCredentialList("GET /users/{id}/worklogs", credential) {
+        return try await withCredentialList("GET /users/\(user.parameter)/worklogs", credential) {
             try await WorklogAPI.usersIdWorklogsGet(id: user.parameter).data ?? []
         }
     }
@@ -194,7 +194,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.ownProfile
         }
-        return try await withCredential("GET /users/{id}", credential) {
+        return try await withCredential("GET /users/\(user.parameter)", credential) {
             guard let data = try await UserAPI.usersIdGet(id: user.parameter).data else {
                 throw APIError.decoding("Missing data in /users/{id} response")
             }
