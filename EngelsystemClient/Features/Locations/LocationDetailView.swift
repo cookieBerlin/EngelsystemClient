@@ -1,0 +1,68 @@
+import SwiftUI
+import SwiftData
+import EngelsystemClientKit
+
+/// Shows one location's full detail — reached from `LocationsView` and from a shift's
+/// location link (`ShiftsView`). Pull-to-refresh live-refreshes just this location via
+/// `GET /locations/{id}` (2026-09-23) when `instance` is known; otherwise (a race with
+/// the owning instance being deactivated) the screen still shows whatever's cached,
+/// just without a working refresh.
+struct LocationDetailView: View {
+    let location: CachedLocation
+    let instance: Instance?
+
+    @Environment(\.modelContext) private var modelContext
+    @State private var viewModel = LocationDetailViewModel()
+
+    var body: some View {
+        Form {
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    ErrorBanner(message: errorMessage)
+                }
+                .listRowInsets(EdgeInsets())
+            }
+
+            Section {
+                Text(location.locationDescription)
+            }
+
+            if let mapUrl = location.mapUrl, let url = URL(string: mapUrl) {
+                Section {
+                    Link(destination: url) {
+                        Label("Show Map", systemImage: "map")
+                    }
+                }
+            }
+
+            if let contactDect = location.contactDect {
+                Section {
+                    LabeledContent("DECT", value: contactDect)
+                } footer: {
+                    Text("Internal short number — reachable from any DECT phone on site.")
+                }
+            }
+
+            if let url = URL(string: location.url) {
+                Section {
+                    Link(destination: url) {
+                        Label("Open on Website", systemImage: "safari")
+                    }
+                }
+            }
+        }
+        .navigationTitle(location.name)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .toolbar {
+            if viewModel.isLoading {
+                ToolbarItem { ProgressView() }
+            }
+        }
+        .refreshable {
+            guard let instance else { return }
+            await viewModel.refresh(location: location, instance: instance, in: modelContext)
+        }
+    }
+}

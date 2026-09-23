@@ -120,6 +120,34 @@ public final class APIClient {
         }
     }
 
+    /// A single location, fetched live (`GET /locations/{id}`) — backs
+    /// `LocationDetailView`'s own pull-to-refresh (2026-09-23), separate from the
+    /// cached list `fetchLocations` returns. A 404 here is a genuine error (the
+    /// location was deleted server-side), not "empty" — so this goes through
+    /// `withCredential`, not `withCredentialList`, matching `fetchNewsDetail`.
+    ///
+    /// This endpoint didn't exist before 2026-09-23 (only the list did) — it's on a
+    /// server branch not yet merged upstream (PR engelsystem/engelsystem#1711), so a
+    /// server without it will surface a normal `APIError` here (e.g. `.notFound` or a
+    /// route-not-found failure) rather than crashing; the cached-list-based features
+    /// (the Locations screen, the link from a shift) never call this and are
+    /// unaffected either way.
+    public func fetchLocation(id: Int, _ credential: EventCredential) async throws -> Location {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            guard let location = DemoData.location(id: id) else {
+                throw APIError.notFound
+            }
+            return location
+        }
+        return try await withCredential("GET /locations/\(id)", credential) {
+            guard let data = try await LocationAPI.locationsIdGet(id: id).data else {
+                throw APIError.decoding("Missing data in /locations/{id} response")
+            }
+            return data
+        }
+    }
+
     public func fetchShiftTypes(_ credential: EventCredential) async throws -> [ShiftType] {
         if credential.isDemo {
             await DemoData.simulateLatency()

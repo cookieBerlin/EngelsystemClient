@@ -342,7 +342,12 @@ exists without reading the whole diff history.
   `.sectioned` (already grouped into one `Section` per instance) uses a
   plain styled text row per day instead of a nested real `Section`,
   since a `Section` can't nest inside another `Section` in a plain
-  `List`.
+  `List`. **A shift's location name links to that location's detail
+  screen** (2026-09-23, user-requested, see "Locations" below) — a
+  `NavigationLink` when a matching `CachedLocation` exists (resolved by
+  `instanceID` + `locationID`), falling back to the old plain, non-linked
+  label when Locations hasn't synced yet or the shift's location was
+  since removed server-side.
 - **News** (`Features/News`): same pattern via `NewsSyncService`/
   `CachedNews`/`NewsViewModel.refresh(instances:in:)`; pinned items sort
   first, meeting items get a badge, body text renders through
@@ -566,6 +571,38 @@ exists without reading the whole diff history.
   Shifts/News, the identity fields are inherently per-instance (see
   "Multi-instance concept" above) — `.merged`/`.sectioned` show one
   compact row per instance rather than merging them into one card.
+- **Locations** (`Features/Locations`, 2026-09-23, user-requested):
+  browse an instance's locations (rooms), each linking to a detail
+  screen — reached via a new sidebar entry, and also what a shift's
+  location name now links to (see `ShiftsView` below). Same pattern as
+  Shifts/News/Profile via `LocationSyncService`/`LocationsViewModel
+  .refresh(instances:in:)`/`CachedLocation`, respecting
+  `MultiInstanceDisplayMode` (merged/switcher/sectioned). Locations is a
+  4th domain in `AppSyncCoordinator.syncEverything` (in the same
+  `!shiftsOnly` block as News/Profile, so the Watch's `shiftsOnly: true`
+  app-start sync never touches it, no special case needed) — kept
+  proactively synced rather than fetched lazily, since the API has no
+  way to fetch a single location by id from *most* servers (only the
+  list, `GET /locations` — see below), so the link from a shift needs
+  the full list already cached to resolve at all.
+  `LocationDetailView` shows the description, an optional map link
+  (`map_url`), an optional DECT contact number, and a link to the
+  location's page on the website.
+
+  **`LocationDetailView` also gets its own live pull-to-refresh**, via
+  the newly added `GET /locations/{id}` (`APIClient.fetchLocation(id:_:)`,
+  `LocationSyncService.refreshOne`) — added the same day, after a
+  cross-session update reported this endpoint now exists (previously
+  only the list did). Deliberately kept as an *additive* enhancement on
+  top of the list-based cache, not a replacement: the Locations list
+  screen and the shift link both still rely purely on the cached list
+  (fewer network calls, works offline, doesn't depend on an unmerged
+  endpoint), and only this one detail screen's manual pull-to-refresh
+  uses the single-location endpoint, updating the same cached row in
+  place. This endpoint is on a server branch not yet merged upstream
+  (PR engelsystem/engelsystem#1711) — a server without it just shows a
+  normal error banner on that one pull-to-refresh action; nothing else
+  in the feature is affected.
 - **Instance management** (`Features/Settings/SettingsView`): reached via
   the gear icon in the sidebar's toolbar corner (see "Main navigation"
   above). A plain pushed list (not its own

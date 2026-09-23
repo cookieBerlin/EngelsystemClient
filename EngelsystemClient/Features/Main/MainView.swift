@@ -60,11 +60,11 @@ struct MainView: View {
     }
 
     enum Section: String, CaseIterable, Identifiable {
-        case shifts, news, profile, settings
+        case shifts, news, profile, locations, settings
 
         /// Rows shown in the sidebar list — excludes `.settings`, reached via the gear
         /// toolbar button instead.
-        static let sidebarCases: [Section] = [.shifts, .news, .profile]
+        static let sidebarCases: [Section] = [.shifts, .news, .profile, .locations]
 
         var id: String { rawValue }
 
@@ -73,6 +73,7 @@ struct MainView: View {
             case .shifts: return "Shifts"
             case .news: return "News"
             case .profile: return "Profile"
+            case .locations: return "Locations"
             case .settings: return "Settings"
             }
         }
@@ -82,6 +83,7 @@ struct MainView: View {
             case .shifts: return "calendar"
             case .news: return "newspaper"
             case .profile: return "person.crop.circle"
+            case .locations: return "mappin.and.ellipse"
             case .settings: return "gearshape"
             }
         }
@@ -156,6 +158,8 @@ struct MainView: View {
                     NewsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
                 case .profile:
                     ProfileView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
+                case .locations:
+                    LocationsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
                 case .settings:
                     SettingsView(instances: instances)
                 }

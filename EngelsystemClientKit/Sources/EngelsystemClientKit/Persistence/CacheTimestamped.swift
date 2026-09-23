@@ -16,6 +16,7 @@ extension CachedNews: CacheTimestamped {}
 extension CachedUser: CacheTimestamped {}
 extension CachedWorklog: CacheTimestamped {}
 extension CachedAngelTypeMembership: CacheTimestamped {}
+extension CachedLocation: CacheTimestamped {}
 
 /// Backs the "Last Synced" section on the instance detail screens (iOS `SettingsView`,
 /// Watch `WatchSettingsView`) — 2026-09-23, user-requested. Each screen already holds

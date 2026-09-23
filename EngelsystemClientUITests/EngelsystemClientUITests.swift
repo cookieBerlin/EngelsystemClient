@@ -62,6 +62,18 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Info Desk Shift"].waitForExistence(timeout: 5))
 
+        // 2026-09-23, user-requested: a shift's location name links to that location's
+        // detail screen (Locations feature). Wrapped in a `NavigationLink`/`Label`, so
+        // it's exposed as a button, not a static text — same idiom as News's "N
+        // Comments" link below.
+        let heavenLocationLink = app.buttons["Heaven"]
+        XCTAssertTrue(heavenLocationLink.waitForExistence(timeout: 5))
+        heavenLocationLink.tap()
+        XCTAssertTrue(app.navigationBars["Heaven"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Main hall and central meeting point"].waitForExistence(timeout: 5))
+        goBack(app)
+        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+
         goBack(app)
         let newsRow = app.staticTexts["News"]
         XCTAssertTrue(newsRow.waitForExistence(timeout: 5))
@@ -78,6 +90,26 @@ final class EngelsystemClientUITests: XCTestCase {
         // so match on any element whose accessibility label contains the name instead.
         XCTAssertTrue(containingText("Demo Angel", in: app).waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Engel"].waitForExistence(timeout: 5))
+
+        // 2026-09-23, user-requested: new "Locations" sidebar entry, listing every
+        // location and linking to its own detail screen. `LocationRow`'s label is a
+        // plain `VStack` of two `Text` views (name + description), not a `Label` —
+        // SwiftUI/UIKit combines that into a single accessibility element (exposed as
+        // a button) rather than two independent static texts, so this matches via
+        // `containingText` (already used above for a similar "can't do an exact
+        // static-text match" case) instead of an exact `staticTexts[...]` lookup.
+        goBack(app)
+        let locationsRow = app.staticTexts["Locations"]
+        XCTAssertTrue(locationsRow.waitForExistence(timeout: 5))
+        locationsRow.tap()
+        XCTAssertTrue(app.navigationBars["Locations"].waitForExistence(timeout: 5))
+        let chillSpaceRow = containingText("Chill Space", in: app)
+        XCTAssertTrue(chillSpaceRow.waitForExistence(timeout: 5))
+        chillSpaceRow.tap()
+        XCTAssertTrue(app.navigationBars["Chill Space"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Quiet area to rest between shifts"].waitForExistence(timeout: 5))
+        goBack(app)
+        XCTAssertTrue(app.navigationBars["Locations"].waitForExistence(timeout: 5))
 
         goBack(app)
         // Settings is reached via a gear icon in the sidebar's toolbar corner, not a

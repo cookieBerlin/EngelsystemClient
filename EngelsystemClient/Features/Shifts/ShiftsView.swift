@@ -20,6 +20,9 @@ struct ShiftsView: View {
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var displayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
     @Query(sort: \CachedShift.startsAt) private var allShifts: [CachedShift]
+    // Unfiltered, same fetch-everything-and-filter-in-Swift pattern as `allShifts` —
+    // backs the location link below (2026-09-23, user-requested).
+    @Query private var allLocations: [CachedLocation]
 
     /// A single active instance renders the same regardless of the display-mode
     /// setting, so it's always treated as `.merged` (no pointless picker/sections).
@@ -37,6 +40,18 @@ struct ShiftsView: View {
 
     private func instanceName(for shift: CachedShift) -> String? {
         instances.first(where: { $0.id == shift.instanceID })?.name
+    }
+
+    private func instance(for shift: CachedShift) -> Instance? {
+        instances.first(where: { $0.id == shift.instanceID })
+    }
+
+    /// The location a shift's `locationID` refers to — `nil` when Locations hasn't
+    /// synced yet, or the shift's location was since removed server-side (2026-09-23,
+    /// user-requested "link the location name to its description"). `ShiftRow` falls
+    /// back to a plain, non-linked label in that case rather than linking to nothing.
+    private func location(for shift: CachedShift) -> CachedLocation? {
+        allLocations.first { $0.instanceID == shift.instanceID && $0.serverID == shift.locationID }
     }
 
     var body: some View {
@@ -78,7 +93,13 @@ struct ShiftsView: View {
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                         ForEach(group.shifts) { shift in
-                                            ShiftRow(shift: shift)
+                                            // `instance` here is this ForEach's own loop
+                                            // variable (already exactly the shift's owning
+                                            // instance, since `instanceShifts` above is
+                                            // already filtered to it) — not a call to the
+                                            // `instance(for:)` helper below, which exists
+                                            // for the .merged/.switcher case instead.
+                                            ShiftRow(shift: shift, location: location(for: shift), instance: instance)
                                         }
                                     }
                                 }
@@ -126,7 +147,12 @@ struct ShiftsView: View {
             ForEach(CachedShift.groupedByDay(shifts), id: \.day) { group in
                 Section(dateHeaderText(group.day)) {
                     ForEach(group.shifts) { shift in
-                        ShiftRow(shift: shift, instanceName: labeled ? instanceName(for: shift) : nil)
+                        ShiftRow(
+                            shift: shift,
+                            location: location(for: shift),
+                            instance: instance(for: shift),
+                            instanceName: labeled ? instanceName(for: shift) : nil
+                        )
                     }
                 }
             }
@@ -150,6 +176,12 @@ struct ShiftsView: View {
 
 private struct ShiftRow: View {
     let shift: CachedShift
+    /// The location `shift.locationID` refers to — `nil` when Locations hasn't synced
+    /// yet, or the location was since removed server-side (2026-09-23,
+    /// user-requested "link the location name to its description"). Falls back to a
+    /// plain, non-linked label in that case rather than linking to nothing.
+    var location: CachedLocation?
+    var instance: Instance?
     var instanceName: String?
 
     var body: some View {
@@ -165,7 +197,15 @@ private struct ShiftRow: View {
             Text(shift.formattedTimeRange())
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            if let locationName = shift.locationName {
+            if let location {
+                NavigationLink {
+                    LocationDetailView(location: location, instance: instance)
+                } label: {
+                    Label(location.name, systemImage: "mappin.and.ellipse")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let locationName = shift.locationName {
                 Label(locationName, systemImage: "mappin.and.ellipse")
                     .font(.caption)
                     .foregroundStyle(.secondary)

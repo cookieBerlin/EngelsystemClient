@@ -447,6 +447,7 @@ struct MainViewLastSelectedSectionTests {
         #expect(MainView.shouldPersistAsLastSelectedSection(.shifts))
         #expect(MainView.shouldPersistAsLastSelectedSection(.news))
         #expect(MainView.shouldPersistAsLastSelectedSection(.profile))
+        #expect(MainView.shouldPersistAsLastSelectedSection(.locations))
         #expect(!MainView.shouldPersistAsLastSelectedSection(.settings))
     }
 }

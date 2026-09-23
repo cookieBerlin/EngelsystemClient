@@ -298,6 +298,7 @@ struct SettingsView: View {
         try? modelContext.delete(model: CachedUser.self, where: #Predicate { $0.instanceID == instanceID })
         try? modelContext.delete(model: CachedWorklog.self, where: #Predicate { $0.instanceID == instanceID })
         try? modelContext.delete(model: CachedAngelTypeMembership.self, where: #Predicate { $0.instanceID == instanceID })
+        try? modelContext.delete(model: CachedLocation.self, where: #Predicate { $0.instanceID == instanceID })
 
         modelContext.delete(instance)
         try? modelContext.save()

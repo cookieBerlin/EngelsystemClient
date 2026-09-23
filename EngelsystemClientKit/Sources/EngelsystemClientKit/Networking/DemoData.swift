@@ -18,6 +18,12 @@ enum DemoData {
         ),
     ]
 
+    /// Backs `APIClient.fetchLocation(id:_:)`'s demo path — `nil` for an unknown id,
+    /// matching the real `GET /locations/{id}` endpoint's 404 behavior.
+    static func location(id: Int) -> Location? {
+        locations.first { $0.id == id }
+    }
+
     static let shiftTypes: [ShiftType] = [
         ShiftType(id: 1, name: "Set-up", description: "Building up the venue before the event"),
         ShiftType(id: 2, name: "Info Desk", description: "Helping visitors at the info desk"),

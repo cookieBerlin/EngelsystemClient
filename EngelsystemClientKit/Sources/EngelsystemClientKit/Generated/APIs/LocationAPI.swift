@@ -52,6 +52,50 @@ open class LocationAPI {
     }
 
     /**
+     Get a single location
+     
+     - parameter id: (path) Location identifier 
+     - returns: LocationsIdGet200Response
+     */
+    @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    open class func locationsIdGet(id: Int) async throws -> LocationsIdGet200Response {
+        return try await locationsIdGetWithRequestBuilder(id: id).execute().body
+    }
+
+    /**
+     Get a single location
+     - GET /locations/{id}
+     - API Key:
+       - type: apiKey x-api-key (HEADER)
+       - name: api-key-header
+     - Bearer Token:
+       - type: http
+       - name: bearer-auth
+     - parameter id: (path) Location identifier 
+     - returns: RequestBuilder<LocationsIdGet200Response> 
+     */
+    open class func locationsIdGetWithRequestBuilder(id: Int) -> RequestBuilder<LocationsIdGet200Response> {
+        var localVariablePath = "/locations/{id}"
+        let idPreEscape = "\(APIHelper.mapValueToPathItem(id))"
+        let idPostEscape = idPreEscape.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+        localVariablePath = localVariablePath.replacingOccurrences(of: "{id}", with: idPostEscape, options: .literal, range: nil)
+        let localVariableURLString = EngelsystemAPIAPI.basePath + localVariablePath
+        let localVariableParameters: [String: Any]? = nil
+
+        let localVariableUrlComponents = URLComponents(string: localVariableURLString)
+
+        let localVariableNillableHeaders: [String: Any?] = [
+            :
+        ]
+
+        let localVariableHeaderParameters = APIHelper.rejectNilHeaders(localVariableNillableHeaders)
+
+        let localVariableRequestBuilder: RequestBuilder<LocationsIdGet200Response>.Type = EngelsystemAPIAPI.requestBuilderFactory.getBuilder()
+
+        return localVariableRequestBuilder.init(method: "GET", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
+    }
+
+    /**
      Get all shifts in the requested location
      
      - parameter id: (path) Location identifier 

@@ -74,7 +74,8 @@ official REST API of the respective Engelsystem instance.
 - **Only GET endpoints exist** (no POST/PUT/PATCH):
   - `/users/{id}/shifts`, `/angeltypes/{id}/shifts`, `/locations/{id}/shifts`,
     `/shifttypes/{id}/shifts`
-  - `/shifttypes`, `/locations`, `/angeltypes`, `/angeltypes/{id}/users`
+  - `/shifttypes`, `/locations`, `/locations/{id}` (added 2026-09-23, see below),
+    `/angeltypes`, `/angeltypes/{id}/users`
   - `/users`, `/users/{id}`, `/users/{id}/angeltypes`
   - `/news`, `/news/{id}` (added 2026-09-22, see below)
   - `/users/{id}/worklogs`
@@ -95,15 +96,26 @@ Reference, created_at, updated_at}`); the existing `News`/`/news` list
 also gained a new required `comments_count` field. Applied to this
 project's `openapi.yml` by diffing against that branch's copy directly
 (fetched via `raw.githubusercontent.com`) rather than hand-writing the
-schema, then regenerating via `Scripts/generate-api.sh` as usual. Two
-other branches mentioned in the same cross-session conversation
-(`/locations/{id}`, and relaxing the `api` privilege group requirement
-for `/users/self/*`/`/news`/`/locations` down to "just authenticated")
-are **not yet implemented client-side** — only the comments endpoint was
-requested so far. If picking those up later, re-fetch each branch's
-current `openapi.yml` the same way rather than trusting the
-cross-session message's field descriptions verbatim, in case the branch
-has moved on since.
+schema, then regenerating via `Scripts/generate-api.sh` as usual.
+
+**`/locations/{id}` added 2026-09-23** (the Locations feature — see
+`docs/IMPLEMENTED_FEATURES.md`), same cross-session-branch workflow:
+fetched directly from the pushed branch
+(`raw.githubusercontent.com/cookieBerlin/engelsystem/feat/api-locations-detail/resources/api/openapi.yml`,
+PR [engelsystem/engelsystem#1711](https://github.com/engelsystem/engelsystem/pull/1711),
+**open, not merged upstream yet**) rather than hand-writing the schema.
+Reuses the existing `Location` schema as-is (no new fields); 404 for an
+unknown id. The same cross-session update reported `/locations` and
+`/locations/{id}` no longer require the `api` privilege group, just a
+valid authenticated user (same relaxation already in place for
+`/users/self/*`/`/news`) — a server-side change only, nothing for this
+client to implement. A third branch mentioned in earlier cross-session
+messages (full read/write private messages) remains **not implemented
+client-side** — Phase 2 scope; see the reference memory saved for it.
+If picking up work against any not-yet-merged branch like this later,
+re-fetch its current `openapi.yml` the same way rather than trusting an
+older cross-session message's field descriptions verbatim, in case the
+branch has moved on since.
 
 ## Demo mode (for testing without a real server)
 

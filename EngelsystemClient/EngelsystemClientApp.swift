@@ -19,6 +19,7 @@ struct EngelsystemClientApp: App {
         CachedUser.self,
         CachedWorklog.self,
         CachedAngelTypeMembership.self,
+        CachedLocation.self,
     ])
 
     // `BGTaskScheduler.register` must run before the app finishes launching (Apple's

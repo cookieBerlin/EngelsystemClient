@@ -30,7 +30,7 @@ private func makeTestCoordinator() -> AppSyncCoordinator {
 private func makeInMemoryContext() throws -> ModelContext {
     let schema = Schema([
         Instance.self, CachedShift.self, CachedNews.self, CachedUser.self,
-        CachedWorklog.self, CachedAngelTypeMembership.self,
+        CachedWorklog.self, CachedAngelTypeMembership.self, CachedLocation.self,
     ])
     let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
     let container = try ModelContainer(for: schema, configurations: [config])
@@ -108,6 +108,50 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 2)
 }
 
+@Test @MainActor func locationSyncServiceInsertsAndUpdatesWithoutDuplicating() async throws {
+    let context = try makeInMemoryContext()
+    let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: "ref")
+    context.insert(instance)
+
+    let service = LocationSyncService()
+    let first = try await service.sync(instance: instance, credential: demoCredential, in: context)
+    #expect(first.count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2)
+
+    // Syncing again must update the existing rows in place, not duplicate them.
+    let second = try await service.sync(instance: instance, credential: demoCredential, in: context)
+    #expect(second.count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2)
+}
+
+/// 2026-09-23, "keep the Watch fresh"-adjacent feature (Locations): `refreshOne` backs
+/// `LocationDetailView`'s own pull-to-refresh via the newly added `GET /locations/{id}`
+/// — separate from the full-list `sync` above, and must update the *same* cached row
+/// (not create a duplicate) when one already exists.
+@Test @MainActor func locationSyncServiceRefreshOneUpdatesTheExistingCachedRow() async throws {
+    let context = try makeInMemoryContext()
+    let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: "ref")
+    context.insert(instance)
+
+    let service = LocationSyncService()
+    _ = try await service.sync(instance: instance, credential: demoCredential, in: context)
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2)
+
+    let refreshed = try await service.refreshOne(serverID: 1, instance: instance, credential: demoCredential, in: context)
+    #expect(refreshed.name == "Heaven")
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2) // still no duplicate
+}
+
+@Test func apiClientFetchLocationReturnsDemoDataAndThrowsNotFoundForUnknownID() async throws {
+    let client = APIClient.shared
+    let location = try await client.fetchLocation(id: 1, demoCredential)
+    #expect(location.name == "Heaven")
+
+    await #expect(throws: APIError.notFound) {
+        _ = try await client.fetchLocation(id: 999, demoCredential)
+    }
+}
+
 /// `AppSyncCoordinator` resolves its own credential internally (unlike the other
 /// tests in this file, which pass `demoCredential` straight into a sync service) —
 /// needs a real Keychain entry under the instance's `apiKeyKeychainRef`, same as
@@ -132,12 +176,13 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     )
 
     #expect(succeeded)
-    #expect(progressUpdates.count == 3) // Shifts + News + Profile, one active instance
-    #expect(progressUpdates.last?.completed == 3)
-    #expect(progressUpdates.last?.total == 3)
+    #expect(progressUpdates.count == 4) // Shifts + News + Profile + Locations, one active instance
+    #expect(progressUpdates.last?.completed == 4)
+    #expect(progressUpdates.last?.total == 4)
     #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
     #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 2)
     #expect(try context.fetch(FetchDescriptor<CachedUser>()).count == 1)
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2)
 }
 
 /// 2026-09-23, "keep the Watch fresh" feature: `AppSyncCoordinator` must bump
@@ -167,7 +212,7 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     #expect(instance.shiftsChangedAt > Date.distantPast)
 }
 
-@Test @MainActor func appSyncCoordinatorShiftsOnlySkipsNewsAndProfile() async throws {
+@Test @MainActor func appSyncCoordinatorShiftsOnlySkipsNewsProfileAndLocations() async throws {
     let context = try makeInMemoryContext()
     let ref = "app-sync-coordinator-test-\(UUID().uuidString)"
     let store = LocalKeychainStore()
@@ -189,6 +234,7 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     #expect(progressUpdates.count == 1)
     #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
     #expect(try context.fetch(FetchDescriptor<CachedNews>()).isEmpty)
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).isEmpty)
 }
 
 @Test @MainActor func appSyncCoordinatorFailsGracefullyWhenNoCredentialIsStored() async throws {
@@ -206,7 +252,7 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     )
 
     #expect(!succeeded)
-    #expect(progressUpdates.count == 3) // still reports every planned step
+    #expect(progressUpdates.count == 4) // still reports every planned step
     #expect(try context.fetch(FetchDescriptor<CachedShift>()).isEmpty)
 }
 

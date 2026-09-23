@@ -29,6 +29,7 @@ public struct AppSyncCoordinator {
     private let shiftSyncService: ShiftSyncService
     private let newsSyncService: NewsSyncService
     private let profileSyncService: ProfileSyncService
+    private let locationSyncService: LocationSyncService
     private let credentialResolver: InstanceCredentialResolver
     private let notificationScheduler: NotificationScheduler
     private let newsNotifier: NewsNotifier
@@ -41,6 +42,7 @@ public struct AppSyncCoordinator {
         shiftSyncService: ShiftSyncService? = nil,
         newsSyncService: NewsSyncService? = nil,
         profileSyncService: ProfileSyncService? = nil,
+        locationSyncService: LocationSyncService? = nil,
         credentialResolver: InstanceCredentialResolver? = nil,
         notificationScheduler: NotificationScheduler = NotificationScheduler(),
         newsNotifier: NewsNotifier = NewsNotifier()
@@ -48,14 +50,16 @@ public struct AppSyncCoordinator {
         self.shiftSyncService = shiftSyncService ?? ShiftSyncService()
         self.newsSyncService = newsSyncService ?? NewsSyncService()
         self.profileSyncService = profileSyncService ?? ProfileSyncService()
+        self.locationSyncService = locationSyncService ?? LocationSyncService()
         self.credentialResolver = credentialResolver ?? InstanceCredentialResolver()
         self.notificationScheduler = notificationScheduler
         self.newsNotifier = newsNotifier
     }
 
     /// Syncs Shifts (+ shift notifications) for every instance, and — unless
-    /// `shiftsOnly` (the Watch's minimal scope, which has no News/Profile catalog at
-    /// all) — News and Profile too. Returns whether every instance synced cleanly.
+    /// `shiftsOnly` (the Watch's minimal scope, which has no News/Profile/Locations
+    /// catalog at all) — News, Profile, and Locations too. Returns whether every
+    /// instance synced cleanly.
     ///
     /// `notifyOnNewNews` should only be `true` for the background/interval sync path
     /// (see `NewsNotifier`) — the app-start sync and pull-to-refresh both happen while
@@ -63,7 +67,7 @@ public struct AppSyncCoordinator {
     /// be noise; it defaults to `false` so a caller has to opt in deliberately.
     ///
     /// Reports one `Progress` update per completed unit of work (one unit per domain
-    /// per instance — 1 for `shiftsOnly`, 3 otherwise), including failed ones, so
+    /// per instance — 1 for `shiftsOnly`, 4 otherwise), including failed ones, so
     /// `completed` always reaches `total` by the end regardless of errors — a caller
     /// driving a progress bar from this doesn't need its own separate "did it finish"
     /// bookkeeping.
@@ -83,7 +87,7 @@ public struct AppSyncCoordinator {
         handleNotifications: Bool = true,
         onProgress: (Progress) -> Void = { _ in }
     ) async -> Bool {
-        let stepsPerInstance = shiftsOnly ? 1 : 3
+        let stepsPerInstance = shiftsOnly ? 1 : 4
         let total = max(instances.count * stepsPerInstance, 1)
         var completed = 0
         var allSucceeded = true
@@ -163,6 +167,19 @@ public struct AppSyncCoordinator {
                     }
                 }
                 reportStep("Profile – \(instance.name)")
+
+                if let credential {
+                    do {
+                        let locations = try await locationSyncService.sync(instance: instance, credential: credential, in: modelContext)
+                        DebugLog.log("AppSyncCoordinator: synced \(locations.count) location(s) for '\(instance.name)'")
+                    } catch {
+                        if !(error is CancellationError) {
+                            allSucceeded = false
+                            DebugLog.log("AppSyncCoordinator: Locations failed for '\(instance.name)': \(error)", level: .error)
+                        }
+                    }
+                }
+                reportStep("Locations – \(instance.name)")
             }
         }
 
