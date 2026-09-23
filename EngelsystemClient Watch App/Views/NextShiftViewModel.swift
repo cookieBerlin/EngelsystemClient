@@ -44,12 +44,12 @@ final class NextShiftViewModel {
         for instance in instances {
             do {
                 let credential = try credentialResolver.credential(for: instance)
-                print("[NextShiftViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
+                DebugLog.log("[NextShiftViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
                 let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
-                print("[NextShiftViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
+                DebugLog.log("[NextShiftViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
                 allShifts.append(contentsOf: shifts)
             } catch {
-                print("[NextShiftViewModel] refresh failed for '\(instance.name)': \(error)")
+                DebugLog.log("[NextShiftViewModel] refresh failed for '\(instance.name)': \(error)", level: .error)
                 // Cancellation (e.g. a `.task` cancelled because the view disappeared)
                 // isn't a real failure — don't show it as a "Connection failed" error.
                 guard !(error is CancellationError) else { continue }

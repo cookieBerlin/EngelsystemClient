@@ -975,14 +975,11 @@ cancellation. If you add another view model that syncs via one of the
 `EngelsystemClientKit` sync services, give its `catch` block the same
 guard — this class of bug will otherwise reappear on that screen too.
 
-**Debug logging via `print` in `Shifts`/`News`/`ProfileViewModel` and the
-Watch app's `NextShiftViewModel`** (each `refresh()`'s success path logs
-the synced item count + server base URL, the catch block logs the raw
-error before any mapping/cancellation check) — added while investigating
-an open bug (see below) and worth keeping permanently for the same
-reason: these are the only points where a sync silently succeeding with
-zero items vs. actually failing can be told apart, and the UI alone
-can't show that distinction. No sensitive data logged (no API keys).
+~~**Debug logging via `print` in `Shifts`/`News`/`ProfileViewModel` and the
+Watch app's `NextShiftViewModel`**~~ **Superseded 2026-09-23 by the
+in-app `DebugLog` feature — see below.** Every one of these `print` call
+sites (and every other `print` in the app-target/Kit source, outside
+`Generated/`) now routes through `DebugLog.log(...)` instead.
 
 **Resolved bug: on a real (non-demo) server, Shifts and Profile showed
 empty with no error, while News loaded fine.** Reported and root-caused
@@ -1291,6 +1288,120 @@ exists without reading the whole diff history.
   key under the instance's existing `apiKeyKeychainRef` instead of
   creating a new one. Used by the iOS app's "Update API Key" Settings
   action (see Implemented Features below).
+- **`DebugLog`** (`Services/DebugLog.swift`, 2026-09-23, user-requested):
+  in-app, on-device debug log — replaces every `print(...)` call in the
+  app-target/Kit source (outside `Generated/`) with `DebugLog.log(_:level:)`,
+  since a bare `print` is useless once the app isn't tethered to Xcode/lldb
+  (e.g. a real background sync on a device in the field). `DebugLog.log`
+  itself **always still calls `print`** internally, unconditionally — so
+  the existing Xcode-console workflow is completely unaffected — and
+  *additionally* stores the entry (in memory + on disk) only when the
+  user has turned logging on in Settings. This was an explicit reversal
+  mid-planning: the original proposal was "keep `print`, additionally
+  call the new log at each site"; the user corrected it to "replace the
+  `print`, the new log itself prints" instead, so there's a single call
+  site per log point rather than two.
+  - `DebugLogEntry` (`id`, `timestamp`, `level: .info/.warning/.error`,
+    `message`) has two string representations: `displayText` (human
+    fixed-format, `"yyyy-MM-dd HH:mm:ss [LEVEL] message"`, used both by
+    the viewer and for the clipboard export) and `persistedLine`
+    (tab-separated, `"<epoch>\t<level>\t<escaped message>"`, `\n` within
+    a message escaped to `\\n`) — deliberately two different formats, so
+    a `DateFormatter`/`[LEVEL]`-bracket round trip parsing `displayText`
+    back can't ever be a source of bugs; only `persistedLine` is ever
+    parsed back (`DebugLogEntry.parse(persistedLine:)`, `nil` for an
+    unparsable line — e.g. a partially-written last line after the app
+    was killed mid-write — dropped silently rather than crashing).
+  - **Persisted to disk, not just kept in memory** — the user explicitly
+    reversed an earlier decision here ("Ich habe mich umentschieden, das
+    Log soll doch persistent werden, damit auch Hintergrundsyncs
+    protokolliert werden können"): a `BGAppRefreshTask` (see
+    `BackgroundSyncScheduler` below) can be killed by the OS the moment
+    its time budget runs out, so anything held only in memory could be
+    lost before ever being seen. Stored as a plain text file in the
+    Caches directory (`debug-log.txt`, excluded from backups —
+    appropriate for ephemeral diagnostics), written to on **every**
+    `log(...)` call, not batched. Appending is a cheap
+    `FileHandle(forWritingTo:)` + `seekToEndOfFile()` + `write(_:)`
+    (falling back to a plain `Data.write(to:)` if the file doesn't exist
+    yet) — the file is only fully rewritten (from the trimmed in-memory
+    buffer) on the rarer occasions the entry count actually exceeds the
+    configured max, not on every call.
+  - **Max size is user-configurable** (`DebugLog.availableMaxEntryCounts`
+    = 100/500/1000/5000, `@AppStorage` key `maxEntriesUserDefaultsKey`,
+    default `defaultMaxEntries` = 500) — read fresh via
+    `DebugLog.maxEntries(in:)` on every single append, so lowering the
+    limit in Settings trims on the very next log call, no separate
+    "re-apply" step needed.
+  - **`nonisolated static func log(_:level:)` on an otherwise
+    `@MainActor @Observable` singleton** (`DebugLog.shared`) — callable
+    from anywhere, sync or async, on any actor/thread, with no `await`,
+    matching how `print` could always be called at every site this
+    replaces. Internally hops via a fire-and-forget
+    `Task { @MainActor in shared.append(...) }` to safely mutate the
+    actor-isolated `entries`/file state. `isEnabled(in:)` is checked
+    *before* spinning up that `Task` at all, so a disabled log doesn't
+    pay even that small cost.
+  - **Testability**: `fileURL`, `append(_:)`, and `loadFromDisk()` are
+    relaxed from `private` to internal (module-visible, not `public`) —
+    purely so `EngelsystemClientKitTests` (`@testable import`) can call
+    them directly and `await` their effects deterministically, instead
+    of racing `log(...)`'s fire-and-forget `Task` hop. `DebugLogTests`
+    (9 tests, `@Suite(.serialized)` since they all share the one real
+    singleton and on-disk file) cover: persisted-line round-trip
+    (including embedded newlines), unparsable-line handling, `isEnabled`/
+    `maxEntries` defaults vs. explicit values, append-trims-to-configured-
+    max (both in-memory and on-disk), `loadFromDisk()` correctly re-reads
+    a manually-seeded file (simulating a relaunch), `clear()`, and
+    `exportText` ordering.
+  - **No secrets ever logged** — no API keys, tokens, or other sensitive
+    values appear at any of the logging points added for this feature
+    (reaffirmed explicitly in `SettingsView`'s Diagnostics footer copy).
+  - **iOS-only** — the user chose not to add Watch parity for this
+    feature (no Settings UI for it there); `DebugLog.log(...)` on the
+    Watch is effectively a print-only no-op, since `isEnabled()` there
+    can never become `true`. `DebugLog` itself lives in
+    `EngelsystemClientKit` regardless (both targets' code paths call
+    into it), it's only the toggle/viewer UI that's iOS-only.
+  - **Settings integration** (`SettingsView`, new "Diagnostics" section,
+    between "Sync" and the version/`CloudSyncStatus` footer): a
+    "Debug Logging" `Toggle` (`@AppStorage(DebugLog.isEnabledUserDefaultsKey)`),
+    a "Max Log Entries" `Picker` over `availableMaxEntryCounts`
+    (`@AppStorage(DebugLog.maxEntriesUserDefaultsKey)`), and a
+    `NavigationLink("View Debug Log")` to `DebugLogView`.
+  - **`DebugLogView`** (`Features/Debug/DebugLogView.swift`): every entry
+    rendered as one monospaced line, color-coded by level (info =
+    secondary, warning = orange, error = red), `.textSelection(.enabled)`
+    for selecting/copying an individual line or range. Toolbar: "Copy to
+    Clipboard" (`UIPasteboard.general.string = debugLog.exportText`) and
+    a destructive "Clear" behind a `.confirmationDialog`. Empty state via
+    `ContentUnavailableView`.
+  - **Logging points added as part of this feature** (beyond the
+    migrated `print`s): `AppSyncCoordinator` — previously the single
+    biggest gap, since it's the *only* path for app-start sync,
+    background sync, and the main-page pull-to-refresh, yet had zero
+    logging before this — now logs a start line, per-instance credential
+    failures, per-domain (Shifts/News/Profile) success-with-counts and
+    failures, and a final "finished (allSucceeded: …)" summary.
+    `BackgroundSyncScheduler.handle(_:modelContainer:)` logs at task
+    start and end (including the expiration-handler path), and
+    `scheduleNext()` logs whether `BGTaskScheduler.shared.submit`
+    actually succeeded (previously a silent `try?`) or why it didn't
+    schedule at all (manual interval). `NotificationScheduler
+    .requestAuthorizationIfNeeded()` logs the prompt outcome and the
+    `.denied` case. `NewsNotifier.notify(newItems:instanceName:)` logs
+    "skipped — disabled", "posted", or "failed to post". `APIClient`'s
+    `withCredential`/`withCredentialList` helpers log every request's
+    outcome by a literal endpoint-template path string (e.g.
+    `"GET /users/{id}/shifts"`, not the resolved value) — success with
+    item count for list endpoints, `.notFound` on a list endpoint as
+    "treating as empty list" (harmless overlap: a list-endpoint 404
+    produces two log lines, the generic failure and this one — accepted
+    as a trade-off rather than adding an unverified generic-existential
+    type check to suppress it), a generic failure at `.error`, and an
+    invalid base URL at `.error`. `ModelContainerFactory` and
+    `ICloudAvailability.logCloudKitAccountStatus` also migrated their
+    pre-existing `print`s.
 
 ### iOS/iPadOS app
 

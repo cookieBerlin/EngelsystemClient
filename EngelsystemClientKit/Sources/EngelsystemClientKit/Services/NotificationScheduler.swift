@@ -84,8 +84,14 @@ public struct NotificationScheduler {
         case .authorized, .provisional, .ephemeral:
             return true
         case .notDetermined:
-            return (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            // 2026-09-23, user-requested "check the data flow for logging gaps": the
+            // one-time authorization prompt's outcome was previously invisible — the
+            // first thing worth checking for a "why don't I get notifications" report.
+            DebugLog.log("Notification authorization \(granted ? "granted" : "denied") after prompting")
+            return granted
         case .denied:
+            DebugLog.log("Notification authorization is denied", level: .warning)
             return false
         @unknown default:
             return false

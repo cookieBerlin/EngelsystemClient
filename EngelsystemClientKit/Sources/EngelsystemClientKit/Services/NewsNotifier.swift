@@ -67,7 +67,12 @@ public struct NewsNotifier {
     /// and there's anything to report. Does nothing (no-op) otherwise — callers don't
     /// need to check `isEnabled`/emptiness themselves first.
     public func notify(newItems: [CachedNews], instanceName: String?) async {
-        guard Self.isEnabled(), let content = Self.content(for: newItems, instanceName: instanceName) else { return }
+        guard !newItems.isEmpty else { return }
+        guard Self.isEnabled() else {
+            DebugLog.log("NewsNotifier skipped \(newItems.count) new item(s) — disabled in Settings")
+            return
+        }
+        guard let content = Self.content(for: newItems, instanceName: instanceName) else { return }
 
         let mutableContent = UNMutableNotificationContent()
         mutableContent.title = content.title
@@ -79,6 +84,11 @@ public struct NewsNotifier {
             content: mutableContent,
             trigger: nil
         )
-        try? await center.add(request)
+        do {
+            try await center.add(request)
+            DebugLog.log("NewsNotifier posted a notification for \(newItems.count) new item(s)")
+        } catch {
+            DebugLog.log("NewsNotifier failed to post notification: \(error)", level: .error)
+        }
     }
 }

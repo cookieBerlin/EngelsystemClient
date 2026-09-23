@@ -93,20 +93,32 @@ public struct AppSyncCoordinator {
             onProgress(Progress(completed: completed, total: total, description: description))
         }
 
+        // 2026-09-23, user-requested "check the data flow for logging gaps": this
+        // coordinator is the *only* path for app-start sync, background sync, and
+        // the main page's own pull-to-refresh (Shifts/News/ProfileViewModel's own
+        // logging only ever covers their own screen's pull-to-refresh) — previously
+        // it logged nothing at all, making those three triggers completely invisible.
+        DebugLog.log("AppSyncCoordinator starting sync of \(instances.count) instance(s) (shiftsOnly: \(shiftsOnly))")
+
         var allShifts: [CachedShift] = []
         var newNewsByInstance: [(item: CachedNews, instanceName: String)] = []
 
         for instance in instances {
             let credential = try? credentialResolver.credential(for: instance)
-            if credential == nil { allSucceeded = false }
+            if credential == nil {
+                allSucceeded = false
+                DebugLog.log("AppSyncCoordinator: no credential for '\(instance.name)' — skipping", level: .error)
+            }
 
             if let credential {
                 do {
                     let shifts = try await shiftSyncService.sync(instance: instance, credential: credential, in: modelContext)
                     allShifts.append(contentsOf: shifts)
+                    DebugLog.log("AppSyncCoordinator: synced \(shifts.count) shift(s) for '\(instance.name)'")
                 } catch {
                     guard !(error is CancellationError) else { continue }
                     allSucceeded = false
+                    DebugLog.log("AppSyncCoordinator: Shifts failed for '\(instance.name)': \(error)", level: .error)
                 }
             }
             reportStep("Shifts – \(instance.name)")
@@ -116,8 +128,12 @@ public struct AppSyncCoordinator {
                     do {
                         let result = try await newsSyncService.sync(instance: instance, credential: credential, in: modelContext)
                         newNewsByInstance.append(contentsOf: result.insertedItems.map { (item: $0, instanceName: instance.name) })
+                        DebugLog.log("AppSyncCoordinator: synced \(result.items.count) news item(s), \(result.insertedItems.count) new, for '\(instance.name)'")
                     } catch {
-                        if !(error is CancellationError) { allSucceeded = false }
+                        if !(error is CancellationError) {
+                            allSucceeded = false
+                            DebugLog.log("AppSyncCoordinator: News failed for '\(instance.name)': \(error)", level: .error)
+                        }
                     }
                 }
                 reportStep("News – \(instance.name)")
@@ -127,8 +143,12 @@ public struct AppSyncCoordinator {
                         _ = try await profileSyncService.syncProfile(instance: instance, credential: credential, in: modelContext)
                         _ = try await profileSyncService.syncWorklogs(instance: instance, credential: credential, in: modelContext)
                         _ = try await profileSyncService.syncAngelTypes(instance: instance, credential: credential, in: modelContext)
+                        DebugLog.log("AppSyncCoordinator: synced Profile for '\(instance.name)'")
                     } catch {
-                        if !(error is CancellationError) { allSucceeded = false }
+                        if !(error is CancellationError) {
+                            allSucceeded = false
+                            DebugLog.log("AppSyncCoordinator: Profile failed for '\(instance.name)': \(error)", level: .error)
+                        }
                     }
                 }
                 reportStep("Profile – \(instance.name)")
@@ -148,6 +168,7 @@ public struct AppSyncCoordinator {
             }
         }
 
+        DebugLog.log("AppSyncCoordinator finished (allSucceeded: \(allSucceeded))", level: allSucceeded ? .info : .warning)
         return allSucceeded
     }
 }

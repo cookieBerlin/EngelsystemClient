@@ -45,12 +45,12 @@ final class ShiftsViewModel {
         for instance in instances {
             do {
                 let credential = try credentialResolver.credential(for: instance)
-                print("[ShiftsViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
+                DebugLog.log("[ShiftsViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
                 let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
-                print("[ShiftsViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
+                DebugLog.log("[ShiftsViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
                 allShifts.append(contentsOf: shifts)
             } catch {
-                print("[ShiftsViewModel] refresh failed for '\(instance.name)': \(error)")
+                DebugLog.log("[ShiftsViewModel] refresh failed for '\(instance.name)': \(error)", level: .error)
                 guard !SyncErrorMapper.isCancellation(error) else { continue }
                 lastError = error
             }

@@ -29,13 +29,13 @@ final class NewsDetailViewModel {
             let credential = try credentialResolver.credential(for: instance)
             let detail = try await apiClient.fetchNewsDetail(id: newsServerID, credential)
             comments = detail.comments.sorted { $0.createdAt < $1.createdAt }
-            print("[NewsDetailViewModel] loaded \(comments.count) comment(s) for news \(newsServerID)")
+            DebugLog.log("[NewsDetailViewModel] loaded \(comments.count) comment(s) for news \(newsServerID)")
         } catch {
             // Same guard every other sync entry point in this app applies — a
             // SwiftUI `.task` cancelled because the view disappeared isn't a real
             // failure and shouldn't show an error banner.
             if error is CancellationError { return }
-            print("[NewsDetailViewModel] refresh failed: \(error)")
+            DebugLog.log("[NewsDetailViewModel] refresh failed: \(error)", level: .error)
             errorMessage = SyncErrorMapper.message(for: error)
         }
     }

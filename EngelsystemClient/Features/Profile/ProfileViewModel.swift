@@ -34,15 +34,15 @@ final class ProfileViewModel {
         for instance in instances {
             do {
                 let credential = try credentialResolver.credential(for: instance)
-                print("[ProfileViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
+                DebugLog.log("[ProfileViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
                 let profile = try await syncService.syncProfile(instance: instance, credential: credential, in: modelContext)
-                print("[ProfileViewModel] synced profile '\(profile.name)' from \(credential.baseURL)")
+                DebugLog.log("[ProfileViewModel] synced profile '\(profile.name)' from \(credential.baseURL)")
                 let worklogs = try await syncService.syncWorklogs(instance: instance, credential: credential, in: modelContext)
-                print("[ProfileViewModel] synced \(worklogs.count) worklog(s)")
+                DebugLog.log("[ProfileViewModel] synced \(worklogs.count) worklog(s)")
                 let angelTypes = try await syncService.syncAngelTypes(instance: instance, credential: credential, in: modelContext)
-                print("[ProfileViewModel] synced \(angelTypes.count) angel type membership(s)")
+                DebugLog.log("[ProfileViewModel] synced \(angelTypes.count) angel type membership(s)")
             } catch {
-                print("[ProfileViewModel] refresh failed for '\(instance.name)': \(error)")
+                DebugLog.log("[ProfileViewModel] refresh failed for '\(instance.name)': \(error)", level: .error)
                 guard !SyncErrorMapper.isCancellation(error) else { continue }
                 lastError = error
             }

@@ -34,6 +34,12 @@ enum BackgroundSyncScheduler {
     }
 
     private static func handle(_ task: BGAppRefreshTask, modelContainer: ModelContainer) {
+        // 2026-09-23, user-requested: explicit start/end log entries for the one
+        // sync trigger that previously left no trace at all outside of Instruments —
+        // there's no UI visible while this runs, so without this the only way to
+        // know it ran at all was `DeviceSyncPreferences.lastBackgroundSyncDate()`
+        // in Settings, which says *that* it ran but nothing about what happened.
+        DebugLog.log("BackgroundSyncScheduler: background sync started")
         let context = ModelContext(modelContainer)
         let syncTask = Task {
             let instances = ((try? context.fetch(FetchDescriptor<Instance>())) ?? []).filter(\.isActive)
@@ -44,6 +50,7 @@ enum BackgroundSyncScheduler {
             )
             DeviceSyncPreferences.recordBackgroundSync()
             scheduleNext()
+            DebugLog.log("BackgroundSyncScheduler: background sync finished (succeeded: \(succeeded))", level: succeeded ? .info : .warning)
             task.setTaskCompleted(success: succeeded)
         }
 
@@ -51,6 +58,7 @@ enum BackgroundSyncScheduler {
         // exceeded, cancel the in-flight sync and let it wind down via its own
         // cooperative cancellation checks rather than being killed mid-write.
         task.expirationHandler = {
+            DebugLog.log("BackgroundSyncScheduler: expired before completion, cancelling", level: .warning)
             syncTask.cancel()
         }
     }
@@ -65,10 +73,23 @@ enum BackgroundSyncScheduler {
     static func scheduleNext() {
         let interval = DeviceSyncPreferences.pollingInterval()
         BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
-        guard let seconds = interval.timeInterval else { return }
+        guard let seconds = interval.timeInterval else {
+            DebugLog.log("BackgroundSyncScheduler: not scheduled (interval is Manual)")
+            return
+        }
 
         let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
-        request.earliestBeginDate = Date(timeIntervalSinceNow: seconds)
-        try? BGTaskScheduler.shared.submit(request)
+        let earliestBeginDate = Date(timeIntervalSinceNow: seconds)
+        request.earliestBeginDate = earliestBeginDate
+        do {
+            // 2026-09-23, user-requested: `submit` used to be a silent `try?` —
+            // given the well-documented uncertainty around whether this ever
+            // actually gets to run at all (see CLAUDE.md), even knowing whether
+            // *scheduling itself* succeeded is valuable, previously invisible info.
+            try BGTaskScheduler.shared.submit(request)
+            DebugLog.log("BackgroundSyncScheduler: scheduled, earliest begin date \(earliestBeginDate)")
+        } catch {
+            DebugLog.log("BackgroundSyncScheduler: scheduling failed: \(error)", level: .error)
+        }
     }
 }

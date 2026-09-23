@@ -50,7 +50,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.info
         }
-        return try await withCredential(credential) {
+        return try await withCredential("GET /info", credential) {
             guard let data = try await EventAPI.infoGet().data else {
                 throw APIError.decoding("Missing data in /info response")
             }
@@ -63,7 +63,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.news
         }
-        return try await withCredentialList(credential) {
+        return try await withCredentialList("GET /news", credential) {
             try await NewsAPI.newsGet().data ?? []
         }
     }
@@ -80,7 +80,7 @@ public final class APIClient {
             }
             return detail
         }
-        return try await withCredential(credential) {
+        return try await withCredential("GET /news/\(id)", credential) {
             guard let data = try await NewsAPI.newsIdGet(id: id).data else {
                 throw APIError.decoding("Missing data in /news/{id} response")
             }
@@ -93,7 +93,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.angelTypes
         }
-        return try await withCredentialList(credential) {
+        return try await withCredentialList("GET /angeltypes", credential) {
             try await AngelTypeAPI.angeltypesGet().data ?? []
         }
     }
@@ -105,7 +105,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.ownAngelTypes
         }
-        return try await withCredentialList(credential) {
+        return try await withCredentialList("GET /users/{id}/angeltypes", credential) {
             try await UserAPI.usersIdAngeltypesGet(id: user.parameter).data ?? []
         }
     }
@@ -115,7 +115,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.locations
         }
-        return try await withCredentialList(credential) {
+        return try await withCredentialList("GET /locations", credential) {
             try await LocationAPI.locationsGet().data ?? []
         }
     }
@@ -125,7 +125,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.shiftTypes
         }
-        return try await withCredentialList(credential) {
+        return try await withCredentialList("GET /shifttypes", credential) {
             try await ShiftTypeAPI.shifttypesGet().data ?? []
         }
     }
@@ -135,7 +135,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.shifts
         }
-        return try await withCredentialList(credential) {
+        return try await withCredentialList("GET /users/{id}/shifts", credential) {
             try await ShiftAPI.usersIdShiftsGet(id: user.parameter).data ?? []
         }
     }
@@ -145,7 +145,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.worklogs
         }
-        return try await withCredentialList(credential) {
+        return try await withCredentialList("GET /users/{id}/worklogs", credential) {
             try await WorklogAPI.usersIdWorklogsGet(id: user.parameter).data ?? []
         }
     }
@@ -171,7 +171,7 @@ public final class APIClient {
             return true
         }
         do {
-            _ = try await withCredential(credential) {
+            _ = try await withCredential("GET /users/self/worklogs (self-reference probe)", credential) {
                 try await WorklogAPI.usersIdWorklogsGet(id: UserReference.me.parameter).data
             }
             return Self.selfWorks(afterProbeError: nil)
@@ -194,7 +194,7 @@ public final class APIClient {
             await DemoData.simulateLatency()
             return DemoData.ownProfile
         }
-        return try await withCredential(credential) {
+        return try await withCredential("GET /users/{id}", credential) {
             guard let data = try await UserAPI.usersIdGet(id: user.parameter).data else {
                 throw APIError.decoding("Missing data in /users/{id} response")
             }
@@ -203,21 +203,29 @@ public final class APIClient {
     }
 
     /// For endpoints where, per project spec, missing data is treated as an empty
-    /// list instead of an error (404 → empty list).
-    private func withCredentialList<T>(_ credential: EventCredential, _ operation: @Sendable () async throws -> [T]) async throws -> [T] {
+    /// list instead of an error (404 → empty list). Also logs the resulting item
+    /// count on success — 2026-09-23, user-requested "check the data flow for
+    /// logging gaps": distinct from the per-domain "synced N" logs already in
+    /// Shifts/News/ProfileViewModel, since those only run for pull-to-refresh —
+    /// this is the one place that also covers app-start/background sync, which go
+    /// through `AppSyncCoordinator` directly.
+    private func withCredentialList<T>(_ path: String, _ credential: EventCredential, _ operation: @Sendable () async throws -> [T]) async throws -> [T] {
         do {
-            return try await withCredential(credential, operation)
+            let items = try await withCredential(path, credential, operation)
+            DebugLog.log("API \(path) → \(items.count) item(s)")
+            return items
         } catch APIError.notFound {
             // Distinguishes "server said 404, we're treating that as an empty list" from
             // a genuine 200-with-empty-array in the caller's logs — see CLAUDE.md's open
             // bug about Shifts/Profile showing empty with no error on a real server.
-            print("[APIClient] 404 for a list endpoint — treating as empty list")
+            DebugLog.log("API \(path) → 404, treating as empty list")
             return []
         }
     }
 
-    private func withCredential<T>(_ credential: EventCredential, _ operation: @Sendable () async throws -> T) async throws -> T {
+    private func withCredential<T>(_ path: String, _ credential: EventCredential, _ operation: @Sendable () async throws -> T) async throws -> T {
         guard !credential.baseURL.isEmpty, URL(string: credential.baseURL) != nil else {
+            DebugLog.log("API \(path) → invalid base URL", level: .error)
             throw APIError.invalidBaseURL
         }
 
@@ -234,11 +242,19 @@ public final class APIClient {
             // Cancellation isn't an API/network failure (e.g. a SwiftUI `.task` cancelled
             // because the view it was attached to disappeared) — rethrow it as-is rather
             // than disguising it as `APIError.network(...)`, so callers can tell the two
-            // apart and skip showing a "Connection failed" error for it.
+            // apart and skip showing a "Connection failed" error for it. Not logged as a
+            // failure for the same reason — it isn't one.
             if error is CancellationError {
                 throw error
             }
-            throw APIError(error)
+            let apiError = APIError(error)
+            // For a list endpoint's 404 specifically, `withCredentialList` above logs
+            // its own, more informative "treating as empty list" line right after this
+            // one — two lines for that one case, which is fine (still says both "this
+            // failed" and "here's the recovery"), rather than trying to distinguish
+            // the two call shapes here just to avoid it.
+            DebugLog.log("API \(path) → failed: \(apiError)", level: .error)
+            throw apiError
         }
     }
 }

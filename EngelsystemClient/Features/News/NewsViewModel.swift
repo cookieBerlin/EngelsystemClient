@@ -43,9 +43,9 @@ final class NewsViewModel {
             do {
                 let credential = try credentialResolver.credential(for: instance)
                 let result = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
-                print("[NewsViewModel] synced \(result.items.count) news item(s) from \(credential.baseURL)")
+                DebugLog.log("[NewsViewModel] synced \(result.items.count) news item(s) from \(credential.baseURL)")
             } catch {
-                print("[NewsViewModel] refresh failed for '\(instance.name)': \(error)")
+                DebugLog.log("[NewsViewModel] refresh failed for '\(instance.name)': \(error)", level: .error)
                 guard !SyncErrorMapper.isCancellation(error) else { continue }
                 lastError = error
             }

@@ -25,6 +25,10 @@ struct SettingsView: View {
     private var syncOnAppStart: Bool = true
     @AppStorage(DeviceSyncPreferences.pollingIntervalUserDefaultsKey)
     private var pollingIntervalMinutes: Int = PollingInterval.manual.rawValue
+    @AppStorage(DebugLog.isEnabledUserDefaultsKey)
+    private var isDebugLoggingEnabled: Bool = false
+    @AppStorage(DebugLog.maxEntriesUserDefaultsKey)
+    private var maxDebugLogEntries: Int = DebugLog.defaultMaxEntries
 
     let instances: [Instance]
 
@@ -189,6 +193,22 @@ struct SettingsView: View {
                 Text("Sync")
             } footer: {
                 Text("The operating system decides exactly when a background sync actually happens — depending on battery, usage, and system load, it can take longer than the interval you pick here. Both settings are per device, not shared with your Apple Watch.")
+            }
+
+            Section {
+                Toggle("Debug Logging", isOn: $isDebugLoggingEnabled)
+                Picker("Max Log Entries", selection: $maxDebugLogEntries) {
+                    ForEach(DebugLog.availableMaxEntryCounts, id: \.self) { count in
+                        Text("\(count)").tag(count)
+                    }
+                }
+                NavigationLink("View Debug Log") {
+                    DebugLogView()
+                }
+            } header: {
+                Text("Diagnostics")
+            } footer: {
+                Text("Records internal sync and notification activity for troubleshooting. Never includes API keys or other secrets. Off by default; turning it off doesn't erase what's already logged — use \"Clear\" in the log view for that.")
             }
 
             Section {

@@ -37,9 +37,9 @@ public enum ICloudAvailability {
         Task {
             do {
                 let status = try await CKContainer(identifier: containerIdentifier).accountStatus()
-                print("[ICloudAvailability] ubiquityIdentityToken != nil = \(isAvailable), CKContainer.accountStatus = \(status)")
+                DebugLog.log("[ICloudAvailability] ubiquityIdentityToken != nil = \(isAvailable), CKContainer.accountStatus = \(status)")
             } catch {
-                print("[ICloudAvailability] ubiquityIdentityToken != nil = \(isAvailable), CKContainer.accountStatus threw: \(error)")
+                DebugLog.log("[ICloudAvailability] ubiquityIdentityToken != nil = \(isAvailable), CKContainer.accountStatus threw: \(error)", level: .error)
             }
         }
     }
