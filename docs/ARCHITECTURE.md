@@ -166,9 +166,14 @@ file-level detail without re-deriving it:
 
 ## Sync strategy (iOS ↔ Watch), binding
 
-Do **not** use WatchConnectivity as the primary mechanism — it only works
+Do **not** use WatchConnectivity as the *primary* mechanism — it only works
 when devices are nearby, which conflicts with the "Watch runs independently"
-requirement.
+requirement. **Updated 2026-09-23, at the user's explicit request: WatchConnectivity
+is now used as an optional, explicit fast-path *supplement*** — see "Keep the
+Watch fresh" below. The Watch's own independent sync (its own API call, no
+relay) remains what makes it work correctly with no iPhone nearby at all;
+WatchConnectivity is never load-bearing for that baseline, only for making an
+already-working Watch notice a change sooner while actually paired/reachable.
 
 - **API keys:** Keychain access group + `kSecAttrSynchronizable = true`
   (iCloud Keychain sync)
@@ -217,6 +222,95 @@ requirement.
   a loss of a genuinely useful cross-device feature, just the removal of
   one that never had a payoff on the receiving end.
 
+### Keep the Watch fresh (2026-09-23, user-requested)
+
+The user asked whether the iOS app could tell the Watch when shifts change,
+to trigger a resync — with an explicit requirement: it must work "im
+Verbund" (paired/nearby) when possible, but the Watch must keep working
+completely standalone when no connection is possible. Implemented as a
+**combo of three layers**, each covering the others' gap:
+
+1. **Standalone baseline (unchanged)**: the Watch's own app-start sync via
+   `WatchShiftsSyncCoordinator` (see below) — always runs, independent of
+   any connection to the iPhone. This alone already satisfies "must work
+   with no Verbund at all."
+2. **CloudKit signal** (`Instance.shiftsChangedAt: Date`, a new field on the
+   already-CloudKit-backed `Instance` model — deliberately not a new model,
+   to reuse the proven CloudKit-sync/`refreshesOnRemoteCloudKitChange`
+   machinery instead of adding a parallel one). `ShiftSyncService.sync`
+   returns a `ShiftSyncResult { shifts, didChange }` (mirroring
+   `NewsSyncResult`'s shape) — `CachedShift.apply(_:)` now reports whether
+   it actually changed a field, so a routine sync that found nothing
+   different doesn't spuriously bump the signal. Every call site
+   (`AppSyncCoordinator`, iOS's `ShiftsViewModel.refresh`, the Watch's
+   `NextShiftViewModel.refresh`) bumps `instance.shiftsChangedAt` +
+   `touch()` + an explicit `modelContext.save()` on a real change — the
+   explicit save matters here for the same reason documented under
+   "Explicitly call `modelContext.save()`" further below (CloudKit sync for
+   Instance metadata): this field lives on the
+   CloudKit-backed `Instance`, so an unflushed change could be silently
+   lost the same way a Settings edit once was. On the Watch, this reaches
+   app code via the same `refreshesOnRemoteCloudKitChange` `View`
+   extension already used for `Instance`'s CloudKit merges — extended to
+   also call `WatchShiftsSyncCoordinator.shared.refreshActiveInstances(in:)`
+   after its existing `modelContext.save()`, rather than trying to inspect
+   which field changed (any remote `Instance` change is treated as "maybe
+   shifts changed, resync just in case" — cheap enough not to bother
+   distinguishing). **Only reacts while the Watch app process is alive**
+   (foreground or still-resident background) — whether this fires reliably
+   from a fully suspended/terminated Watch app is unverified, consistent
+   with this project's other unverified watchOS background-execution
+   assumptions (see `docs/HISTORY.md`).
+3. **WatchConnectivity nudge** (`WatchConnectivityBridge`,
+   `EngelsystemClientKit/Services/`): the explicit, user-requested "Verbund"
+   fast path — faster than waiting on CloudKit's server round-trip, but
+   only works when the two devices are actually paired/reachable. No
+   payload beyond a timestamp: receiving it just means "resync everything
+   active," the same thing the Watch's own app-start sync already does, so
+   there's no need for per-instance/per-shift detail. Uses
+   `updateApplicationContext` (only the *latest* signal matters, no
+   history to replay) rather than `transferUserInfo`. Lives in Kit (not
+   the iOS app target) specifically so `AppSyncCoordinator` — shared,
+   platform-agnostic code — can call `notifyShiftsChanged()` directly and
+   unconditionally; it's a safe no-op on watchOS and on macOS (this
+   package's `swift test` platform, where `WatchConnectivity` isn't even
+   `canImport`-able), guarded by `#if os(iOS) && canImport(WatchConnectivity)`
+   internally so callers never need a platform check of their own. The
+   *receiving* side (`WatchConnectivityReceiver`,
+   `EngelsystemClient Watch App/Services/`) lives in the Watch app target
+   instead, since it needs to react by calling into
+   `WatchShiftsSyncCoordinator` — a Watch-app-specific type (WidgetKit/
+   complication concerns don't belong in the platform-agnostic Kit
+   package). Both sides need *some* `WCSessionDelegate` assigned before
+   `activate()`; iOS's (`IOSSessionDelegate`, private, inside
+   `WatchConnectivityBridge.swift`) exists purely to satisfy that
+   requirement, since this feature is send-only from iOS's side.
+
+**`WatchShiftsSyncCoordinator`** (`EngelsystemClient Watch App/Services/`,
+`@MainActor` singleton) is the single entry point all three Watch-side
+triggers above funnel through — `WatchMainView`'s app-start sync, the
+CloudKit-signal handler, and the WatchConnectivity nudge handler all call
+either `refresh(instances:in:)` or the convenience
+`refreshActiveInstances(in:)` (for callers outside any View's body, which
+have no `@Query`-backed instance list to pass in). A simple re-entrancy
+guard (`isRefreshing`) coalesces overlapping triggers into one in-flight
+sync instead of racing several concurrent ones — if two of these fire close
+together for the same underlying change (expected, since the CloudKit
+signal and the WatchConnectivity nudge are both triggered by the same
+iOS-side event), the later one is simply dropped; the baseline app-start
+sync and the user's own pull-to-refresh still guarantee eventual
+consistency either way. Internally calls `AppSyncCoordinator().syncEverything(
+shiftsOnly: true)`, then `WatchComplicationUpdater.refresh(shifts:)`.
+
+**`WatchComplicationUpdater`** (`EngelsystemClient Watch App/Services/`)
+factors out the "write `NextShiftSnapshot` to the App Group + call
+`WidgetCenter.shared.reloadAllTimelines()`" step that used to live only
+inside `NextShiftViewModel.refresh`. **This fixes a pre-existing gap found
+while building this feature**: `WatchMainView`'s app-start sync called
+`AppSyncCoordinator` directly and never touched the complication at all —
+only a manual pull-to-refresh via `NextShiftView`/`NextShiftViewModel` did.
+Now every trigger that can update shifts keeps the complication current,
+not just that one.
 
 ## Background sync (polling interval), 2026-09-22, user-requested
 

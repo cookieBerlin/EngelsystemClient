@@ -48,8 +48,10 @@ official REST API of the respective Engelsystem instance.
   loaded shift data — **no** server push, since the API doesn't support that
 - Multi-instance capable (multiple events/servers manageable at the same
   time, switching in Settings)
-- Watch app: standalone (its own network call, no WatchConnectivity relay),
-  shows only the next shift + complication
+- Watch app: standalone (its own network call — WatchConnectivity, added
+  2026-09-23, is only an optional fast-path nudge, never a data relay; see
+  `docs/ARCHITECTURE.md`'s "Sync strategy"), shows only the next shift +
+  complication
 - Demo mode: try the app without a real Engelsystem server or API key
   (see "Demo Mode" below)
 

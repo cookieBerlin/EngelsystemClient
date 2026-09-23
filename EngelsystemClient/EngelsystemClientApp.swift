@@ -36,6 +36,9 @@ struct EngelsystemClientApp: App {
     init() {
         BackgroundSyncScheduler.register(modelContainer: sharedModelContainer)
         BackgroundSyncScheduler.scheduleNext()
+        // 2026-09-23, "keep the Watch fresh" feature — see WatchConnectivityBridge and
+        // docs/ARCHITECTURE.md's "Sync strategy".
+        WatchConnectivityBridge.activate()
     }
 
     var body: some Scene {

@@ -1,6 +1,5 @@
 import Foundation
 import SwiftData
-import WidgetKit
 import EngelsystemClientKit
 
 @Observable
@@ -33,7 +32,13 @@ final class NextShiftViewModel {
     /// nearest upcoming shift across *every* active instance, not a single pre-selected
     /// one — each active instance is synced in turn and the results combined before
     /// picking the next shift and updating the complication snapshot.
-    func refresh(instances: [Instance], in modelContext: ModelContext) async {
+    /// `handleNotifications` mirrors `AppSyncCoordinator.syncEverything`'s own parameter
+    /// of the same name/purpose (2026-09-23, added for testability) — always `true` in
+    /// production; only ever `false` from tests, since `requestAuthorizationIfNeeded()`
+    /// calls the real `UNUserNotificationCenter.notificationSettings()`, which returns
+    /// `UNNotificationSettings`, a type with no public initializer at all, so no fake can
+    /// honestly stand in for it (same documented boundary as `AppSyncCoordinator`'s).
+    func refresh(instances: [Instance], in modelContext: ModelContext, handleNotifications: Bool = true) async {
         errorMessage = nil
         isLoading = true
         defer { isLoading = false }
@@ -45,9 +50,21 @@ final class NextShiftViewModel {
             do {
                 let credential = try credentialResolver.credential(for: instance)
                 DebugLog.log("[NextShiftViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
-                let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
-                DebugLog.log("[NextShiftViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
-                allShifts.append(contentsOf: shifts)
+                let result = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
+                DebugLog.log("[NextShiftViewModel] synced \(result.shifts.count) shift(s) from \(credential.baseURL)")
+                allShifts.append(contentsOf: result.shifts)
+                // 2026-09-23, "keep the Watch fresh" feature: this pull-to-refresh path
+                // doesn't go through AppSyncCoordinator, so it needs the same signal-bump
+                // here too — harmless even though only iOS's WatchConnectivityBridge side
+                // actually sends anything; keeps the CloudKit signal symmetric so a change
+                // the Watch notices first (e.g. it happened to sync before the iPhone did)
+                // still reaches the iPhone eventually.
+                if result.didChange {
+                    instance.shiftsChangedAt = Date()
+                    instance.touch()
+                    try? modelContext.save()
+                    WatchConnectivityBridge.notifyShiftsChanged()
+                }
             } catch {
                 DebugLog.log("[NextShiftViewModel] refresh failed for '\(instance.name)': \(error)", level: .error)
                 // Cancellation (e.g. a `.task` cancelled because the view disappeared)
@@ -62,20 +79,16 @@ final class NextShiftViewModel {
             return
         }
 
-        if await notificationScheduler.requestAuthorizationIfNeeded() {
+        if handleNotifications, await notificationScheduler.requestAuthorizationIfNeeded() {
             let leadTimes = NotificationLeadTimeSettings.resolve(in: modelContext).leadTimesMinutes
             await notificationScheduler.syncNotifications(for: allShifts, leadTimes: leadTimes)
         }
 
         // Publish to the App Group so the complication (a separate process with no
-        // Keychain access of its own) has something to read — see NextShiftSnapshotStore.
-        let nextShift = CachedShift.nextShift(from: allShifts)
-        NextShiftSnapshotStore().save(
-            nextShift.map {
-                NextShiftSnapshot(title: $0.title, startsAt: $0.startsAt, endsAt: $0.endsAt, locationName: $0.locationName)
-            }
-        )
-        WidgetCenter.shared.reloadAllTimelines()
+        // Keychain access of its own) has something to read — see
+        // WatchComplicationUpdater (2026-09-23: factored out so every sync trigger,
+        // not just this manual pull-to-refresh, keeps the complication current).
+        WatchComplicationUpdater.refresh(shifts: allShifts)
     }
 
     private static func message(for error: Error) -> String {

@@ -38,6 +38,14 @@ public final class Instance {
     public var isActive: Bool = true
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
+    // CloudKit-synced "something changed" signal (2026-09-23, user-requested "keep the
+    // Watch fresh" feature): bumped by `ShiftSyncService`/`AppSyncCoordinator` whenever a
+    // sync detects a genuine shift change. Deliberately a plain timestamp on the same
+    // already-CloudKit-backed `Instance` model, rather than a new model — reuses the
+    // proven CloudKit-sync/`refreshesOnRemoteCloudKitChange` machinery instead of adding a
+    // parallel one. `.distantPast` default so a freshly created/synced `Instance` never
+    // looks "just changed" to a device that hasn't seen this field before.
+    public var shiftsChangedAt: Date = Date.distantPast
 
     // No relationships to the Cached* models: they live in a separate, local-only
     // ModelConfiguration (see the app targets' ModelContainer setup), and SwiftData

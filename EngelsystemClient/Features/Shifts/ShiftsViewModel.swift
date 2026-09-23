@@ -33,7 +33,13 @@ final class ShiftsViewModel {
     /// the others are deliberately left untouched rather than risk the combined
     /// "cancel whatever's no longer in the synced set" logic dropping a still-valid
     /// notification for an instance that simply didn't get a chance to re-sync.
-    func refresh(instances: [Instance], in modelContext: ModelContext) async {
+    /// `handleNotifications` mirrors `AppSyncCoordinator.syncEverything`'s own parameter
+    /// of the same name/purpose (2026-09-23, added for testability) — always `true` in
+    /// production; only ever `false` from tests, since `requestAuthorizationIfNeeded()`
+    /// calls the real `UNUserNotificationCenter.notificationSettings()`, which returns
+    /// `UNNotificationSettings`, a type with no public initializer at all, so no fake can
+    /// honestly stand in for it (same documented boundary as `AppSyncCoordinator`'s).
+    func refresh(instances: [Instance], in modelContext: ModelContext, handleNotifications: Bool = true) async {
         errorMessage = nil
         isUnauthorized = false
         isLoading = true
@@ -46,9 +52,17 @@ final class ShiftsViewModel {
             do {
                 let credential = try credentialResolver.credential(for: instance)
                 DebugLog.log("[ShiftsViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
-                let shifts = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
-                DebugLog.log("[ShiftsViewModel] synced \(shifts.count) shift(s) from \(credential.baseURL)")
-                allShifts.append(contentsOf: shifts)
+                let result = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
+                DebugLog.log("[ShiftsViewModel] synced \(result.shifts.count) shift(s) from \(credential.baseURL)")
+                allShifts.append(contentsOf: result.shifts)
+                // 2026-09-23, "keep the Watch fresh" feature — this pull-to-refresh path
+                // bypasses AppSyncCoordinator, so it needs the same signal-bump here too.
+                if result.didChange {
+                    instance.shiftsChangedAt = Date()
+                    instance.touch()
+                    try? modelContext.save()
+                    WatchConnectivityBridge.notifyShiftsChanged()
+                }
             } catch {
                 DebugLog.log("[ShiftsViewModel] refresh failed for '\(instance.name)': \(error)", level: .error)
                 guard !SyncErrorMapper.isCancellation(error) else { continue }
@@ -59,7 +73,7 @@ final class ShiftsViewModel {
         if let lastError {
             errorMessage = SyncErrorMapper.message(for: lastError)
             isUnauthorized = SyncErrorMapper.isUnauthorized(lastError)
-        } else if await notificationScheduler.requestAuthorizationIfNeeded() {
+        } else if handleNotifications, await notificationScheduler.requestAuthorizationIfNeeded() {
             let leadTimes = NotificationLeadTimeSettings.resolve(in: modelContext).leadTimesMinutes
             await notificationScheduler.syncNotifications(for: allShifts, leadTimes: leadTimes)
         }

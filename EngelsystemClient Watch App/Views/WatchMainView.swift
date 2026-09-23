@@ -10,11 +10,18 @@ import EngelsystemClientKit
 ///
 /// 2026-09-22, user-requested background-sync feature: `NextShiftView` no longer syncs
 /// on its own appearance (see its doc comment) — this view now owns the one-shot
-/// app-start sync instead, via the same headless `AppSyncCoordinator` the iOS
-/// `MainView` uses (Shifts only here, per the Watch's minimal scope — no News/Profile
-/// catalog to sync). No progress-bar UI like iOS's `SyncProgressBanner`: the watch
-/// screen is too small for it, so `NextShiftView` just gets a one-line "Syncing…" flag
-/// instead — the shift *data* still updates reactively via `@Query` either way.
+/// app-start sync instead, via the shared `WatchShiftsSyncCoordinator` (Shifts only
+/// here, per the Watch's minimal scope — no News/Profile catalog to sync). No
+/// progress-bar UI like iOS's `SyncProgressBanner`: the watch screen is too small for
+/// it, so `NextShiftView` just gets a one-line "Syncing…" flag instead — the shift
+/// *data* still updates reactively via `@Query` either way.
+///
+/// 2026-09-23, "keep the Watch fresh" feature: routes through `WatchShiftsSyncCoordinator`
+/// (which itself calls `AppSyncCoordinator`, then updates the complication) instead of
+/// calling `AppSyncCoordinator` directly — fixes a pre-existing gap where this app-start
+/// sync never updated the complication at all, only a manual pull-to-refresh did. Also
+/// means this trigger shares the coordinator's re-entrancy guard with the new
+/// CloudKit-signal and WatchConnectivity-nudge triggers.
 struct WatchMainView: View {
     let instances: [Instance]
 
@@ -28,8 +35,9 @@ struct WatchMainView: View {
             .task {
                 guard DeviceSyncPreferences.syncOnAppStartEnabled() else { return }
                 guard !activeInstances.isEmpty else { return }
+                DebugLog.log("WatchMainView: app-start sync triggered")
                 isAppStartSyncing = true
-                _ = await AppSyncCoordinator().syncEverything(instances: activeInstances, in: modelContext, shiftsOnly: true)
+                await WatchShiftsSyncCoordinator.shared.refresh(instances: activeInstances, in: modelContext)
                 isAppStartSyncing = false
             }
     }

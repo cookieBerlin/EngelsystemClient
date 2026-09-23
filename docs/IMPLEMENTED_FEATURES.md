@@ -887,16 +887,19 @@ exists without reading the whole diff history.
   with `.firstMatch` to avoid an ambiguous-match error).
 - **Next Shift** (`Views/NextShiftView`): shows only the next upcoming
   shift (title, time range, location) via the same `ShiftSyncService`
-  the iOS Shifts screen uses, plus a sync-status line ("Updated HH:mm")
-  and schedules the same local notification for it via
-  `NotificationScheduler`. No full shift catalog, no news, per "Watch
-  app scope" in [`CLAUDE.md`](../CLAUDE.md). Since the 2026-09-17 redesign, `NextShiftViewModel`
-  syncs every active instance and shows the chronologically nearest
-  upcoming shift across all of them (still exactly one shift) — see
-  "Multi-instance concept" above. After every sync it also writes a
-  `NextShiftSnapshot` to the shared App Group (see
-  `EngelsystemComplication` below) and calls
-  `WidgetCenter.shared.reloadAllTimelines()`.
+  the iOS Shifts screen uses, plus a "Last Synced: …" line (2026-09-23,
+  matching iOS's Shifts/News/Profile footer) and schedules the same local
+  notification for it via `NotificationScheduler`. No full shift catalog,
+  no news, per "Watch app scope" in [`CLAUDE.md`](../CLAUDE.md). Since the
+  2026-09-17 redesign, `NextShiftViewModel` syncs every active instance
+  and shows the chronologically nearest upcoming shift across all of them
+  (still exactly one shift) — see "Multi-instance concept" in
+  [`ARCHITECTURE.md`](ARCHITECTURE.md). After every sync it writes a
+  `NextShiftSnapshot` to the shared App Group and reloads the
+  complication (`WatchComplicationUpdater`, see "Keep the Watch fresh" in
+  [`ARCHITECTURE.md`](ARCHITECTURE.md) — 2026-09-23, factored out so
+  every sync trigger keeps the complication current, not just this
+  screen's own pull-to-refresh) — see `EngelsystemComplication` below.
 - watchOS UI Testing needs generous timeouts and a scroll-until-visible
   loop to be reliable — the simulator's cold launch is slow, and a
   `Form`'s (or `List`'s) later sections/rows aren't materialized in the

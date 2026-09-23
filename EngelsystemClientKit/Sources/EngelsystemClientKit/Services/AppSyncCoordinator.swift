@@ -112,9 +112,20 @@ public struct AppSyncCoordinator {
 
             if let credential {
                 do {
-                    let shifts = try await shiftSyncService.sync(instance: instance, credential: credential, in: modelContext)
-                    allShifts.append(contentsOf: shifts)
-                    DebugLog.log("AppSyncCoordinator: synced \(shifts.count) shift(s) for '\(instance.name)'")
+                    let result = try await shiftSyncService.sync(instance: instance, credential: credential, in: modelContext)
+                    allShifts.append(contentsOf: result.shifts)
+                    DebugLog.log("AppSyncCoordinator: synced \(result.shifts.count) shift(s) for '\(instance.name)'")
+                    // 2026-09-23, "keep the Watch fresh" feature: bump the CloudKit-synced
+                    // signal only on a genuine change, not on every routine sync — see
+                    // Instance.shiftsChangedAt and WatchConnectivityBridge. Safe to call
+                    // unconditionally regardless of which platform is running this
+                    // coordinator (no-op on watchOS/macOS).
+                    if result.didChange {
+                        instance.shiftsChangedAt = Date()
+                        instance.touch()
+                        try? modelContext.save()
+                        WatchConnectivityBridge.notifyShiftsChanged()
+                    }
                 } catch {
                     guard !(error is CancellationError) else { continue }
                     allSucceeded = false

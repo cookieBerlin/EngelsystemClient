@@ -88,8 +88,23 @@ public extension CachedShift {
     }
 
     /// Updates all fields from a freshly fetched `Shift` DTO (used by `ShiftSyncService`
-    /// when a cached row already exists for this shift).
-    func apply(_ shift: Shift) {
+    /// when a cached row already exists for this shift). Returns whether anything actually
+    /// changed — 2026-09-23, backs the "notify the Watch when shifts change" feature,
+    /// which needs to tell a genuine change apart from a routine re-sync that found
+    /// nothing different (so it doesn't wake the Watch/write to CloudKit for no reason).
+    @discardableResult
+    func apply(_ shift: Shift) -> Bool {
+        let didChange = title != shift.name
+            || shiftDescription != shift.description
+            || startsAt != shift.startsAt
+            || endsAt != shift.endsAt
+            || locationID != shift.location.id
+            || locationName != shift.location.name
+            || shiftTypeID != shift.shiftType.id
+            || shiftTypeName != shift.shiftType.name
+            || url != shift.url
+            || scheduleGuid != shift.scheduleGuid?.uuidString
+
         title = shift.name
         shiftDescription = shift.description
         startsAt = shift.startsAt
@@ -101,6 +116,7 @@ public extension CachedShift {
         url = shift.url
         scheduleGuid = shift.scheduleGuid?.uuidString
         updateCacheTimestamp()
+        return didChange
     }
 
     static func uid(instanceID: UUID, serverID: Int) -> String {

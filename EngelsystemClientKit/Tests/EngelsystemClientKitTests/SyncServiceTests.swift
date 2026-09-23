@@ -46,13 +46,48 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
 
     let service = ShiftSyncService()
     let first = try await service.sync(instance: instance, credential: demoCredential, in: context)
-    #expect(first.count == 2)
+    #expect(first.shifts.count == 2)
+    #expect(first.didChange) // fresh inserts always count as a change
     #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
 
     // Syncing again must update the existing rows in place, not duplicate them.
     let second = try await service.sync(instance: instance, credential: demoCredential, in: context)
-    #expect(second.count == 2)
+    #expect(second.shifts.count == 2)
     #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
+}
+
+/// `CachedShift.apply(_:)` is the pure diffing logic `ShiftSyncResult.didChange` relies
+/// on (2026-09-23, "keep the Watch fresh" feature) — tested directly here rather than
+/// through `ShiftSyncService`/`DemoData`, since `DemoData.shifts` recomputes `startsAt`/
+/// `endsAt` relative to `Date()` on every call, which would make two consecutive real
+/// syncs *always* look "changed" and defeat a "no real change" test at that level.
+@Test @MainActor func cachedShiftApplyReportsWhetherAnythingActuallyChanged() {
+    let location = Reference(id: 1, name: "Heaven")
+    let shiftType = Reference(id: 2, name: "Info Desk")
+    let start = Date()
+    let end = start.addingTimeInterval(3600)
+    let dto = Shift(
+        id: 1, name: "Info Desk Shift", description: "Help visitors",
+        startsAt: start, endsAt: end, location: location, shiftType: shiftType,
+        scheduleGuid: nil, createdAt: nil, updatedAt: nil, neededAngelTypes: [],
+        url: "https://example.org/shifts/1"
+    )
+    let cached = CachedShift(shift: dto, instanceID: UUID())
+
+    // Applying the exact same data again must report no change.
+    #expect(cached.apply(dto) == false)
+
+    // A real change to a single field must be detected.
+    let movedDTO = Shift(
+        id: 1, name: dto.name, description: dto.description,
+        startsAt: start.addingTimeInterval(600), endsAt: end, location: location, shiftType: shiftType,
+        scheduleGuid: nil, createdAt: nil, updatedAt: nil, neededAngelTypes: [],
+        url: dto.url
+    )
+    #expect(cached.apply(movedDTO) == true)
+
+    // And applying that same (now-current) data again must go back to no change.
+    #expect(cached.apply(movedDTO) == false)
 }
 
 @Test @MainActor func newsSyncServiceInsertsAndUpdatesWithoutDuplicating() async throws {
@@ -103,6 +138,33 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
     #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 2)
     #expect(try context.fetch(FetchDescriptor<CachedUser>()).count == 1)
+}
+
+/// 2026-09-23, "keep the Watch fresh" feature: `AppSyncCoordinator` must bump
+/// `Instance.shiftsChangedAt` away from its `.distantPast` default whenever a sync
+/// actually inserts/changes a shift — this is the CloudKit-synced signal
+/// `refreshesOnRemoteCloudKitChange` reacts to on the Watch, and what
+/// `WatchConnectivityBridge.notifyShiftsChanged()` (a safe no-op under `swift test`,
+/// since `WatchConnectivity` isn't `canImport`-able on macOS) is meant to accompany.
+@Test @MainActor func appSyncCoordinatorBumpsShiftsChangedAtOnARealChange() async throws {
+    let context = try makeInMemoryContext()
+    let ref = "app-sync-coordinator-test-\(UUID().uuidString)"
+    let store = LocalKeychainStore()
+    try store.save(apiKey: "demo", for: ref)
+    defer { try? store.deleteAPIKey(for: ref) }
+
+    let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: ref)
+    #expect(instance.shiftsChangedAt == Date.distantPast)
+    context.insert(instance)
+
+    _ = await makeTestCoordinator().syncEverything(
+        instances: [instance],
+        in: context,
+        shiftsOnly: true,
+        handleNotifications: false
+    )
+
+    #expect(instance.shiftsChangedAt > Date.distantPast)
 }
 
 @Test @MainActor func appSyncCoordinatorShiftsOnlySkipsNewsAndProfile() async throws {

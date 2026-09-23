@@ -8,6 +8,7 @@
 import Foundation
 import Testing
 import SwiftData
+import UserNotifications
 import EngelsystemClientKit
 @testable import EngelsystemClient
 
@@ -546,5 +547,61 @@ struct SyncErrorMapperTests {
         #expect(SyncErrorMapper.isCancellation(CancellationError()))
         #expect(!SyncErrorMapper.isCancellation(APIError.network("offline")))
         #expect(!SyncErrorMapper.isCancellation(InstanceCredentialError.apiKeyNotFound))
+    }
+}
+
+/// 2026-09-23, "keep the Watch fresh" feature: `ShiftsViewModel.refresh`'s pull-to-refresh
+/// path bypasses `AppSyncCoordinator`, so it needs its own `Instance.shiftsChangedAt`
+/// signal-bump — see `EngelsystemClientKitTests.SyncServiceTests
+/// .appSyncCoordinatorBumpsShiftsChangedAtOnARealChange` for the `AppSyncCoordinator`
+/// counterpart, and `EngelsystemClient_Watch_AppTests.NextShiftViewModelTests` for the
+/// Watch's equivalent pull-to-refresh path.
+struct ShiftsViewModelTests {
+    /// Never actually invoked (`handleNotifications: false` below) — exists only so
+    /// `NotificationScheduler` doesn't fall back to the real `UNUserNotificationCenter
+    /// .current()`, which has no place to run from inside a test. Mirrors
+    /// `EngelsystemClientKitTests.SyncServiceTests`'s `UnusedNotificationCenter`.
+    private final class UnusedNotificationCenter: NotificationCenterScheduling, @unchecked Sendable {
+        func notificationSettings() async -> UNNotificationSettings { fatalError("not used with handleNotifications: false") }
+        func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool { fatalError("not used with handleNotifications: false") }
+        func pendingNotificationRequests() async -> [UNNotificationRequest] { fatalError("not used with handleNotifications: false") }
+        func add(_ request: UNNotificationRequest) async throws { fatalError("not used with handleNotifications: false") }
+        func removePendingNotificationRequests(withIdentifiers identifiers: [String]) { fatalError("not used with handleNotifications: false") }
+    }
+
+    // `cloudKitDatabase: .none` is required here specifically because this test target
+    // runs hosted inside the real, CloudKit-entitled `EngelsystemClient.app` (unlike
+    // `EngelsystemClientKitTests`' bare `swift test` CLI process, which has no
+    // entitlements context at all and so never attempts real CloudKit schema
+    // validation) — without it, `Instance`'s CloudKit-required-defaults validation
+    // actually runs and fails container creation. Matches
+    // `EditInstanceViewModelPersistenceTests`/`EditInstanceViewModelAPIKeyTests`'s
+    // existing `Instance`-only configurations elsewhere in this file.
+    @MainActor
+    private func makeInMemoryContext() throws -> ModelContext {
+        let schema = Schema([Instance.self, CachedShift.self])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        let container = try ModelContainer(for: schema, configurations: [config])
+        return ModelContext(container)
+    }
+
+    @MainActor
+    private func seedDemoInstance(in context: ModelContext) throws -> Instance {
+        let ref = "shifts-view-model-tests-\(UUID().uuidString)"
+        try LocalKeychainStore().save(apiKey: "demo", for: ref)
+        let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: ref)
+        context.insert(instance)
+        return instance
+    }
+
+    @Test @MainActor func refreshBumpsInstanceShiftsChangedAtOnARealChange() async throws {
+        let context = try makeInMemoryContext()
+        let instance = try seedDemoInstance(in: context)
+        #expect(instance.shiftsChangedAt == Date.distantPast)
+
+        let viewModel = ShiftsViewModel(notificationScheduler: NotificationScheduler(center: UnusedNotificationCenter()))
+        await viewModel.refresh(instances: [instance], in: context, handleNotifications: false)
+
+        #expect(instance.shiftsChangedAt > Date.distantPast)
     }
 }
