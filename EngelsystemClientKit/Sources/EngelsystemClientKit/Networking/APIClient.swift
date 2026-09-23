@@ -230,6 +230,160 @@ public final class APIClient {
         }
     }
 
+    /// Every user on the instance — `GET /users` — backs the "start a new
+    /// conversation" picker (2026-09-23, Messages feature). Distinct from
+    /// `fetchOwnProfile`/`fetchOwnAngelTypes`, which are always about the signed-in
+    /// user specifically.
+    public func fetchUsers(_ credential: EventCredential) async throws -> [Reference] {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return DemoData.users
+        }
+        return try await withCredentialList("GET /users", credential) {
+            try await UserAPI.usersGet().data ?? []
+        }
+    }
+
+    // MARK: - Messages (2026-09-23)
+    //
+    // The first write feature in this API (previously 100% GET-only) — added on a
+    // server branch not yet merged upstream (feat/api-messages, cross-session
+    // sourced, verified against the real server implementation rather than guessed —
+    // see docs/ARCHITECTURE.md). Deliberately live-only: no `Cached*` model, no
+    // `XSyncService` — every method here hits the network every time it's called,
+    // matching `fetchNewsDetail`'s comments (not `fetchShifts`'s cached-list shape),
+    // since this is this app's first *mutable*, bidirectional data and avoiding a
+    // local cache sidesteps a whole class of offline-write-conflict problems for a
+    // first version.
+
+    /// Every conversation the signed-in user is part of — `GET /messages`. Unlike
+    /// `fetchLocations`/`fetchAngelTypes`, a 404 here is a genuine error (the server
+    /// doesn't support Messages at all), never "empty" — a real empty inbox is `200`
+    /// with `{"data": []}` — so this goes through `withCredential`, not
+    /// `withCredentialList`, matching `fetchNewsDetail`/`fetchLocation`.
+    public func fetchConversations(_ credential: EventCredential) async throws -> [Conversation] {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return await DemoData.conversations()
+        }
+        return try await withCredential("GET /messages", credential) {
+            try await MessageAPI.messagesGet().data ?? []
+        }
+    }
+
+    /// Every message exchanged with one specific user, oldest first per the API docs
+    /// — `GET /messages/{id}`, where `id` is the *other user's* id (not a message id).
+    public func fetchConversation(otherUserID: Int, _ credential: EventCredential) async throws -> [Message] {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return await DemoData.conversation(otherUserID: otherUserID)
+        }
+        return try await withCredential("GET /messages/{id}", credential) {
+            guard let data = try await MessageAPI.messagesIdGet(id: otherUserID).data else {
+                throw APIError.decoding("Missing data in /messages/{id} response")
+            }
+            return data.messages ?? []
+        }
+    }
+
+    /// Sends a message to the given user — `POST /messages/{id}`, `201` with the
+    /// created `Message` on success.
+    public func sendMessage(to otherUserID: Int, text: String, _ credential: EventCredential) async throws -> Message {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            return await DemoData.sendMessage(to: otherUserID, text: text)
+        }
+        return try await withCredential("POST /messages/{id}", credential) {
+            guard let data = try await MessageAPI.messagesIdPost(id: otherUserID, messageSend: MessageSend(text: text)).data else {
+                throw APIError.decoding("Missing data in POST /messages/{id} response")
+            }
+            return data
+        }
+    }
+
+    /// Deletes a message the signed-in user sent — `DELETE /messages/{msgId}`, `204`
+    /// on success, `403` if it isn't yours (surfaced as `APIError.forbidden`).
+    public func deleteMessage(id: Int, _ credential: EventCredential) async throws {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            await DemoData.deleteMessage(id: id)
+            return
+        }
+        try await withCredential("DELETE /messages/{msgId}", credential) {
+            try await MessageAPI.messagesMsgIdDelete(msgId: id)
+        }
+    }
+
+    /// Sets or clears a message's read status — `PATCH /messages/{msgId}`. Only the
+    /// *receiver* of a message may do this (`403` for the sender) — used both for an
+    /// explicit "mark unread" affordance and to auto-mark a conversation's incoming
+    /// messages read when it's opened (`ConversationDetailViewModel`).
+    public func setMessageRead(id: Int, read: Bool, _ credential: EventCredential) async throws -> Message {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            guard let updated = await DemoData.setMessageRead(id: id, read: read) else {
+                throw APIError.notFound
+            }
+            return updated
+        }
+        return try await withCredential("PATCH /messages/{msgId}", credential) {
+            guard let data = try await MessageAPI.messagesMsgIdPatch(msgId: id, messageSetRead: MessageSetRead(read: read)).data else {
+                throw APIError.decoding("Missing data in PATCH /messages/{msgId} response")
+            }
+            return data
+        }
+    }
+
+    /// Probes whether this instance's server supports the Messages API at all —
+    /// backs `Instance.messagesSupported`, which gates whether the whole Messages
+    /// sidebar entry shows up (2026-09-23, user-requested: "if the instance doesn't
+    /// offer the new interface, don't show the GUI"). Demo credential always reports
+    /// `true`, matching `selfUserReferenceWorks`'s equivalent short-circuit.
+    ///
+    /// A plain `GET /messages` with no special handling would be ambiguous: a 404
+    /// there could mean either "this route doesn't exist on this server" (unsupported)
+    /// or something else — the two are only distinguishable by the response *body*,
+    /// which `APIError`'s unified shape doesn't preserve (see `withLockedCredential`).
+    /// So this calls that directly instead of going through `withCredential`.
+    public func messagesSupported(_ credential: EventCredential) async -> Bool {
+        if credential.isDemo { return true }
+        guard !credential.baseURL.isEmpty, URL(string: credential.baseURL) != nil else { return true }
+        do {
+            _ = try await withLockedCredential(credential) {
+                try await MessageAPI.messagesGet().data
+            }
+            DebugLog.log("API GET /messages (capability probe) → supported")
+            return true
+        } catch {
+            let supported = Self.messagesSupported(afterProbeError: error)
+            DebugLog.log("API GET /messages (capability probe) → \(supported ? "supported" : "NOT supported") (\(error))")
+            return supported
+        }
+    }
+
+    /// The pure "how to interpret the probe's outcome" logic behind
+    /// `messagesSupported(_:)`, split out so it's unit-testable without a real network
+    /// round trip (same reasoning as `selfWorks(afterProbeError:)`). Verified against
+    /// the real server implementation via a cross-session message, not guessed: two
+    /// different situations both return HTTP 404 with *different* JSON bodies — a
+    /// route that genuinely doesn't exist falls through to the app's shared catch-all
+    /// (`{"message": "Not implemented"}`, not specific to Messages), while a 404 for
+    /// a specific resource that just isn't found is `{"message": "Not Found"}`. Any
+    /// other outcome (200, or a 403/422/etc. for an unrelated reason) means the route
+    /// exists — a missing route never responds with anything but that exact 404 body.
+    static func messagesSupported(afterProbeError error: Error) -> Bool {
+        guard let errorResponse = error as? ErrorResponse,
+              case let .error(404, data, _, _) = errorResponse,
+              let data,
+              let body = try? JSONDecoder().decode(ProbeErrorBody.self, from: data)
+        else { return true }
+        return body.message != "Not implemented"
+    }
+
+    private struct ProbeErrorBody: Decodable {
+        let message: String
+    }
+
     /// For endpoints where, per project spec, missing data is treated as an empty
     /// list instead of an error (404 → empty list). Also logs the resulting item
     /// count on success — 2026-09-23, user-requested "check the data flow for
@@ -257,16 +411,9 @@ public final class APIClient {
             throw APIError.invalidBaseURL
         }
 
-        await gate.lock()
-        EngelsystemAPIAPI.basePath = credential.baseURL
-        EngelsystemAPIAPI.customHeaders = ["x-api-key": credential.apiKey]
-
         do {
-            let result = try await operation()
-            await gate.unlock()
-            return result
+            return try await withLockedCredential(credential, operation)
         } catch {
-            await gate.unlock()
             // Cancellation isn't an API/network failure (e.g. a SwiftUI `.task` cancelled
             // because the view it was attached to disappeared) — rethrow it as-is rather
             // than disguising it as `APIError.network(...)`, so callers can tell the two
@@ -283,6 +430,29 @@ public final class APIClient {
             // the two call shapes here just to avoid it.
             DebugLog.log("API \(path) → failed: \(apiError)", level: .error)
             throw apiError
+        }
+    }
+
+    /// Locks the shared request gate, sets the credential, runs `operation`, and always
+    /// unlocks — rethrows whatever `operation` throws completely unchanged, with no
+    /// `APIError` mapping and no logging (unlike `withCredential`, which wraps this).
+    /// `messagesSupported(_:)`'s capability probe calls this directly instead of
+    /// `withCredential`, since it needs the *raw* `ErrorResponse` (specifically its
+    /// response body) to distinguish "route doesn't exist" from any other failure —
+    /// something `APIError`'s unified shape deliberately doesn't preserve for any
+    /// other caller.
+    private func withLockedCredential<T>(_ credential: EventCredential, _ operation: @Sendable () async throws -> T) async throws -> T {
+        await gate.lock()
+        EngelsystemAPIAPI.basePath = credential.baseURL
+        EngelsystemAPIAPI.customHeaders = ["x-api-key": credential.apiKey]
+
+        do {
+            let result = try await operation()
+            await gate.unlock()
+            return result
+        } catch {
+            await gate.unlock()
+            throw error
         }
     }
 }

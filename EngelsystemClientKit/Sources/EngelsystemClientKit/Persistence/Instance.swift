@@ -46,6 +46,16 @@ public final class Instance {
     // parallel one. `.distantPast` default so a freshly created/synced `Instance` never
     // looks "just changed" to a device that hasn't seen this field before.
     public var shiftsChangedAt: Date = Date.distantPast
+    // Whether this instance's server exposes the `/messages` API (2026-09-23) — not
+    // every Engelsystem deployment does yet, so the Messages sidebar entry/screens must
+    // stay hidden entirely rather than show and then fail. Defaults pessimistically to
+    // `false` (unlike `selfReferenceWorks`'s optimistic `true`): a server that doesn't
+    // support Messages at all should never briefly show the UI before a probe corrects
+    // it. Kept up to date by `AppSyncCoordinator`'s lightweight per-sync capability
+    // check (`APIClient.messagesSupported(_:)`) — no dedicated Setup/Edit-time probe,
+    // to keep that flow simple; the periodic re-check is enough to pick up a server that
+    // gains support later.
+    public var messagesSupported: Bool = false
 
     // No relationships to the Cached* models: they live in a separate, local-only
     // ModelConfiguration (see the app targets' ModelContainer setup), and SwiftData

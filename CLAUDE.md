@@ -59,9 +59,19 @@ official REST API of the respective Engelsystem instance.
 
 - Shift sign-up
 - Create/edit shifts
-- Send/receive private messages
 - Do **not** prepare these features as disabled/hidden UI — build them only
   once the backend endpoint exists.
+
+~~Send/receive private messages~~ **Implemented 2026-09-23** — see the
+Messages feature in `docs/IMPLEMENTED_FEATURES.md` and the `/messages`
+entry under API below. The backend endpoint this used to be blocked on
+now exists (on a not-yet-merged server branch); the client-side GUI is
+gated entirely behind a runtime capability probe
+(`Instance.messagesSupported`) rather than the usual "wait for the
+backend, then build" rule, since the feature had to work correctly
+against instances that don't support it yet too — see "if the instance
+doesn't offer the new interface, don't show the GUI" in the Messages
+writeup.
 
 ## API
 
@@ -71,7 +81,9 @@ official REST API of the respective Engelsystem instance.
 - Auth: bearer token **or** `x-api-key` header (API key from the
   Engelsystem user settings). User needs the `API` or `Bureaucrat` group
   on the instance.
-- **Only GET endpoints exist** (no POST/PUT/PATCH):
+- **Every endpoint except `/messages*` is GET-only.** `/messages` (added
+  2026-09-23, see below) is this API's first read/write resource —
+  `POST`/`PATCH`/`DELETE` alongside its `GET`s:
   - `/users/{id}/shifts`, `/angeltypes/{id}/shifts`, `/locations/{id}/shifts`,
     `/shifttypes/{id}/shifts`
   - `/shifttypes`, `/locations`, `/locations/{id}` (added 2026-09-23, see below),
@@ -79,6 +91,8 @@ official REST API of the respective Engelsystem instance.
   - `/users`, `/users/{id}`, `/users/{id}/angeltypes`
   - `/news`, `/news/{id}` (added 2026-09-22, see below)
   - `/users/{id}/worklogs`
+  - `/messages` (GET), `/messages/{id}` (GET, POST), `/messages/{msgId}`
+    (DELETE, PATCH) — added 2026-09-23, see below
   - `/info` (event metadata)
   - `/openapi`
 - `{id}` can also be the string `self` on user endpoints (own account)
@@ -116,6 +130,61 @@ If picking up work against any not-yet-merged branch like this later,
 re-fetch its current `openapi.yml` the same way rather than trusting an
 older cross-session message's field descriptions verbatim, in case the
 branch has moved on since.
+
+**`/messages` added 2026-09-23** (the Messages feature — full read/write
+private messaging, see `docs/IMPLEMENTED_FEATURES.md`), sourced from a
+not-yet-merged server branch (`feat/api-messages`) via the same
+cross-session-branch workflow as `/news/{id}`/`/locations/{id}` above —
+fetched directly from the branch's `openapi.yml`, not hand-written, then
+regenerated. New schemas: `Message` (`id`, `text`, `sender`/`receiver`:
+`Reference`, `read`, `created_at`, `updated_at`), `Conversation`
+(`other_user`, `latest_message`, `unread_messages`), `MessageSend`
+(`text`, request body for `POST /messages/{id}`), `MessageSetRead`
+(`read`, request body for `PATCH /messages/{msgId}`). Also added
+`ApiValidationError` (a 422 response schema for the new write
+endpoints) — named with an `Api` prefix, not the more obvious
+`ValidationError`, because that exact name collides with
+openapi-generator's own internal `Validation.swift` boilerplate type;
+discovered via a genuine "invalid redeclaration" build error after the
+first regeneration attempt, not anticipated in advance.
+
+**This is the API's first read/write resource, and the client
+deliberately treats it differently from every read-only feature above**:
+- **No `Cached*`/SwiftData model, no sync service — live-only.**
+  `APIClient.fetchConversations`/`fetchConversation`/`sendMessage`/
+  `deleteMessage`/`setMessageRead` all hit the network every call, same
+  shape as `fetchNewsDetail`'s comments. Deliberate: this is the app's
+  first mutable, bidirectional data, and a local cache would need to
+  reconcile offline writes against a live server — avoiding that
+  entirely was judged simpler for a first version than solving it.
+- **Gated behind a runtime capability probe, not a "wait for the merge"
+  rule.** Since not every Engelsystem deployment will support this
+  right away, `Instance.messagesSupported: Bool` (default `false`,
+  CloudKit-synced) controls whether the whole Messages sidebar entry
+  shows up at all — "if the instance doesn't offer the new interface,
+  don't show the GUI" (explicit user requirement). Checked by
+  `APIClient.messagesSupported(_:)` as a lightweight extra step in
+  `AppSyncCoordinator.syncEverything` (a single `GET /messages`, no
+  persistence beyond the one `Bool`) — there's no dedicated Setup/Edit-
+  time probe; the periodic re-check via the coordinator is enough to
+  pick up a server that gains support later. A plain 404 is ambiguous
+  on its own (route missing vs. some other 404), so the probe inspects
+  the response *body*: a route that doesn't exist falls through to the
+  server's shared catch-all (`{"message": "Not implemented"}`), while a
+  genuine "not found" for a specific resource reads `{"message": "Not
+  Found"}` — verified against the real server implementation via a
+  cross-session message, not guessed. `APIClient.withCredential` was
+  refactored to expose a lower-level `withLockedCredential` (gate-lock/
+  credential-set/run/gate-unlock only, no `APIError`-wrapping) so this
+  probe can see the raw `ErrorResponse` and its body — every other
+  caller's behavior is unchanged.
+- **`MainView.Section.visibleSidebarCases(forActiveInstances:)`** filters
+  the Messages row out unless at least one active instance reports
+  `messagesSupported`; `MainView.resolvedSelection(_:visibleSections:)`
+  falls back to Shifts if a previously-selected Messages screen becomes
+  unavailable (e.g. the one supporting instance gets deactivated).
+- iOS-only, like Locations — no Messages screen on the Watch, per its
+  minimal scope.
 
 ## Demo mode (for testing without a real server)
 

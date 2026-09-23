@@ -60,11 +60,23 @@ struct MainView: View {
     }
 
     enum Section: String, CaseIterable, Identifiable {
-        case shifts, news, profile, locations, settings
+        case shifts, news, profile, locations, messages, settings
 
-        /// Rows shown in the sidebar list — excludes `.settings`, reached via the gear
-        /// toolbar button instead.
-        static let sidebarCases: [Section] = [.shifts, .news, .profile, .locations]
+        /// Every row that can be persisted as "the last selected section" — excludes
+        /// `.settings` (see the type-level doc comment above). `.messages` is included
+        /// here even though it's only ever *rendered* conditionally (see
+        /// `visibleSidebarCases(forActiveInstances:)` below) — a previously-selected
+        /// `.messages` is still a legitimate value to have persisted, it just may not
+        /// currently be visible (handled by `resolvedSelection(_:visibleSections:)`).
+        static let sidebarCases: [Section] = [.shifts, .news, .profile, .locations, .messages]
+
+        /// The subset of `sidebarCases` actually rendered as rows, given which
+        /// instances are active — `.messages` only shows up once at least one active
+        /// instance's server actually supports it (2026-09-23, Messages feature:
+        /// "if the instance doesn't offer the new interface, don't show the GUI").
+        static func visibleSidebarCases(forActiveInstances activeInstances: [Instance]) -> [Section] {
+            sidebarCases.filter { $0 != .messages || activeInstances.contains(where: \.messagesSupported) }
+        }
 
         var id: String { rawValue }
 
@@ -74,6 +86,7 @@ struct MainView: View {
             case .news: return "News"
             case .profile: return "Profile"
             case .locations: return "Locations"
+            case .messages: return "Messages"
             case .settings: return "Settings"
             }
         }
@@ -84,12 +97,28 @@ struct MainView: View {
             case .news: return "newspaper"
             case .profile: return "person.crop.circle"
             case .locations: return "mappin.and.ellipse"
+            case .messages: return "message"
             case .settings: return "gearshape"
             }
         }
     }
 
+    /// What to actually show given the current `selection` and which sections are
+    /// currently visible — falls back to `.shifts` if the selected section has become
+    /// unavailable (e.g. `.messages` selected, then the one instance that supported it
+    /// was deactivated), rather than rendering a screen for a section no longer in the
+    /// sidebar at all. `.settings` is never subject to this fallback — it's always
+    /// reachable via the toolbar gear regardless of active instances. A `static` pure
+    /// function, not inlined into `body`, for the same testability reasoning as
+    /// `initialSelection`/`navigationTitle` above.
+    static func resolvedSelection(_ selection: Section?, visibleSections: [Section]) -> Section {
+        let candidate = selection ?? .shifts
+        if candidate == .settings { return .settings }
+        return visibleSections.contains(candidate) ? candidate : .shifts
+    }
+
     private var activeInstances: [Instance] { instances.filter(\.isActive) }
+    private var visibleSidebarSections: [Section] { Section.visibleSidebarCases(forActiveInstances: activeInstances) }
 
     /// Only shows the one active instance's own name — no instance-count text
     /// (2026-09-22, user-requested: a plural "N Active Instances" title was removed;
@@ -128,7 +157,7 @@ struct MainView: View {
                         Button("Add Instance") { goToSettings() }
                     }
                 } else {
-                    ForEach(Section.sidebarCases) { section in
+                    ForEach(visibleSidebarSections) { section in
                         Label(section.title, systemImage: section.systemImage).tag(section)
                     }
                 }
@@ -151,7 +180,7 @@ struct MainView: View {
             .refreshable { await runFullSync() }
         } detail: {
             NavigationStack {
-                switch selection ?? .shifts {
+                switch Self.resolvedSelection(selection, visibleSections: visibleSidebarSections) {
                 case .shifts:
                     ShiftsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
                 case .news:
@@ -160,6 +189,8 @@ struct MainView: View {
                     ProfileView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
                 case .locations:
                     LocationsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
+                case .messages:
+                    MessagesView(instances: activeInstances.filter(\.messagesSupported), syncStatus: syncStatus, onUnauthorized: goToSettings)
                 case .settings:
                     SettingsView(instances: instances)
                 }

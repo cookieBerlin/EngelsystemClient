@@ -176,13 +176,14 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     )
 
     #expect(succeeded)
-    #expect(progressUpdates.count == 4) // Shifts + News + Profile + Locations, one active instance
-    #expect(progressUpdates.last?.completed == 4)
-    #expect(progressUpdates.last?.total == 4)
+    #expect(progressUpdates.count == 5) // Shifts + News + Profile + Locations + Messages, one active instance
+    #expect(progressUpdates.last?.completed == 5)
+    #expect(progressUpdates.last?.total == 5)
     #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
     #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 2)
     #expect(try context.fetch(FetchDescriptor<CachedUser>()).count == 1)
     #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2)
+    #expect(instance.messagesSupported)
 }
 
 /// 2026-09-23, "keep the Watch fresh" feature: `AppSyncCoordinator` must bump
@@ -252,7 +253,7 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     )
 
     #expect(!succeeded)
-    #expect(progressUpdates.count == 4) // still reports every planned step
+    #expect(progressUpdates.count == 5) // still reports every planned step
     #expect(try context.fetch(FetchDescriptor<CachedShift>()).isEmpty)
 }
 

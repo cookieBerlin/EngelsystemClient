@@ -33,6 +33,7 @@ public struct AppSyncCoordinator {
     private let credentialResolver: InstanceCredentialResolver
     private let notificationScheduler: NotificationScheduler
     private let newsNotifier: NewsNotifier
+    private let apiClient: APIClient
 
     // Several of these types are @MainActor, so their defaults can't be evaluated as
     // literal parameter defaults (evaluated in a nonisolated context) — same reason
@@ -45,7 +46,8 @@ public struct AppSyncCoordinator {
         locationSyncService: LocationSyncService? = nil,
         credentialResolver: InstanceCredentialResolver? = nil,
         notificationScheduler: NotificationScheduler = NotificationScheduler(),
-        newsNotifier: NewsNotifier = NewsNotifier()
+        newsNotifier: NewsNotifier = NewsNotifier(),
+        apiClient: APIClient? = nil
     ) {
         self.shiftSyncService = shiftSyncService ?? ShiftSyncService()
         self.newsSyncService = newsSyncService ?? NewsSyncService()
@@ -54,6 +56,7 @@ public struct AppSyncCoordinator {
         self.credentialResolver = credentialResolver ?? InstanceCredentialResolver()
         self.notificationScheduler = notificationScheduler
         self.newsNotifier = newsNotifier
+        self.apiClient = apiClient ?? APIClient.shared
     }
 
     /// Syncs Shifts (+ shift notifications) for every instance, and — unless
@@ -87,7 +90,7 @@ public struct AppSyncCoordinator {
         handleNotifications: Bool = true,
         onProgress: (Progress) -> Void = { _ in }
     ) async -> Bool {
-        let stepsPerInstance = shiftsOnly ? 1 : 4
+        let stepsPerInstance = shiftsOnly ? 1 : 5
         let total = max(instances.count * stepsPerInstance, 1)
         var completed = 0
         var allSucceeded = true
@@ -180,6 +183,21 @@ public struct AppSyncCoordinator {
                     }
                 }
                 reportStep("Locations – \(instance.name)")
+
+                if let credential {
+                    // 2026-09-23, Messages feature: a lightweight capability re-check, not
+                    // a data sync — updates `Instance.messagesSupported` (which gates the
+                    // whole Messages sidebar entry) so a server that gains or loses support
+                    // is picked up without a dedicated Setup/Edit-time probe. Cheap: a single
+                    // GET, no persistence beyond the one Bool.
+                    let supported = await apiClient.messagesSupported(credential)
+                    if instance.messagesSupported != supported {
+                        instance.messagesSupported = supported
+                        instance.touch()
+                        try? modelContext.save()
+                    }
+                }
+                reportStep("Messages – \(instance.name)")
             }
         }
 

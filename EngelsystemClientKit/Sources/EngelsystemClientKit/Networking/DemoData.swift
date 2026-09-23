@@ -5,6 +5,16 @@ import Foundation
 /// Lives entirely in the networking layer — views/view models never know they're
 /// looking at demo data instead of a real response.
 enum DemoData {
+    /// Backs the "start a new conversation" picker (`APIClient.fetchUsers`). `id: 2`/`3`
+    /// reuse the same demo users already referenced elsewhere (News comments,
+    /// worklogs) for consistency; `id: 4` has no existing demo conversation, so
+    /// picking them exercises the "start a brand new conversation" path specifically.
+    static let users: [Reference] = [
+        Reference(id: 2, name: "Helper Angel"),
+        Reference(id: 3, name: "Another Angel"),
+        Reference(id: 4, name: "Night Shift Nick"),
+    ]
+
     static let locations: [Location] = [
         Location(
             id: 1, name: "Heaven", description: "Main hall and central meeting point",
@@ -166,5 +176,114 @@ enum DemoData {
     /// Small artificial delay so demo mode still exercises loading states in the UI.
     static func simulateLatency() async {
         try? await Task.sleep(nanoseconds: 300_000_000)
+    }
+
+    // MARK: - Messages (2026-09-23)
+    //
+    // Unlike every other DemoData property/method above (all read-only), Messages is
+    // this app's first write feature — demo mode needs to actually simulate sending/
+    // deleting/marking read, not just return a fixed snapshot, or "try demo mode"
+    // would misrepresent the real feature. Delegates to `DemoMessageStore`, the one
+    // piece of *mutable* state in this otherwise fully static/immutable file.
+
+    static func conversations() async -> [Conversation] {
+        await DemoMessageStore.shared.conversations
+    }
+
+    static func conversation(otherUserID: Int) async -> [Message] {
+        await DemoMessageStore.shared.messages(withOtherUserID: otherUserID)
+    }
+
+    static func sendMessage(to otherUserID: Int, text: String) async -> Message {
+        await DemoMessageStore.shared.send(to: otherUserID, text: text)
+    }
+
+    static func deleteMessage(id: Int) async {
+        await DemoMessageStore.shared.delete(messageID: id)
+    }
+
+    static func setMessageRead(id: Int, read: Bool) async -> Message? {
+        await DemoMessageStore.shared.setRead(messageID: id, read: read)
+    }
+}
+
+/// The one piece of mutable state in `DemoData` — everything else there is a fixed,
+/// immutable snapshot, since every other endpoint is read-only. `@MainActor`-isolated
+/// for safe mutable global state without a bespoke lock, same reasoning as `DebugLog`;
+/// callers `await` into it same as any other actor-isolated access, regardless of
+/// whether `APIClient` itself happens to be running on the main actor.
+///
+/// Demo user id `1` ("demo"/"Demo Angel", see `DemoData.ownProfile`) is always the
+/// sender/receiver representing "the signed-in user" here.
+@MainActor
+private final class DemoMessageStore {
+    static let shared = DemoMessageStore()
+
+    private static let demoUserID = 1
+    private var messagesByOtherUserID: [Int: [Message]]
+    private var nextMessageID = 100
+
+    private init() {
+        let now = Date()
+        // One seeded conversation (with "Helper Angel", id 2) so the conversation
+        // list isn't empty in demo mode — one incoming, unread message, so the
+        // "mark as read on open"/unread-badge behavior has something to show.
+        messagesByOtherUserID = [
+            2: [
+                Message(
+                    id: 1, text: "Could you cover my shift tomorrow?",
+                    sender: Reference(id: 2, name: "Helper Angel"),
+                    receiver: Reference(id: Self.demoUserID, name: "demo"),
+                    read: false, createdAt: now.addingTimeInterval(-3600), updatedAt: nil
+                ),
+            ],
+        ]
+    }
+
+    var conversations: [Conversation] {
+        messagesByOtherUserID.compactMap { otherUserID, messages -> Conversation? in
+            guard let latest = messages.max(by: { $0.createdAt < $1.createdAt }) else { return nil }
+            let otherUser = latest.sender.id == otherUserID ? latest.sender : latest.receiver
+            let unread = messages.filter { !$0.read && $0.receiver.id == Self.demoUserID }.count
+            return Conversation(otherUser: otherUser, latestMessage: latest, unreadMessages: unread)
+        }.sorted { $0.latestMessage.createdAt > $1.latestMessage.createdAt }
+    }
+
+    func messages(withOtherUserID otherUserID: Int) -> [Message] {
+        (messagesByOtherUserID[otherUserID] ?? []).sorted { $0.createdAt < $1.createdAt }
+    }
+
+    func send(to otherUserID: Int, text: String) -> Message {
+        nextMessageID += 1
+        let otherUserName = DemoData.users.first { $0.id == otherUserID }?.name ?? "User \(otherUserID)"
+        let message = Message(
+            id: nextMessageID, text: text,
+            sender: Reference(id: Self.demoUserID, name: "demo"),
+            receiver: Reference(id: otherUserID, name: otherUserName),
+            read: true, createdAt: Date(), updatedAt: nil
+        )
+        messagesByOtherUserID[otherUserID, default: []].append(message)
+        return message
+    }
+
+    func delete(messageID: Int) {
+        for otherUserID in messagesByOtherUserID.keys {
+            messagesByOtherUserID[otherUserID]?.removeAll { $0.id == messageID }
+        }
+    }
+
+    func setRead(messageID: Int, read: Bool) -> Message? {
+        for otherUserID in messagesByOtherUserID.keys {
+            guard let index = messagesByOtherUserID[otherUserID]?.firstIndex(where: { $0.id == messageID }) else { continue }
+            let existing = messagesByOtherUserID[otherUserID]![index]
+            let updated = Message(
+                id: existing.id, text: existing.text, sender: existing.sender,
+                receiver: existing.receiver, read: read, createdAt: existing.createdAt,
+                updatedAt: Date()
+            )
+            messagesByOtherUserID[otherUserID]![index] = updated
+            return updated
+        }
+        return nil
     }
 }

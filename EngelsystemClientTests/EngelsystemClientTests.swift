@@ -448,7 +448,70 @@ struct MainViewLastSelectedSectionTests {
         #expect(MainView.shouldPersistAsLastSelectedSection(.news))
         #expect(MainView.shouldPersistAsLastSelectedSection(.profile))
         #expect(MainView.shouldPersistAsLastSelectedSection(.locations))
+        #expect(MainView.shouldPersistAsLastSelectedSection(.messages))
         #expect(!MainView.shouldPersistAsLastSelectedSection(.settings))
+    }
+}
+
+/// 2026-09-23, Messages feature: the sidebar's Messages row must only appear once at
+/// least one active instance's server actually supports it — CLAUDE.md's "if the
+/// instance doesn't offer the new interface, don't show the GUI" requirement.
+struct MainViewMessagesVisibilityTests {
+    private func makeInstance(name: String, messagesSupported: Bool) -> Instance {
+        let instance = Instance(name: name, baseURL: "https://\(name).example.org", apiKeyKeychainRef: name)
+        instance.messagesSupported = messagesSupported
+        return instance
+    }
+
+    @Test func messagesRowIsHiddenWhenNoActiveInstanceSupportsIt() {
+        let instances = [makeInstance(name: "A", messagesSupported: false)]
+        let visible = MainView.Section.visibleSidebarCases(forActiveInstances: instances)
+        #expect(!visible.contains(.messages))
+    }
+
+    @Test func messagesRowIsHiddenWhenThereAreNoActiveInstancesAtAll() {
+        let visible = MainView.Section.visibleSidebarCases(forActiveInstances: [])
+        #expect(!visible.contains(.messages))
+    }
+
+    @Test func messagesRowShowsUpWhenAtLeastOneActiveInstanceSupportsIt() {
+        let instances = [
+            makeInstance(name: "A", messagesSupported: false),
+            makeInstance(name: "B", messagesSupported: true),
+        ]
+        let visible = MainView.Section.visibleSidebarCases(forActiveInstances: instances)
+        #expect(visible.contains(.messages))
+    }
+
+    @Test func everyOtherDataSectionAlwaysStaysVisibleRegardlessOfMessagesSupport() {
+        let visible = MainView.Section.visibleSidebarCases(forActiveInstances: [])
+        #expect(visible.contains(.shifts))
+        #expect(visible.contains(.news))
+        #expect(visible.contains(.profile))
+        #expect(visible.contains(.locations))
+    }
+}
+
+/// `MainView.resolvedSelection` is what decides which screen actually renders — it
+/// must fall back gracefully if `.messages` is selected but no longer visible (e.g.
+/// the one supporting instance was deactivated after the fact).
+struct MainViewResolvedSelectionTests {
+    @Test func returnsTheSelectionWhenItIsVisible() {
+        let visible: [MainView.Section] = [.shifts, .news, .messages]
+        #expect(MainView.resolvedSelection(.messages, visibleSections: visible) == .messages)
+    }
+
+    @Test func fallsBackToShiftsWhenTheSelectionIsNoLongerVisible() {
+        let visible: [MainView.Section] = [.shifts, .news]
+        #expect(MainView.resolvedSelection(.messages, visibleSections: visible) == .shifts)
+    }
+
+    @Test func fallsBackToShiftsWhenNothingIsSelectedYet() {
+        #expect(MainView.resolvedSelection(nil, visibleSections: [.shifts, .news]) == .shifts)
+    }
+
+    @Test func settingsIsAlwaysReachableRegardlessOfVisibility() {
+        #expect(MainView.resolvedSelection(.settings, visibleSections: []) == .settings)
     }
 }
 
@@ -604,5 +667,111 @@ struct ShiftsViewModelTests {
         await viewModel.refresh(instances: [instance], in: context, handleNotifications: false)
 
         #expect(instance.shiftsChangedAt > Date.distantPast)
+    }
+}
+
+/// Coverage for the Messages feature's app-target view models (2026-09-23) — all
+/// against the demo credential, same reasoning as `NewsDetailViewModelTests`: there's
+/// no mock HTTP server in this test target, but demo mode exercises the exact same
+/// code paths (`APIClient`'s demo branches) a real server would.
+private func makeMessagesTestInstance() throws -> Instance {
+    let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: UUID().uuidString)
+    try LocalKeychainStore().save(apiKey: "demo", for: instance.apiKeyKeychainRef)
+    return instance
+}
+
+struct MessagesViewModelTests {
+    @Test @MainActor func refreshLoadsConversationsPerInstance() async throws {
+        let instance = try makeMessagesTestInstance()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = MessagesViewModel()
+        await viewModel.refresh(instances: [instance])
+
+        #expect(viewModel.errorMessage == nil)
+        #expect(viewModel.conversationsByInstanceID[instance.id]?.count == 1)
+    }
+
+    @Test @MainActor func aFailureOnOneInstanceDoesNotBlockOthersFromRefreshing() async throws {
+        let good = try makeMessagesTestInstance()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: good.apiKeyKeychainRef) }
+        // No Keychain entry saved for this one — `InstanceCredentialResolver` throws.
+        let bad = Instance(name: "Broken", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: "missing-\(UUID().uuidString)")
+
+        let viewModel = MessagesViewModel()
+        await viewModel.refresh(instances: [bad, good])
+
+        #expect(viewModel.errorMessage != nil)
+        #expect(viewModel.conversationsByInstanceID[good.id]?.count == 1)
+        #expect(viewModel.conversationsByInstanceID[bad.id] == nil)
+    }
+}
+
+struct ConversationDetailViewModelTests {
+    @Test @MainActor func loadSortsMessagesOldestFirstAndMarksIncomingUnreadAsRead() async throws {
+        let instance = try makeMessagesTestInstance()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = ConversationDetailViewModel()
+        await viewModel.load(otherUserID: 2, instance: instance)
+
+        #expect(viewModel.errorMessage == nil)
+        #expect(!viewModel.messages.isEmpty)
+        #expect(viewModel.messages.allSatisfy { $0.read })
+    }
+
+    @Test @MainActor func sendAppendsTheNewMessageAndTrimsWhitespace() async throws {
+        let instance = try makeMessagesTestInstance()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = ConversationDetailViewModel()
+        await viewModel.load(otherUserID: 2, instance: instance)
+        let countBefore = viewModel.messages.count
+
+        let succeeded = await viewModel.send(text: "  On my way!  ", otherUserID: 2, instance: instance)
+
+        #expect(succeeded)
+        #expect(viewModel.messages.count == countBefore + 1)
+        #expect(viewModel.messages.last?.text == "On my way!")
+    }
+
+    @Test @MainActor func sendRejectsBlankText() async throws {
+        let instance = try makeMessagesTestInstance()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = ConversationDetailViewModel()
+        let succeeded = await viewModel.send(text: "   ", otherUserID: 2, instance: instance)
+
+        #expect(!succeeded)
+        #expect(viewModel.messages.isEmpty)
+    }
+
+    @Test @MainActor func deleteRemovesTheMessageFromTheThread() async throws {
+        let instance = try makeMessagesTestInstance()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = ConversationDetailViewModel()
+        await viewModel.load(otherUserID: 2, instance: instance)
+        _ = await viewModel.send(text: "Delete me", otherUserID: 2, instance: instance)
+        let sent = try #require(viewModel.messages.last)
+
+        await viewModel.delete(sent, instance: instance)
+
+        #expect(!viewModel.messages.contains(where: { $0.id == sent.id }))
+    }
+}
+
+struct UserPickerViewModelTests {
+    @Test @MainActor func loadReturnsUsersSortedByName() async throws {
+        let instance = try makeMessagesTestInstance()
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = UserPickerViewModel()
+        await viewModel.load(instance: instance)
+
+        #expect(viewModel.errorMessage == nil)
+        #expect(viewModel.users.count == 3)
+        let names = viewModel.users.compactMap(\.name)
+        #expect(names == names.sorted())
     }
 }

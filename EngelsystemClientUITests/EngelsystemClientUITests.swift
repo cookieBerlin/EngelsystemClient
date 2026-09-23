@@ -111,6 +111,36 @@ final class EngelsystemClientUITests: XCTestCase {
         goBack(app)
         XCTAssertTrue(app.navigationBars["Locations"].waitForExistence(timeout: 5))
 
+        // 2026-09-23, Messages feature: the sidebar's "Messages" row only appears once
+        // the app-start sync's capability probe confirms the demo instance supports it
+        // (`Instance.messagesSupported`, gated so an unsupported server never shows the
+        // GUI at all) — several real syncs have already completed by this point in the
+        // test, but a generous timeout covers any remaining delay.
+        goBack(app)
+        let messagesRow = app.staticTexts["Messages"]
+        XCTAssertTrue(messagesRow.waitForExistence(timeout: 10))
+        messagesRow.tap()
+        XCTAssertTrue(app.navigationBars["Messages"].waitForExistence(timeout: 5))
+
+        // Demo mode seeds one conversation with "Helper Angel" (one unread message).
+        let helperAngelRow = containingText("Helper Angel", in: app)
+        XCTAssertTrue(helperAngelRow.waitForExistence(timeout: 5))
+        helperAngelRow.tap()
+        XCTAssertTrue(app.navigationBars["Helper Angel"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Could you cover my shift tomorrow?"].waitForExistence(timeout: 5))
+
+        // Sending a message — this feature's first write path — round-trips through
+        // `APIClient.sendMessage`'s demo branch and appears in the thread immediately.
+        let messageField = app.textFields["Message"]
+        XCTAssertTrue(messageField.waitForExistence(timeout: 5))
+        messageField.tap()
+        messageField.typeText("Hello from the UI test")
+        app.buttons["Send"].tap()
+        XCTAssertTrue(app.staticTexts["Hello from the UI test"].waitForExistence(timeout: 5))
+
+        goBack(app)
+        XCTAssertTrue(app.navigationBars["Messages"].waitForExistence(timeout: 5))
+
         goBack(app)
         // Settings is reached via a gear icon in the sidebar's toolbar corner, not a
         // sidebar row (2026-09-17) — it's app configuration, not a data section on the

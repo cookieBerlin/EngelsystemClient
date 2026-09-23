@@ -421,3 +421,75 @@ import Testing
     #expect(APIClient.selfWorks(afterProbeError: APIError.unauthorized))
     #expect(APIClient.selfWorks(afterProbeError: APIError.network("timed out")))
 }
+
+@Test func apiClientMessagesSupportedIsTrueForDemoInstance() async {
+    let credential = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
+    #expect(await APIClient.shared.messagesSupported(credential))
+}
+
+/// `messagesSupported(_:)`'s real `.notFound`-body-inspection can't be exercised
+/// offline either, same reasoning as `selfWorksInterpretsNotFoundAsServerDoesNotSupportSelf`
+/// — so the pure interpretation logic is tested directly. Two different 404 bodies
+/// (verified against the real server, not guessed — see APIClient.swift's doc comment)
+/// must be told apart: a route that doesn't exist at all (`"Not implemented"`, the
+/// app's shared catch-all) vs. a 404 for a specific missing resource (`"Not Found"`,
+/// which means the route *does* exist).
+@Test func messagesSupportedInterpretsNotImplementedBodyAsUnsupported() {
+    let body = #"{"message": "Not implemented"}"#.data(using: .utf8)!
+    let error = ErrorResponse.error(404, body, nil, APIError.notFound)
+    #expect(APIClient.messagesSupported(afterProbeError: error) == false)
+}
+
+@Test func messagesSupportedInterpretsGenuineNotFoundBodyAsSupported() {
+    let body = #"{"message": "Not Found"}"#.data(using: .utf8)!
+    let error = ErrorResponse.error(404, body, nil, APIError.notFound)
+    #expect(APIClient.messagesSupported(afterProbeError: error))
+}
+
+@Test func messagesSupportedTreatsUnrelatedErrorsAndMissingBodyAsSupported() {
+    #expect(APIClient.messagesSupported(afterProbeError: APIError.unauthorized))
+    #expect(APIClient.messagesSupported(afterProbeError: APIError.network("timed out")))
+    let noBody = ErrorResponse.error(404, nil, nil, APIError.notFound)
+    #expect(APIClient.messagesSupported(afterProbeError: noBody))
+    let unparseableBody = ErrorResponse.error(404, Data("not json".utf8), nil, APIError.notFound)
+    #expect(APIClient.messagesSupported(afterProbeError: unparseableBody))
+}
+
+@Test func apiClientFetchUsersReturnsDemoDataForDemoInstance() async throws {
+    let credential = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
+    let users = try await APIClient.shared.fetchUsers(credential)
+    #expect(users.count == 3)
+}
+
+@Test func apiClientMessagesRoundTripThroughDemoData() async throws {
+    let credential = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
+    let client = APIClient.shared
+
+    let conversations = try await client.fetchConversations(credential)
+    #expect(conversations.count == 1)
+    #expect(conversations.first?.unreadMessages == 1)
+
+    let thread = try await client.fetchConversation(otherUserID: 2, credential)
+    #expect(thread.count == 1)
+
+    let sent = try await client.sendMessage(to: 2, text: "On my way!", credential)
+    #expect(sent.text == "On my way!")
+    #expect(sent.read)
+
+    let updatedThread = try await client.fetchConversation(otherUserID: 2, credential)
+    #expect(updatedThread.count == 2)
+
+    let markedRead = try await client.setMessageRead(id: thread[0].id, read: true, credential)
+    #expect(markedRead.read)
+
+    try await client.deleteMessage(id: sent.id, credential)
+    let afterDelete = try await client.fetchConversation(otherUserID: 2, credential)
+    #expect(afterDelete.count == 1)
+}
+
+@Test func apiClientSetMessageReadThrowsNotFoundForUnknownMessageInDemoMode() async {
+    let credential = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
+    await #expect(throws: APIError.notFound) {
+        _ = try await APIClient.shared.setMessageRead(id: 999_999, read: true, credential)
+    }
+}

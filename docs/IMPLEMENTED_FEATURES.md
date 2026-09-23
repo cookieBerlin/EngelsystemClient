@@ -17,17 +17,24 @@ exists without reading the whole diff history.
   cross `ModelConfiguration`s) — they're matched to their instance purely
   by the plain `instanceID: UUID` field every one of them already carries.
 - **Generated OpenAPI client** (`Generated/`): DTOs and API classes for
-  every GET endpoint in `openapi.yml`, produced by
+  every endpoint in `openapi.yml` (all GET except `/messages*`, see
+  [`CLAUDE.md`](../CLAUDE.md)'s API section), produced by
   `Scripts/generate-api.sh`. Regenerate with that script whenever
   `openapi.yml` changes — never hand-edit `Generated/`.
 - **APIClient**: async/await wrapper over the generated client —
   `fetchInfo`, `fetchNews`, `fetchAngelTypes`, `fetchLocations`,
-  `fetchShiftTypes`, `fetchShifts(for:)`, `fetchWorklogs(for:)`,
-  `fetchOwnProfile`. Internally serializes requests (`RequestGate`) so
-  concurrent calls to different instances can't clobber the generated
-  client's global base URL/headers. Maps 404 to an empty list for list
-  endpoints; everything else surfaces as `APIError`
-  (unauthorized/forbidden/notFound/server/invalidBaseURL/network/decoding).
+  `fetchLocation(id:_:)`, `fetchShiftTypes`, `fetchShifts(for:)`,
+  `fetchWorklogs(for:)`, `fetchOwnProfile`, `fetchUsers`, plus the
+  Messages methods (`fetchConversations`, `fetchConversation`,
+  `sendMessage`, `deleteMessage`, `setMessageRead`,
+  `messagesSupported` — see "Messages" below). Internally serializes
+  requests (`RequestGate`) so concurrent calls to different instances
+  can't clobber the generated client's global base URL/headers. Maps
+  404 to an empty list for list endpoints; everything else surfaces as
+  `APIError` (unauthorized/forbidden/notFound/server/invalidBaseURL/
+  network/decoding) — Messages' capability probe is the one exception,
+  going through the lower-level `withLockedCredential` instead so it
+  can inspect the raw error body (see "Messages" below).
 - **Keychain storage**: `KeychainSyncStore` (iCloud-synced, shared
   Keychain access group) and `LocalKeychainStore` (device-local fallback)
   behind the shared `APIKeyStore` protocol; `ICloudAvailability` checks
@@ -603,6 +610,108 @@ exists without reading the whole diff history.
   (PR engelsystem/engelsystem#1711) — a server without it just shows a
   normal error banner on that one pull-to-refresh action; nothing else
   in the feature is affected.
+- **Messages** (`Features/Messages`, 2026-09-23, user-requested): send
+  and receive private messages with other users on an instance, reached
+  via a new sidebar entry. See [`CLAUDE.md`](../CLAUDE.md)'s API section
+  for the `/messages` endpoint itself and the capability-probe design —
+  this entry covers the client-side feature built on top of it.
+
+  **Sidebar visibility is entirely conditional.** `MainView.Section
+  .visibleSidebarCases(forActiveInstances:)` only includes `.messages`
+  when at least one active instance's `Instance.messagesSupported` is
+  `true` — a server that doesn't support Messages yet never shows the
+  entry at all (the explicit requirement: "if the instance doesn't
+  offer the new interface, don't show the GUI"), rather than showing it
+  disabled or erroring when opened.
+  `MainView.resolvedSelection(_:visibleSections:)` falls back to
+  `.shifts` if a previously-selected `.messages` becomes unavailable
+  (e.g. the one supporting instance is deactivated) — `Section
+  .sidebarCases` (the persistable set) still includes `.messages`, only
+  `visibleSidebarCases` filters by current support, so a stored
+  last-selected-section value surviving a temporary "no instance
+  supports it" state isn't itself a bug.
+  `messagesSupported` is kept current by a lightweight extra step in
+  `AppSyncCoordinator.syncEverything` (`stepsPerInstance` 4→5, in the
+  same `!shiftsOnly` block as Locations — Watch's `shiftsOnly: true`
+  sync never touches it) — no dedicated Setup/Edit-time probe, the
+  periodic re-check is enough to pick up a server that gains support
+  later.
+
+  **Live-only, no `Cached*`/sync service** — every screen fetches over
+  the network each time, unlike every other feature above. This is the
+  API's first mutable, bidirectional resource; a local cache would need
+  to reconcile offline writes against the server, and avoiding that
+  entirely was simpler for a first version. `MessagesViewModel
+  .refresh(instances:)` fetches each active+supporting instance's
+  conversation list (`APIClient.fetchConversations`) into a
+  `[UUID: [Conversation]]` dictionary (keyed by `Instance.id`, since
+  there's no `@Query`-backed cache to filter) — a failure on one
+  instance doesn't block the others, matching every other multi-instance
+  sync. `MultiInstanceDisplayMode` (merged/switcher/sectioned) still
+  applies, same as Shifts/News/Locations.
+
+  **`MessagesView`** lists conversations (other user's name, latest
+  message preview, unread count badge), each linking to
+  **`ConversationDetailView`** — the message thread, backed by
+  `ConversationDetailViewModel`:
+  - `load(otherUserID:instance:)` fetches the full thread
+    (`APIClient.fetchConversation`) and then marks every unread
+    *incoming* message read (`APIClient.setMessageRead`). "Incoming" is
+    determined structurally — `sender.id == otherUserID` — rather than
+    by resolving the signed-in user's own id, which this live-only
+    feature has no other reason to know; a two-party thread's
+    sender/receiver pair already fully describes direction.
+  - `send(text:otherUserID:instance:)` trims whitespace, rejects blank
+    text, and appends the server's returned `Message` on success
+    (`APIClient.sendMessage`).
+  - `delete(_:instance:)` removes a message the signed-in user sent
+    (`APIClient.deleteMessage`) — the UI only offers this action via a
+    swipe action on the user's own rows (`sender.id != otherUserID`) in
+    the first place; the server would reject deleting the other party's
+    message with `403`, but that's never actually exercised since the
+    option isn't offered.
+
+  **`NewConversationView`** (a sheet, reached via `MessagesView`'s
+  "New Message" toolbar button) implements the "start a new
+  conversation" flow: with more than one active+supporting instance, it
+  first asks which instance to compose from (a message always belongs
+  to exactly one server), then shows **`UserPickerView`**
+  (`UserPickerViewModel.load(instance:)`, backed by the new
+  `APIClient.fetchUsers` → `GET /users`) to pick a recipient. Picking a
+  user dismisses the sheet and navigates to `ConversationDetailView` for
+  that (instance, user) pair — whether or not a conversation with them
+  already exists; the API has no separate "create conversation" step,
+  a conversation is just whatever messages exist between two users.
+
+  **Demo mode simulates real mutation, not just fixed data** — a first
+  for this app. Every other `DemoData` property/method is a read-only
+  fixed snapshot; Messages needed genuine send/delete/mark-read
+  behavior for "Try Demo Mode" to actually represent this feature.
+  `DemoMessageStore` (`EngelsystemClientKit/Networking/DemoData.swift`,
+  `@MainActor`-isolated for safe mutable global state, same reasoning as
+  `DebugLog`) is a singleton holding `[Int: [Message]]` keyed by other-
+  user-id, seeded with one unread message from "Helper Angel" (id 2) so
+  the unread badge and mark-read-on-open behavior have something to
+  show immediately. `DemoData.users` adds three sample users (ids 2–4)
+  backing the new-conversation picker.
+
+  **Tests**: Kit-level coverage
+  (`EngelsystemClientKitTests`) — the pure capability-probe
+  interpretation (`APIClient.messagesSupported(afterProbeError:)`,
+  covering both 404 body shapes plus unrelated errors/missing/
+  unparseable bodies), and a full demo-mode round trip through
+  `fetchConversations`/`fetchConversation`/`sendMessage`/
+  `setMessageRead`/`deleteMessage`/`fetchUsers`. App-target coverage
+  (`EngelsystemClientTests`) — `MessagesViewModel` (loads per instance,
+  one failure doesn't block others), `ConversationDetailViewModel`
+  (load+auto-mark-read, send trims/rejects blank text, delete),
+  `UserPickerViewModel` (sorted by name), and `MainView`'s visibility/
+  fallback logic (`MainViewMessagesVisibilityTests`/
+  `MainViewResolvedSelectionTests`). `AppSyncCoordinator`'s existing
+  progress-count tests were updated for the new 5th step and gained a
+  `messagesSupported` assertion. `testDemoModeNavigationFlow` (UI test)
+  extended to navigate into the seeded "Helper Angel" conversation and
+  send a message end to end.
 - **Instance management** (`Features/Settings/SettingsView`): reached via
   the gear icon in the sidebar's toolbar corner (see "Main navigation"
   above). A plain pushed list (not its own
