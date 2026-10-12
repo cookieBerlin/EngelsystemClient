@@ -1,98 +1,100 @@
-# Project: Engelsystem Client (iOS/iPadOS/watchOS)
+# CLAUDE.md — Instructions for the coding agent
 
-This document is the binding core of the project's architecture and
-constraints. Read it in full before generating code or making
-suggestions.
+You are working on **Engelsystem Client**, a native SwiftUI client
+(iOS, iPadOS, watchOS) for [Engelsystem](https://github.com/engelsystem/engelsystem/).
+Read `README.md` and `docs/architecture.md` first. Deployment target:
+iOS / watchOS 26.5.
+
+## Language
+
+Everything in the repository is **English**: code, comments, identifiers,
+commit messages, documentation, UI strings. The owner may talk to you in
+German; answer in German, write files in English.
+
+## Work loop
+
+1. Take the next open item from `docs/backlog.md` (top to bottom, unless
+   told otherwise). Planning discussion goes to `docs/roadmap.md`.
+2. Split it into small steps. Each step must leave the build green.
+3. For each step: implement → write tests → update docs → verify → commit.
+4. Remove the backlog item in the commit that completes it.
+5. Stop and ask when a requirement is unclear or a decision is not
+   covered by an ADR.
+
+## Commit rules
+
+- Commit **after every completed step**; do not batch unrelated changes.
+- Conventional Commits with scope, e.g. `feat(kit): add MetricKitReporter`,
+  `docs(adr): add template`. Scopes: `kit`, `ios`, `watch`, `complication`,
+  `docs`, `adr`, `build`.
+- Body: short rationale plus `Backlog: <ID>` when an item exists.
+- Code, tests and affected docs in the same commit; update `CHANGELOG.md`
+  for user-visible changes.
+- **Push only when a larger block is finished or when asked**, never after
+  every commit. Never force-push without explicit confirmation.
 
 ## Documentation map
 
-This documentation is split across several files, split out
-2026-09-23 once this file alone had grown past 2500 lines. Keep **all**
-of them up to date as work lands — not just this file:
+Keep **all** of these current as work lands:
 
-- **`CLAUDE.md`** (this file) — purpose, scope, API summary, tech
-  stack, project/target structure, Watch app scope, implementation
-  status, testing practices, and hard constraints. The compact core
-  every session needs.
-- **[`README.md`](README.md)** — short, human-facing overview for
-  GitHub visitors (what this is, how to build/run it). Update it
-  whenever the project's purpose, scope, or build/run steps change.
-- **[`docs/architecture.md`](docs/architecture.md)** — the current
-  design: multi-instance concept, iOS↔Watch sync strategy, background
-  sync, the data/code flow and its error-handling rules, and CloudKit
-  sync for `Instance` metadata.
-- **[`docs/features.md`](docs/features.md)** —
-  feature-by-feature current state of `EngelsystemClientKit`, the iOS
-  app, and the watchOS app. The single biggest, fastest-growing
-  document — append here as features land.
-- **[`docs/app-store.md`](docs/app-store.md)** — current
-  entitlements/signing configuration and actionable Xcode/Info.plist
-  gotchas.
-- **[`docs/history.md`](docs/history.md)** — investigations, bugs, and
-  decisions that are no longer needed to understand today's code, kept
-  for the lessons learned. Add here rather than letting closed
-  investigations bloat the current-state docs above.
-- **[`docs/roadmap.md`](docs/roadmap.md)** — forward-looking planning:
-  not-yet-implemented features, release planning (e.g. TestFlight), and
-  open decisions awaiting the user's input. All planning discussion
-  belongs here, not just in chat — move it here as soon as it firms up
-  past "just an idea," and move an item out (into
-  `docs/features.md`, with a dated note) once it actually
-  ships.
-- **[`docs/adr/`](docs/adr/)** — Architecture Decision Records, one file
-  per significant architectural decision going forward (started
-  2026-10-09; existing decisions made before this date live in their
-  original narrative form in `docs/architecture.md`/`docs/history.md`
-  and are **not** being retroactively converted, unless asked). See
-  [`docs/adr/README.md`](docs/adr/README.md) for the index and template.
-  Write a new ADR whenever a decision has real trade-offs worth
-  recording for a future session — not for routine implementation
-  choices that `docs/features.md` already captures fine.
-- **[`docs/backlog.md`](docs/backlog.md)** — concrete, ready-to-pick-up
-  development tasks for the next work sessions — the tactical
-  counterpart to `docs/roadmap.md`'s strategic/feature-level planning.
-  A Roadmap item moves to the Backlog once it's broken down into actual
-  tasks someone could start on; a Backlog item is removed (not just
-  checked off) once it's done and reflected in
-  `docs/features.md`.
+| File | Content |
+|---|---|
+| `README.md` | Human-facing overview, build/run, doc table |
+| `CONTRIBUTING.md` | Workflow, commit rules, definition of done |
+| `CHANGELOG.md` | User-visible changes (Keep a Changelog) |
+| `docs/requirements.md` | Purpose, Phase 1 scope, Phase 2 rules, Watch scope |
+| `docs/architecture.md` | Tech stack, structure, API, demo mode, sync, data flow |
+| `docs/features.md` | Feature-by-feature current state; append as features land |
+| `docs/testing.md` | Test practices and machine gotchas |
+| `docs/security.md` | Credentials, transport, logging |
+| `docs/app-store.md` | Identifiers, entitlements, privacy, export compliance |
+| `docs/release.md` | TestFlight/App Store release checklist |
+| `docs/privacy.md`, `docs/support.md` | Published legal pages — keep in sync with real data handling |
+| `docs/history.md` | Closed investigations and lessons learned |
+| `docs/roadmap.md` | Forward-looking planning and open decisions |
+| `docs/backlog.md` | Ready-to-pick-up tasks (removed once done) |
+| `docs/adr/` | Architecture Decision Records (index and template inside) |
 
-## Scope and requirements
+`docs/_config.yml` lists which docs GitHub Pages must **not** publish —
+update it with every added or renamed file in `docs/`.
+Write an ADR for decisions with real trade-offs; routine choices belong in
+`docs/features.md`.
 
-Moved to [`docs/requirements.md`](docs/requirements.md) (D-04, 2026-10-12): purpose,
-Phase 1 scope, **Phase 2 (do not implement now; no disabled/hidden UI
-for backend features that do not exist yet)**, Watch app scope (deliberately
-minimal, except Settings parity) and the implementation order.
+## Quality gates
 
-## API, demo mode, tech stack, project structure
+- Always add tests for new features: Swift Testing (`import Testing`) in
+  `EngelsystemClientKit`, XCUITest for non-trivial UI flows. Details:
+  `docs/testing.md`.
+- Verify with a full Xcode build of the iOS **and** Watch app, not only
+  `swift test` (macOS compiles platform-guarded code out).
+- No force unwraps in new code without a reason.
 
-Moved to [`docs/architecture.md`](docs/architecture.md) (D-03, 2026-10-12):
+## Architecture rules
 
-- **Tech stack (binding)** — SwiftUI/`@Observable`, SwiftData + CloudKit,
-  generated DTOs (never hand-written), `URLSession` + async/await,
-  Keychain, local-only notifications.
-- **Project/target structure** and the Watch app target rename note.
-- **API** — OpenAPI source, auth, endpoint list and the provenance of
-  not-yet-merged server branches (`/news/{id}`, `/locations/{id}`,
-  `/messages`).
-- **Demo mode** — sentinel-URL approach in `APIClient`/`DemoData`.
+- Shared logic lives in `EngelsystemClientKit`; views and view models in
+  the app targets. `@Observable` view models, `NavigationSplitView` on iPad.
+- DTOs are generated from `openapi.yml` — never hand-edit `Generated/`.
+- Demo data lives only in `APIClient`/`DemoData`, never in views.
+- Notifications are local only; never assume server-side push.
+- Sync is iCloud-based; WatchConnectivity is only an optional nudge.
+- Phase 2 features (shift sign-up, create/edit shifts) are not built, and
+  not prepared as disabled/hidden UI, until the backend endpoint exists.
 
-## Testing
+## Security
 
-Binding rules (details, commands and machine-specific gotchas in
-[`docs/testing.md`](docs/testing.md)):
+- Credentials only in the Keychain. Never log API keys or tokens.
+- No trust exceptions for invalid TLS certificates. See `docs/security.md`.
 
-- **Always add tests for new features** — logic in `EngelsystemClientKit`
-  gets Swift Testing unit tests (`swift test` from `EngelsystemClientKit`),
-  non-trivial UI flows get an XCUITest. No XCTest for unit tests.
-- Verify with a full Xcode build, not only `swift test` (macOS compiles
-  platform-guarded code out).
-- `xcodebuild test` on iOS: add `-parallel-testing-enabled NO`.
+## Dependencies
 
-## Important constraints that apply to every implementation step
+- No new third-party dependency without an ADR. The project is GPL-2.0;
+  dependency licenses must be compatible.
 
-- No disabled/hidden buttons for backend features that don't exist yet
-  (Phase 2)
-- Push notifications exclusively local, never assume server-side push
-- Do not hand-modify OpenAPI codegen output — changes belong in
-  `openapi.yml` or in a mapping layer outside of `Generated/`
-- Sync mechanism is iCloud-based, not WatchConnectivity-based
+## Useful commands
+
+```sh
+cd EngelsystemClientKit && swift test               # Kit unit tests (macOS)
+xcodebuild build -scheme EngelsystemClient -destination 'generic/platform=iOS Simulator'
+xcodebuild test -scheme EngelsystemClient -destination 'platform=iOS Simulator,name=<device>' -parallel-testing-enabled NO
+Scripts/generate-api.sh                              # regenerate DTOs from openapi.yml
+```

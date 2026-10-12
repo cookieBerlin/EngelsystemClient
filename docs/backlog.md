@@ -19,9 +19,6 @@ done and reflected in [`features.md`](features.md).
 Each item is its own commit; update all cross-references (incl.
 `docs/_config.yml` excludes and the memory notes) in the same commit.
 
-- [ ] **D-08** Slim `CLAUDE.md` to the rules file: language, work loop,
-      commit rules (Conventional Commits, `Backlog: <ID>`), architecture
-      rules, constraints, commands.
 - [ ] **D-09** Add `CONTRIBUTING.md` and `CHANGELOG.md`; update
       `README.md`'s documentation table.
 - [ ] **D-10** Retroactive ADRs 0003ff. for the big earlier decisions
