@@ -1,0 +1,232 @@
+import Foundation
+import SwiftData
+import UserNotifications
+import Testing
+import EngelsystemClientKit
+@testable import EngelsystemClient
+
+@MainActor
+private func makeContext() throws -> ModelContext {
+    let schema = Schema([Instance.self, NotificationLeadTimeSettings.self, CachedShift.self])
+    let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+    return ModelContext(try ModelContainer(for: schema, configurations: [config]))
+}
+
+private final class AllowingCenter: NotificationCenterScheduling, @unchecked Sendable {
+    var added: [UNNotificationRequest] = []
+    func authorizationStatus() async -> UNAuthorizationStatus { .authorized }
+    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool { true }
+    func pendingNotificationRequests() async -> [UNNotificationRequest] { added }
+    func add(_ request: UNNotificationRequest) async throws { added.append(request) }
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {}
+}
+
+struct SmallEnumAndHelperTests {
+    @Test func keyStoreSelectionPicksTheSyncedStoreFirstOnlyWhenICloudIsAvailable() {
+        let withICloud = KeyStoreSelection.stores(iCloudAvailable: true)
+        #expect(withICloud.primary is KeychainSyncStore && withICloud.secondary is LocalKeychainStore)
+        let without = KeyStoreSelection.stores(iCloudAvailable: false)
+        #expect(without.primary is LocalKeychainStore && without.secondary is KeychainSyncStore)
+        _ = KeyStoreSelection.currentStores()
+    }
+
+    @Test func filterAndDisplayModeEnumsHaveTitlesAndIDs() {
+        for filter in NewsMeetingFilter.allCases {
+            #expect(filter.id == filter.rawValue)
+            #expect(!filter.title.isEmpty)
+        }
+        #expect(NewsMeetingFilter.all.title == "All")
+        #expect(NewsMeetingFilter.meetingsOnly.title == "Meetings")
+        #expect(NewsMeetingFilter.nonMeetingsOnly.title == "Non-Meetings")
+        for mode in MultiInstanceDisplayMode.allCases {
+            #expect(mode.id == mode.rawValue)
+            #expect(!mode.title.isEmpty)
+        }
+        #expect(MultiInstanceDisplayMode.merged.title == "Merged")
+        #expect(MultiInstanceDisplayMode.switcher.title == "Switcher")
+        #expect(MultiInstanceDisplayMode.sectioned.title == "Sectioned")
+    }
+
+    private struct PlainError: Error, LocalizedError { var errorDescription: String? { "plain failure" } }
+
+    @Test func otherErrorsFallBackToTheirLocalizedDescription() {
+        #expect(SyncErrorMapper.message(for: PlainError()) == "plain failure")
+    }
+}
+
+extension StubbedNetworkTests {
+    @Suite
+    struct SetupViewModelTests {
+        init() { StubbedNetwork.install() }
+
+        @Test @MainActor func savingAndUsingTheDemoInstanceInsertsIt() async throws {
+            let context = try makeContext()
+            let viewModel = InstanceSetupViewModel()
+            #expect(await viewModel.useDemoInstance(in: context))
+            let saved = try context.fetch(FetchDescriptor<Instance>())
+            #expect(saved.count == 1)
+            #expect(saved[0].baseURL == Instance.demoBaseURL)
+            try? LocalKeychainStore().deleteAPIKey(for: saved[0].apiKeyKeychainRef)
+            try? KeychainSyncStore().deleteAPIKey(for: saved[0].apiKeyKeychainRef)
+        }
+
+        @Test @MainActor func savingWithAnInvalidServerURLReportsTheError() async throws {
+            let context = try makeContext()
+            let viewModel = InstanceSetupViewModel()
+            viewModel.name = "Broken"
+            viewModel.baseURL = "   "
+            viewModel.apiKey = "k"
+            #expect(await viewModel.save(in: context) == false)
+            #expect(viewModel.errorMessage != nil)
+            #expect(try context.fetch(FetchDescriptor<Instance>()).isEmpty)
+        }
+
+        @Test @MainActor func aFailingConnectionTestShowsTheErrorAndKeepsSaveDisabled() async {
+            StubURLProtocol.route("GET /api/v0-beta/info", status: 401)
+            let viewModel = InstanceSetupViewModel()
+            viewModel.baseURL = "https://stub.test"
+            viewModel.apiKey = "bad"
+            await viewModel.testConnection()
+            #expect(!viewModel.connectionTested)
+            #expect(viewModel.errorMessage != nil)
+        }
+
+        @Test @MainActor func editingCanTestOnlyWithAServerURLAndNotWhileTesting() {
+            let instance = Instance(name: "I", baseURL: "https://stub.test", apiKeyKeychainRef: "r")
+            let viewModel = EditInstanceViewModel(instance: instance)
+            #expect(viewModel.canTest)
+            viewModel.baseURL = "  "
+            #expect(!viewModel.canTest)
+        }
+
+        @Test @MainActor func editingWithoutAStoredKeyReportsTheErrorOnTestAndSave() async throws {
+            let context = try makeContext()
+            let instance = Instance(name: "I", baseURL: "https://stub.test", apiKeyKeychainRef: "missing-\(UUID().uuidString)")
+            context.insert(instance)
+            let viewModel = EditInstanceViewModel(instance: instance)
+
+            await viewModel.testConnection(for: instance)
+            #expect(!viewModel.connectionTested)
+            #expect(viewModel.errorMessage != nil)
+
+            #expect(await viewModel.save(instance: instance, in: context) == false)
+            #expect(viewModel.errorMessage != nil)
+        }
+    }
+
+    @Suite
+    struct MessagesAndShiftsFailureTests {
+        init() { StubbedNetwork.install() }
+
+        private let prefix = "/api/v0-beta"
+
+        private func demoMessage() async throws -> Message {
+            let demo = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
+            return try #require(try await APIClient.shared.fetchConversations(demo).first?.latestMessage)
+        }
+
+        @MainActor
+        private func stubInstance() throws -> Instance {
+            let ref = "failure-tests-\(UUID().uuidString)"
+            try LocalKeychainStore().save(apiKey: "k", for: ref)
+            return Instance(name: "Stub", baseURL: "https://stub.test", apiKeyKeychainRef: ref)
+        }
+
+        @Test @MainActor func aFailedConversationLoadShowsAnErrorButCancellationDoesNot() async throws {
+            let instance = try stubInstance()
+            defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+            StubURLProtocol.route("GET \(prefix)/messages/5", status: 500)
+            let viewModel = ConversationDetailViewModel()
+            await viewModel.load(otherUserID: 5, instance: instance)
+            #expect(viewModel.errorMessage != nil)
+
+            let task = Task { @MainActor in
+                while !Task.isCancelled { await Task.yield() }
+                await viewModel.load(otherUserID: 5, instance: instance)
+            }
+            task.cancel()
+            await task.value
+            #expect(viewModel.errorMessage == nil)
+        }
+
+        @Test @MainActor func aFailedMarkAsReadDoesNotSurfaceAnError() async throws {
+            let instance = try stubInstance()
+            defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+            let unread = try await demoMessage()
+            StubURLProtocol.route(
+                "GET \(prefix)/messages/\(unread.sender.id)",
+                body: Data("{\"data\":{\"messages\":".utf8) + (try CodableHelper.jsonEncoder.encode([unread])) + Data("}}".utf8)
+            )
+            StubURLProtocol.route("PATCH \(prefix)/messages/\(unread.id)", status: 500)
+            let viewModel = ConversationDetailViewModel()
+            await viewModel.load(otherUserID: unread.sender.id, instance: instance)
+            #expect(viewModel.errorMessage == nil)
+            #expect(viewModel.messages.count == 1)
+        }
+
+        @Test @MainActor func failedSendAndDeleteShowErrors() async throws {
+            let instance = try stubInstance()
+            defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+            StubURLProtocol.route("POST \(prefix)/messages/5", status: 403)
+            StubURLProtocol.route("DELETE \(prefix)/messages/7", status: 403)
+            let viewModel = ConversationDetailViewModel()
+
+            #expect(await viewModel.send(text: "hi", otherUserID: 5, instance: instance) == false)
+            #expect(viewModel.errorMessage != nil)
+
+            viewModel.errorMessage = nil
+            let message = try await demoMessage()
+            await viewModel.delete(Message(id: 7, text: "x", sender: message.sender, receiver: message.receiver, read: true, createdAt: Date(), updatedAt: nil), instance: instance)
+            #expect(viewModel.errorMessage != nil)
+        }
+
+        @Test @MainActor func aFailedUserLoadShowsAnErrorButCancellationDoesNot() async throws {
+            let instance = try stubInstance()
+            defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+            StubURLProtocol.route("GET \(prefix)/users", status: 500)
+            let viewModel = UserPickerViewModel()
+            await viewModel.load(instance: instance)
+            #expect(viewModel.errorMessage != nil)
+
+            let task = Task { @MainActor in
+                while !Task.isCancelled { await Task.yield() }
+                await viewModel.load(instance: instance)
+            }
+            task.cancel()
+            await task.value
+            #expect(viewModel.errorMessage == nil)
+        }
+
+        @Test @MainActor func shiftsRefreshFlagsUnauthorizedAndIgnoresCancellation() async throws {
+            let context = try makeContext()
+            let instance = try stubInstance()
+            defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+            context.insert(instance)
+            StubURLProtocol.route("GET \(prefix)/users/self/shifts", status: 401)
+            let viewModel = ShiftsViewModel(notificationScheduler: NotificationScheduler(center: AllowingCenter()))
+            await viewModel.refresh(instances: [instance], in: context)
+            #expect(viewModel.isUnauthorized)
+
+            let task = Task { @MainActor in
+                while !Task.isCancelled { await Task.yield() }
+                await viewModel.refresh(instances: [instance], in: context)
+            }
+            task.cancel()
+            await task.value
+            #expect(viewModel.errorMessage == nil)
+        }
+
+        @Test @MainActor func aCleanShiftsRefreshSchedulesReminders() async throws {
+            let context = try makeContext()
+            let ref = "shifts-notify-\(UUID().uuidString)"
+            try LocalKeychainStore().save(apiKey: "demo", for: ref)
+            defer { try? LocalKeychainStore().deleteAPIKey(for: ref) }
+            let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: ref)
+            context.insert(instance)
+            let center = AllowingCenter()
+            let viewModel = ShiftsViewModel(notificationScheduler: NotificationScheduler(center: center))
+            await viewModel.refresh(instances: [instance], in: context)
+            #expect(viewModel.errorMessage == nil)
+        }
+    }
+}

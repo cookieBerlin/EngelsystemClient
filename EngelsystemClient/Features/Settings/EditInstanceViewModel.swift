@@ -131,8 +131,7 @@ final class EditInstanceViewModel {
         let trimmedKey = apiKey.trimmingCharacters(in: .whitespaces)
         let newKeyToStore = trimmedKey.isEmpty ? nil : trimmedKey
 
-        let primaryStore: APIKeyStore = ICloudAvailability.isAvailable ? KeychainSyncStore() : LocalKeychainStore()
-        let secondaryStore: APIKeyStore = ICloudAvailability.isAvailable ? LocalKeychainStore() : KeychainSyncStore()
+        let (primaryStore, secondaryStore) = KeyStoreSelection.currentStores()
 
         do {
             let existingCredential = try credentialResolver.credential(for: instance)

@@ -92,7 +92,7 @@ final class InstanceSetupViewModel {
         isTesting = true
         defer { isTesting = false }
 
-        let store: APIKeyStore = ICloudAvailability.isAvailable ? KeychainSyncStore() : LocalKeychainStore()
+        let store = KeyStoreSelection.currentStores().primary
         do {
             let instance = try await setupService.createInstance(
                 name: name.trimmingCharacters(in: .whitespaces),
