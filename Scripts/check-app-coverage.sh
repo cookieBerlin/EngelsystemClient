@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Runs the iOS app's unit tests with coverage and fails if any non-excluded file of the
 # app target has less than 100 % line coverage (docs/testing.md, ADR 0009/0010).
-# Usage: Scripts/check-app-coverage.sh [-only-testing:... passed to xcodebuild]
+# Usage: Scripts/check-app-coverage.sh [extra xcodebuild args]
+#   Watch app: SCHEME="EngelsystemClient Watch App" TARGET="EngelsystemClient Watch App.app" \
+#              TEST_TARGET="EngelsystemClient Watch AppTests" DESTINATION="platform=watchOS Simulator,name=Apple Watch Series 12 (46mm)" Scripts/check-app-coverage.sh
 # Env:   COVERAGE_THRESHOLD (default 1.0), SIMULATOR (default "iPhone 17"),
 #        TARGET (default "EngelsystemClient.app"; use "EngelsystemClient Watch App.app" etc.),
-#        SCHEME (default "EngelsystemClient"), TEST_TARGET (default "EngelsystemClientTests")
+#        SCHEME (default "EngelsystemClient"), TEST_TARGET (default "EngelsystemClientTests"),
+#        DESTINATION (default: the iOS simulator named by SIMULATOR)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -14,10 +17,11 @@ SIMULATOR="${SIMULATOR:-iPhone 17}"
 TARGET="${TARGET:-EngelsystemClient.app}"
 SCHEME="${SCHEME:-EngelsystemClient}"
 TEST_TARGET="${TEST_TARGET:-EngelsystemClientTests}"
+DESTINATION="${DESTINATION:-platform=iOS Simulator,name=$SIMULATOR}"
 RESULT="$(mktemp -d)/cov.xcresult"
 
 cd "$ROOT"
-xcodebuild test -scheme "$SCHEME" -destination "platform=iOS Simulator,name=$SIMULATOR" \
+xcodebuild test -scheme "$SCHEME" -destination "$DESTINATION" \
   -parallel-testing-enabled NO -only-testing:"$TEST_TARGET" "$@" \
   -enableCodeCoverage YES -resultBundlePath "$RESULT" >/dev/null
 xcrun xccov view --report --json "$RESULT" > "$RESULT.json"

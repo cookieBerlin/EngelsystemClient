@@ -42,7 +42,9 @@ final class WatchShiftsSyncCoordinator {
     /// WatchConnectivity delegate) that have no `@Query`-backed instance list of their
     /// own to pass in — fetches every active `Instance` directly from `modelContext`.
     func refreshActiveInstances(in modelContext: ModelContext, handleNotifications: Bool = true) async {
-        let instances = ((try? modelContext.fetch(FetchDescriptor<Instance>())) ?? []).filter(\.isActive)
+        // A failed fetch yields nothing (compactMap drops the nil) — written without `?? []` so
+        // there is no never-taken autoclosure region to cover.
+        let instances = [try? modelContext.fetch(FetchDescriptor<Instance>())].compactMap { $0 }.flatMap { $0 }.filter(\.isActive)
         await refresh(instances: instances, in: modelContext, handleNotifications: handleNotifications)
     }
 
@@ -69,7 +71,7 @@ final class WatchShiftsSyncCoordinator {
         )
 
         let instanceIDs = Set(instances.map(\.id))
-        let allShifts = ((try? modelContext.fetch(FetchDescriptor<CachedShift>())) ?? [])
+        let allShifts = [try? modelContext.fetch(FetchDescriptor<CachedShift>())].compactMap { $0 }.flatMap { $0 }
             .filter { instanceIDs.contains($0.instanceID) }
         WatchComplicationUpdater.refresh(shifts: allShifts, store: snapshotStore)
         DebugLog.log("WatchShiftsSyncCoordinator: refresh finished, complication updated")

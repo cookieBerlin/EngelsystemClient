@@ -6,12 +6,12 @@ import Foundation
 /// number auto-increments only when archiving (see CLAUDE.md's Entitlements section);
 /// `GitCommitHash` is written into every build, Debug included, by the "Embed Git
 /// Commit Hash" build phase.
-enum AppVersionInfo {
-    static var displayString: String {
+public enum AppVersionInfo {
+    public static var displayString: String {
         displayString(info: Bundle.main.infoDictionary)
     }
 
-    static func displayString(info: [String: Any]?) -> String {
+    public static func displayString(info: [String: Any]?) -> String {
         let version = info?["CFBundleShortVersionString"] as? String ?? "?"
         let build = info?["CFBundleVersion"] as? String ?? "?"
         var text = "Version \(version) (\(build))"

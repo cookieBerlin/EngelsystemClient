@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import EngelsystemClientKit
 
 /// Shown briefly on app launch — icon, app name, and version info — while `ContentView`
 /// finishes its first render. There's no slow async startup work today (the

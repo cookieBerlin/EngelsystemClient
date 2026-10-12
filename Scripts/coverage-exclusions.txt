@@ -33,3 +33,16 @@
 */EngelsystemClient/Features/Shared/InstancePicker.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/Launch/LaunchScreenView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/ContentView.swift   # SwiftUI layout (ADR 0010)
+
+# Watch app (ADR 0010): SwiftUI layout files and the WatchConnectivity delegate adapter.
+*/EngelsystemClient Watch App/ContentView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient Watch App/Views/WatchMainView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient Watch App/Views/NextShiftView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient Watch App/Setup/WatchSetupView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient Watch App/Settings/WatchSettingsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient Watch App/Services/WatchConnectivityReceiver.swift   # WCSessionDelegate adapter: only the system calls activate()/the delegate callbacks; its one logic method, handleApplicationContext, is a single forward call that is tested. Owner standing approval for thin adapter layers 2026-10-12
+
+# Watch complication (WidgetKit extension, no test target): the timeline provider is WidgetKit glue (placeholder/snapshot/timeline
+# entry points the system calls with a Context tests cannot construct) and the rest is SwiftUI layout; the data it shows is
+# read via NextShiftSnapshotStore, which is tested in the Kit. Owner approval (thin adapter + layout rules) 2026-10-12
+*/EngelsystemComplication/*   # WidgetKit glue and SwiftUI layout

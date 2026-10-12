@@ -80,20 +80,6 @@ struct BackgroundSyncSchedulerTests {
     }
 }
 
-struct AppVersionInfoTests {
-    @Test func displayStringShowsVersionBuildAndAKnownCommitHash() {
-        let info: [String: Any] = ["CFBundleShortVersionString": "1.2", "CFBundleVersion": "34", "GitCommitHash": "abc1234"]
-        #expect(AppVersionInfo.displayString(info: info) == "Version 1.2 (34) · abc1234")
-    }
-
-    @Test func missingValuesAndUnknownHashesAreOmitted() {
-        #expect(AppVersionInfo.displayString(info: nil) == "Version ? (?)")
-        #expect(AppVersionInfo.displayString(info: ["GitCommitHash": "unknown"]) == "Version ? (?)")
-        #expect(AppVersionInfo.displayString(info: ["GitCommitHash": ""]) == "Version ? (?)")
-        _ = AppVersionInfo.displayString
-    }
-}
-
 struct NewsMarkdownRendererExtraTests {
     @Test func headersAreRenderedBoldAndLarger() {
         let result = NewsMarkdownRenderer.render("# Title\n\nBody")

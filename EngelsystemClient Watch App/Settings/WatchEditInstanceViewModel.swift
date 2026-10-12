@@ -132,7 +132,7 @@ final class WatchEditInstanceViewModel {
         }
     }
 
-    private static func message(for error: Error) -> String {
+    static func message(for error: Error) -> String {
         if let apiError = error as? APIError {
             return apiError.userMessage
         }
