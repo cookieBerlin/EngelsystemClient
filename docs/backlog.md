@@ -12,7 +12,6 @@ Beta App Review as of 2026-10-12; if Apple rejects it, the owner reports the rea
 
 ## App Store screenshots (see ROADMAP.md)
 
-- [ ] **S-04** iPad (landscape) support in the script and tests.
 - [ ] **S-05** Apple Watch screenshot via the seed argument and `simctl io`.
 - [ ] **S-06** Docs (`app-store.md`, `release.md`, `.gitignore`) and the ADR.
 - [ ] **S-07** Full run on all devices; review every image; fix scene issues.

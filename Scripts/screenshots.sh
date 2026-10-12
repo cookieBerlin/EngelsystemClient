@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Generates the App Store screenshots from Demo Mode (UI test class ScreenshotTests, seeded by the Debug-only
 # `-seed-demo-instance` launch argument) into Screenshots/<device>/<language>/NN-<scene>.png (git-ignored).
-# Usage: Scripts/screenshots.sh [iphone|ipad|watch|all]   (default: all; ipad and watch are not implemented yet)
-# Env:   IPHONE_TYPE (default iPhone-18-Pro-Max, the 6.9" class)
+# Usage: Scripts/screenshots.sh [iphone|ipad|watch|all]   (default: all; watch is not implemented yet)
+# Env:   IPHONE_TYPE (default iPhone-18-Pro-Max, the 6.9" class), IPAD_TYPE (default iPad-Pro-13-inch-M5-12GB)
 # The script creates and uses its own simulators ("EngelsystemClient Screenshots …"); yours stay untouched.
 # Needs an unlocked screen (UI tests). A fresh simulator is slow for a while — a run takes several minutes.
 # App Store sizes (App Store Connect › Screenshot specifications, checked 2026-10-12): iPhone 6.9" 1320 × 2868,
@@ -16,6 +16,9 @@ SCENES=(01-shifts 02-news 03-profile 04-locations 05-messages 06-settings)
 IPHONE_NAME="EngelsystemClient Screenshots iPhone"
 IPHONE_TYPE="com.apple.CoreSimulator.SimDeviceType.${IPHONE_TYPE:-iPhone-18-Pro-Max}"
 IPHONE_SIZE="1320x2868"
+IPAD_NAME="EngelsystemClient Screenshots iPad"
+IPAD_TYPE="com.apple.CoreSimulator.SimDeviceType.${IPAD_TYPE:-iPad-Pro-13-inch-M5-12GB}"
+IPAD_SIZE="2752x2064" # landscape; the test rotates the iPad
 
 # Creates the simulator if missing and returns its UDID on stdout.
 ensure_simulator() { # name device-type
@@ -47,8 +50,32 @@ prepare_simulator() { # udid
   xcrun simctl uninstall "$udid" "$BUNDLE_ID" 2> /dev/null || true
 }
 
-# Removes the EXIF and XMP chunks (the simulator's orientation/size from before a rotation) from a PNG.
-strip_metadata() { # file
+# Bakes the EXIF orientation of a PNG into its pixels (the simulator stores iPad landscape screenshots rotated
+# and only marks the rotation in EXIF), then removes the EXIF and XMP chunks so the file is plain pixels.
+normalize_png() { # file
+  local degrees
+  degrees="$(python3 - "$1" << 'PY'
+import struct, sys
+data = open(sys.argv[1], "rb").read()
+index, orientation = 8, 1
+while index < len(data):
+    length = struct.unpack(">I", data[index:index + 4])[0]
+    kind = data[index + 4:index + 8]
+    if kind == b"eXIf":
+        tiff = data[index + 8:index + 8 + length]
+        endian = "<" if tiff[:2] == b"II" else ">"
+        ifd = struct.unpack(endian + "I", tiff[4:8])[0]
+        for entry in range(struct.unpack(endian + "H", tiff[ifd:ifd + 2])[0]):
+            offset = ifd + 2 + entry * 12
+            if struct.unpack(endian + "H", tiff[offset:offset + 2])[0] == 0x0112:
+                orientation = struct.unpack(endian + "H", tiff[offset + 8:offset + 10])[0]
+    index += 12 + length
+print({3: 180, 6: 90, 8: 270}.get(orientation, 0))
+PY
+)"
+  if [[ "$degrees" != "0" ]]; then
+    sips -r "$degrees" "$1" > /dev/null
+  fi
   python3 - "$1" << 'PY'
 import struct, sys
 path = sys.argv[1]
@@ -99,7 +126,7 @@ PY
   verify_device "$device" "$target" "$size"
 }
 
-# Every scene must exist with the exact App Store pixel size; metadata is stripped; prints a summary.
+# Every scene must exist with the exact App Store pixel size (after baking in the EXIF orientation); prints a summary.
 verify_device() { # device dir expected-size
   local device="$1" dir="$2" size="$3" failed=0 scene file actual
   for scene in "${SCENES[@]}"; do
@@ -109,13 +136,13 @@ verify_device() { # device dir expected-size
       failed=1
       continue
     fi
+    normalize_png "$file"
     actual="$(sips -g pixelWidth -g pixelHeight "$file" | awk '/pixelWidth/ {w=$2} /pixelHeight/ {h=$2} END {print w "x" h}')"
     if [[ "$actual" != "$size" ]]; then
       echo "error: $file is $actual, expected $size" >&2
       failed=1
       continue
     fi
-    strip_metadata "$file"
     echo "  ok  $file  $actual"
   done
   return $failed
@@ -124,17 +151,20 @@ verify_device() { # device dir expected-size
 main() {
   local what="${1:-all}"
   case "$what" in
-    iphone | all)
-      run_ui_device "iphone" "$(ensure_simulator "$IPHONE_NAME" "$IPHONE_TYPE")" "$IPHONE_SIZE"
-      ;;
-  esac
-  case "$what" in
-    ipad | watch | all)
-      [[ "$what" == "all" ]] || { echo "error: $what is not implemented yet" >&2; exit 2; }
-      echo "note: ipad and watch are not implemented yet (backlog S-04, S-05)"
-      ;;
-    iphone) ;;
+    iphone | ipad | watch | all) ;;
     *) echo "usage: $0 [iphone|ipad|watch|all]" >&2; exit 2 ;;
   esac
+  if [[ "$what" == "iphone" || "$what" == "all" ]]; then
+    run_ui_device "iphone" "$(ensure_simulator "$IPHONE_NAME" "$IPHONE_TYPE")" "$IPHONE_SIZE"
+  fi
+  if [[ "$what" == "ipad" || "$what" == "all" ]]; then
+    run_ui_device "ipad" "$(ensure_simulator "$IPAD_NAME" "$IPAD_TYPE")" "$IPAD_SIZE"
+  fi
+  if [[ "$what" == "watch" ]]; then
+    echo "error: watch is not implemented yet" >&2
+    exit 2
+  elif [[ "$what" == "all" ]]; then
+    echo "note: watch is not implemented yet (backlog S-05)"
+  fi
 }
 main "$@"
