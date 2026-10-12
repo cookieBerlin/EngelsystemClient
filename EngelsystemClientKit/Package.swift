@@ -27,7 +27,10 @@ let package = Package(
         .testTarget(
             name: "EngelsystemClientKitTests",
             dependencies: ["EngelsystemClientKit"],
-            path: "Tests/EngelsystemClientKitTests"
+            path: "Tests/EngelsystemClientKitTests",
+            // Tests swap the generated client's global `requestBuilderFactory` (see
+            // StubbedNetwork.swift), which Swift 6 mode rejects as unsafe shared state.
+            swiftSettings: [.swiftLanguageMode(.v5)]
         )
     ]
 )

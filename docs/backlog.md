@@ -18,11 +18,10 @@ done and reflected in [`features.md`](features.md).
 
 ## Coverage ramp-up (ADR 0009)
 
-Baseline 2026-10-12 (`Scripts/check-coverage.sh`, Kit own code 76 %).
+Baseline 2026-10-12 (`Scripts/check-coverage.sh`): Kit own code 76 %; after
+C-01/C-02 88 %.
 Take files in this order; remove an item once the file is at 100 %.
 
-- [ ] **C-01** `Networking/APIClient.swift` (38 %): real-network path via a
-      stubbed `URLProtocol`.
 - [ ] **C-03** Remaining Kit files below 100 %: `NewsNotifier`,
       `KeychainSyncStore`, `PollingInterval`, `CloudSyncStatus`,
       `WatchConnectivityBridge`, `APIError`, `LocalKeychainStore`,

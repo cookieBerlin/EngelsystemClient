@@ -18,6 +18,17 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   (`xcodebuild test -enableCodeCoverage YES`, then `xcrun xccov view
   --report`) or a justified exclusion. Baseline 2026-10-12: Kit own code
   76 %, iOS app unit tests 15.5 %, Watch app 0 %.
+- **Testing `APIClient`'s real network path** (2026-10-12): the generated
+  client is redirected to canned responses via
+  `EngelsystemAPIAPI.requestBuilderFactory` — see
+  `Tests/.../StubbedNetwork.swift` (a `URLProtocol` stub plus builder
+  subclasses overriding `createURLSession()`). Register routes as
+  `StubURLProtocol.route("GET /news", data: …)` (bodies are demo data
+  encoded with the generator's own encoder). Suites using it must be
+  `.serialized`, call `StubbedNetwork.install()` in `init`, and must not
+  mutate the shared `DemoMessageStore` (other tests expect it untouched).
+  The test target builds in Swift 5 language mode for this reason (the
+  generator's globals are not Swift 6 concurrency-safe).
 - **Always add tests for new features** — logic in `EngelsystemClientKit`
   gets unit tests, non-trivial UI flows in the app targets get an XCUITest.
   Don't rely on manual simulator checks alone.
