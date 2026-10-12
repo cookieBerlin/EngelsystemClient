@@ -9,15 +9,8 @@ done and reflected in [`features.md`](features.md).
 
 ## TestFlight release
 
-- [ ] **T-02** Internal Testing (owner, in App Store Connect): wait until build 0.1.0 (2) shows
-      "Ready to Test" under TestFlight → Builds; create an *Internal* group (e.g. "Team"), add
-      yourself (App Store Connect users only), assign the build, install it via the TestFlight
-      app on iPhone and Watch, and smoke-test: Demo Mode, a real instance, notifications,
-      complication, Settings > Export Diagnostics. Answer the build's compliance prompt only if
-      shown (the Info.plist pre-answers it).
-- [ ] **T-03** External Testing / Beta App Review (owner, then Claude drafts texts): under
-      TestFlight > Test Information fill in Beta App Description, Feedback Email
-      (`EngelsystemClient@cuccato.net`), Privacy Policy URL
-      (`https://cookieberlin.github.io/EngelsystemClient/privacy`) and, for review, a note that
-      reviewers need no account: use **Try Demo Mode** on the first screen. Then create an
-      *External* group and submit the build for Beta App Review. Draft texts: see `release.md`.
+- [ ] **T-03** External Testing: internal testing is done and build 0.1.0 (2) was submitted for
+      Beta App Review (2026-10-12). Waiting for Apple (usually up to a day). Then: share the public
+      TestFlight link or invite testers, watch the TestFlight feedback and crash reports, and fix
+      what comes in. If the review is rejected, the reason arrives by email — most likely
+      candidates are the demo-mode note or the privacy URL.
