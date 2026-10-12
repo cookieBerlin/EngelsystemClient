@@ -46,3 +46,21 @@ complication — see "Build number" in [`app-store.md`](app-store.md) for the nu
 - Tag the commit (`v<MARKETING_VERSION>`), move the finished entries from
   [`roadmap.md`](roadmap.md)/[`backlog.md`](backlog.md) into
   [`features.md`](features.md).
+
+## Draft texts for TestFlight Test Information
+
+- **Beta App Description**: "Engelsystem Client is an unofficial companion app for the
+  Engelsystem volunteer-management system used by events like the Chaos Communication
+  Congress. See your own shifts, news, locations and messages, get local reminders before a
+  shift, and glance at your next shift on Apple Watch. Please test: adding your event's
+  server with an API key, shift reminders, the Watch app and complication, and pull-to-refresh.
+  No server? Tap 'Try Demo Mode' on the first screen."
+- **What to Test** (per build): "First TestFlight build: setup and Demo Mode, Shifts/News/Profile/
+  Locations/Messages, reminders, Watch app and complication, Settings (including Export
+  Diagnostics)."
+- **Beta App Review notes**: "No account is needed. On the first screen tap 'Try Demo Mode' — it
+  uses built-in sample data and makes no network requests. A real Engelsystem instance and API key
+  are only needed to test against an actual server."
+- **Feedback Email**: `EngelsystemClient@cuccato.net`; **Privacy Policy URL**:
+  `https://cookieberlin.github.io/EngelsystemClient/privacy`; **Support**:
+  `https://cookieberlin.github.io/EngelsystemClient/support`.

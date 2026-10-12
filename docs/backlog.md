@@ -9,10 +9,15 @@ done and reflected in [`features.md`](features.md).
 
 ## TestFlight release
 
-- [ ] **T-01** Upload the first build: archive 0.1.0 (2) is built and verified (app, Watch app and
-      complication all 0.1.0 (2)); open it in the Xcode Organizer → Distribute App → App Store
-      Connect → Upload (see `release.md`). Export compliance is pre-answered in the Info.plist.
-- [ ] **T-02** Set up Internal Testing group and upload a build.
-- [ ] **T-03** Prepare for External Testing / Beta App Review (Beta App
-      Description, Feedback Email, demo-mode hint for reviewers) once
-      Internal Testing is confirmed working.
+- [ ] **T-02** Internal Testing (owner, in App Store Connect): wait until build 0.1.0 (2) shows
+      "Ready to Test" under TestFlight → Builds; create an *Internal* group (e.g. "Team"), add
+      yourself (App Store Connect users only), assign the build, install it via the TestFlight
+      app on iPhone and Watch, and smoke-test: Demo Mode, a real instance, notifications,
+      complication, Settings > Export Diagnostics. Answer the build's compliance prompt only if
+      shown (the Info.plist pre-answers it).
+- [ ] **T-03** External Testing / Beta App Review (owner, then Claude drafts texts): under
+      TestFlight > Test Information fill in Beta App Description, Feedback Email
+      (`EngelsystemClient@cuccato.net`), Privacy Policy URL
+      (`https://cookieberlin.github.io/EngelsystemClient/privacy`) and, for review, a note that
+      reviewers need no account: use **Try Demo Mode** on the first screen. Then create an
+      *External* group and submit the build for Beta App Review. Draft texts: see `release.md`.
