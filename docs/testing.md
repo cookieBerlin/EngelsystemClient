@@ -10,6 +10,9 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   the `EngelsystemClientKit` tests with coverage and lists every file below
   the threshold; `COVERAGE_THRESHOLD` overrides it). Exclusions need a
   justification comment **and owner approval** — never add one on your own.
+  Standing exception: thin adapter layers over system APIs (SecItem,
+  CKContainer, …) may always be excluded, as long as the logic is tested
+  through a seam (ADR 0009).
   Generated code is excluded by construction. During the ramp-up, new or
   changed code must reach 100 % in its own commit and files at 100 % must
   not regress; the remaining files are tracked in `docs/backlog.md`.

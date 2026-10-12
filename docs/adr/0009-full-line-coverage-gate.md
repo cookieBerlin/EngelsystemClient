@@ -21,6 +21,12 @@ iOS app target 15.5 % from unit tests alone, Watch app and complication
   excluded by construction. Typical other candidates are thin adapters over
   system APIs that tests cannot drive (e.g. MetricKit delivery, Keychain
   access groups); each is proposed to the owner, never added silently.
+- **Standing approval (owner, 2026-10-12): thin adapter layers over system
+  APIs may always be added to the exclusion list** (no per-file request
+  needed), provided all decision logic lives behind a protocol/closure seam
+  in a separately tested file and the adapter itself is a few lines with a
+  justification comment. Anything that is not such an adapter still needs
+  explicit approval.
 - `Scripts/check-coverage.sh` runs the `EngelsystemClientKit` tests with
   coverage and fails below the threshold. App and Watch targets are brought
   under the same gate step by step (see `docs/backlog.md`).
