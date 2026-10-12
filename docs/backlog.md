@@ -27,7 +27,7 @@ Each item is its own commit; all gates, both app builds and the UI tests must st
       location; `LocationDetailViewModel` treats 404/403 as "no refresh available" (no error banner); the list sync's
       404 → empty behavior stays; tests; adapt the UI tests that open Locations.
 - [ ] **K-05** Connection check: `APIClient` probes a data endpoint during "Test Connection" (setup and edit, iOS and Watch); a
-      403 gives a neutral "the server denied access (403)" message and blocks Save; keep the `self` probe (404 → numeric user ID
+      403 gives a neutral "the server denied access (403)" **warning that still allows Save** (owner decision 2026-10-12: the admin may grant access later); keep the `self` probe (404 → numeric user ID
       fallback); update `APIError.forbidden`'s wording to a neutral text (this pre-empts the wording part of A-01); tests.
 - [ ] **K-06** Reminders: in `AppSyncCoordinator` plan shift reminders whenever every instance's *shift* sync succeeded (new
       `shiftsSucceeded`), independent of News/Profile/Locations/Messages failures; news announcements stay independent too;

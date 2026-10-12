@@ -91,8 +91,8 @@ Design (details in the backlog, items K-01 – K-07):
 - **UI**: no "N Comments" link or comments screen without support; the Locations sidebar entry only when at least one active
   instance can list locations; a shift's location is plain text when there is no cached location; the location detail
   screen just shows what is cached (no refresh error).
-- **Connection check**: "Test Connection" also probes a real data endpoint; a 403 is reported as "the server denied access
-  (403)" in neutral wording (no group names) and blocks Save, instead of "Connection verified".
+- **Connection check**: "Test Connection" also probes a real data endpoint; a 403 is reported as a warning "the server denied
+  access (403)" in neutral wording (no group names) — Save stays possible (owner decision) — instead of "Connection verified".
 - **Reminders independent of News**: shift reminders are planned whenever the *shift* sync succeeded, regardless of News,
   Profile or Locations failing.
 - **Website**: a "Server compatibility" section lists the open PRs (#1709, #1710, #1711), their status and what is unavailable without them (K-08); it is removed or rewritten once they are merged.
