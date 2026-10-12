@@ -30,6 +30,11 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   helpers) must reach 100 % too (`Scripts/check-app-coverage.sh`); pure SwiftUI
   layout files are excluded with a justification, their logic extracted into
   tested view models/helpers, and XCUITest smoke tests cover that they render.
+  **iOS app target reached 100 % (gate passes) on 2026-10-12** with 21 measured
+  non-view files; the 21 layout files are listed in `Scripts/coverage-exclusions.txt`.
+  The app tests can't import the Kit's test helpers, so `EngelsystemClientTests/
+  StubbedNetwork.swift` is a copy of the Kit's — keep the two in sync. Thin
+  adapters here: `BackgroundTaskRegistration.swift` (BGTaskScheduler).
 - **Testing `APIClient`'s real network path** (2026-10-12): the generated
   client is redirected to canned responses via
   `EngelsystemAPIAPI.requestBuilderFactory` — see

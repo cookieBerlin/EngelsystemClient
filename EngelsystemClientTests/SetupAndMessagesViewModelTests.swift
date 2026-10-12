@@ -152,7 +152,10 @@ extension StubbedNetworkTests {
         @Test @MainActor func aFailedMarkAsReadDoesNotSurfaceAnError() async throws {
             let instance = try stubInstance()
             defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
-            let unread = try await demoMessage()
+            let unread = Message(
+                id: 41, text: "Hi", sender: Reference(id: 5, name: "Other"), receiver: Reference(id: 1, name: "me"),
+                read: false, createdAt: Date(), updatedAt: nil
+            )
             StubURLProtocol.route(
                 "GET \(prefix)/messages/\(unread.sender.id)",
                 body: Data("{\"data\":{\"messages\":".utf8) + (try CodableHelper.jsonEncoder.encode([unread])) + Data("}}".utf8)
@@ -194,6 +197,16 @@ extension StubbedNetworkTests {
             }
             task.cancel()
             await task.value
+            #expect(viewModel.errorMessage == nil)
+        }
+
+        @Test @MainActor func usersWithoutNamesAreStillSorted() async throws {
+            let instance = try stubInstance()
+            defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+            try StubURLProtocol.route("GET \(prefix)/users", data: [Reference(id: 2, name: nil), Reference(id: 1, name: nil)])
+            let viewModel = UserPickerViewModel()
+            await viewModel.load(instance: instance)
+            #expect(viewModel.users.count == 2)
             #expect(viewModel.errorMessage == nil)
         }
 

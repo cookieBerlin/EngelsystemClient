@@ -8,7 +8,10 @@ import Foundation
 /// Commit Hash" build phase.
 enum AppVersionInfo {
     static var displayString: String {
-        let info = Bundle.main.infoDictionary
+        displayString(info: Bundle.main.infoDictionary)
+    }
+
+    static func displayString(info: [String: Any]?) -> String {
         let version = info?["CFBundleShortVersionString"] as? String ?? "?"
         let build = info?["CFBundleVersion"] as? String ?? "?"
         var text = "Version \(version) (\(build))"

@@ -7,3 +7,29 @@
 */Sources/EngelsystemClientKit/Persistence/ModelContainerFactory.swift   # Production container wiring: the CloudKit-backed branch needs a real iCloud container (tests force local-only/in-memory, and every other test builds its container through this file), and the catch is a fatalError. Owner approval 2026-10-12
 */Sources/EngelsystemClientKit/Services/SystemKeychainClient.swift   # SecItem adapter: test processes lack the keychain entitlements; every branch of the logic is tested through a fake KeychainClient in KeychainItemStore. Owner standing approval for thin adapter layers 2026-10-12
 */Sources/EngelsystemClientKit/Services/SystemNotificationCenter.swift   # UNUserNotificationCenter adapter: the real center crashes in a test process without a host app; all logic takes a NotificationCenterScheduling and is tested with fakes. Owner standing approval for thin adapter layers 2026-10-12
+*/EngelsystemClient/Services/BackgroundTaskRegistration.swift   # BGTaskScheduler adapter and OS-driven handler: only the system's background-task machinery runs it; scheduling and sync decisions live in BackgroundSyncScheduler and are tested through BackgroundTaskScheduling. Owner standing approval for thin adapter layers 2026-10-12
+
+# SwiftUI layout files of the iOS app (ADR 0010): body hierarchies with bindings, no logic worth testing separately;
+# decisions live in tested view models/static helpers and XCUITest smoke tests prove the screens render and navigate.
+# Owner approval for this approach 2026-10-12.
+*/EngelsystemClient/Features/Settings/SettingsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/News/NewsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/News/NewsDetailView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Profile/ProfileView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Shifts/ShiftsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Messages/MessagesView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Messages/ConversationDetailView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Messages/NewConversationView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Messages/UserPickerView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Locations/LocationsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Locations/LocationDetailView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Debug/DebugLogView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Settings/ExportDiagnosticsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/InstanceSetup/InstanceSetupView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Main/MainView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Shared/SyncProgressBanner.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Shared/SyncTimestampFooter.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Shared/ErrorBanner.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Shared/InstancePicker.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Launch/LaunchScreenView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/ContentView.swift   # SwiftUI layout (ADR 0010)

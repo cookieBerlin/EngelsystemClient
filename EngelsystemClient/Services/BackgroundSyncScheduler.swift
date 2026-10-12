@@ -1,7 +1,14 @@
 import Foundation
-import BackgroundTasks
 import SwiftData
 import EngelsystemClientKit
+
+/// The `BackgroundTasks` calls this scheduler needs, behind a protocol so the scheduling
+/// and sync logic below is testable — the real `BGTaskScheduler` adapter and the
+/// registration/expiry plumbing live in `BackgroundTaskRegistration.swift`.
+protocol BackgroundTaskScheduling {
+    func cancelRefresh(identifier: String)
+    func submitRefresh(identifier: String, earliestBeginDate: Date) throws
+}
 
 /// Schedules and runs the interval-based background sync (2026-09-22, user-requested,
 /// to reduce server load compared to syncing every time a screen is opened — see
@@ -23,73 +30,51 @@ import EngelsystemClientKit
 enum BackgroundSyncScheduler {
     static let taskIdentifier = "net.cuccato.engelsystem.de.backgroundrefresh"
 
-    /// Registers the task handler — must happen before the app finishes launching
-    /// (Apple's documented requirement), so this is called from
-    /// `EngelsystemClientApp.init`, not from `.task`/`.onAppear`.
-    static func register(modelContainer: ModelContainer) {
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: taskIdentifier, using: nil) { task in
-            guard let refreshTask = task as? BGAppRefreshTask else { return }
-            handle(refreshTask, modelContainer: modelContainer)
-        }
-    }
-
-    private static func handle(_ task: BGAppRefreshTask, modelContainer: ModelContainer) {
-        // 2026-09-23, user-requested: explicit start/end log entries for the one
-        // sync trigger that previously left no trace at all outside of Instruments —
-        // there's no UI visible while this runs, so without this the only way to
-        // know it ran at all was `DeviceSyncPreferences.lastBackgroundSyncDate()`
-        // in Settings, which says *that* it ran but nothing about what happened.
-        DebugLog.log("BackgroundSyncScheduler: background sync started")
-        let context = ModelContext(modelContainer)
-        let syncTask = Task {
-            let instances = ((try? context.fetch(FetchDescriptor<Instance>())) ?? []).filter(\.isActive)
-            let succeeded = await AppSyncCoordinator().syncEverything(
-                instances: instances,
-                in: context,
-                notifyOnNewNews: true
-            )
-            DeviceSyncPreferences.recordBackgroundSync()
-            scheduleNext()
-            DebugLog.log("BackgroundSyncScheduler: background sync finished (succeeded: \(succeeded))", level: succeeded ? .info : .warning)
-            task.setTaskCompleted(success: succeeded)
-        }
-
-        // The OS gives a background task a strict time budget; if it's about to be
-        // exceeded, cancel the in-flight sync and let it wind down via its own
-        // cooperative cancellation checks rather than being killed mid-write.
-        task.expirationHandler = {
-            DebugLog.log("BackgroundSyncScheduler: expired before completion, cancelling", level: .warning)
-            syncTask.cancel()
-        }
-    }
-
-    /// Submits the next `BGAppRefreshTaskRequest`, or cancels any pending one if the
-    /// configured interval is `.manual`. Call after every background run (above) and
-    /// whenever the interval setting changes (`SettingsView`) — the interval is a
-    /// plain per-device preference (`DeviceSyncPreferences`, not CloudKit-synced; see
-    /// its doc comment for why), so there's no cross-device "the other device changed
-    /// it" case to guard against here any more, unlike an earlier version of this
-    /// feature.
-    static func scheduleNext() {
-        let interval = DeviceSyncPreferences.pollingInterval()
-        BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
+    /// Submits the next refresh request, or cancels any pending one if `interval` is
+    /// `.manual`. Called after every background run (below) and whenever the interval
+    /// setting changes (`SettingsView`) — the interval is a plain per-device preference
+    /// (`DeviceSyncPreferences`, not CloudKit-synced; see its doc comment for why).
+    static func scheduleNext(using scheduler: BackgroundTaskScheduling, interval: PollingInterval, now: Date) {
+        scheduler.cancelRefresh(identifier: taskIdentifier)
         guard let seconds = interval.timeInterval else {
             DebugLog.log("BackgroundSyncScheduler: not scheduled (interval is Manual)")
             return
         }
 
-        let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
-        let earliestBeginDate = Date(timeIntervalSinceNow: seconds)
-        request.earliestBeginDate = earliestBeginDate
+        let earliestBeginDate = now.addingTimeInterval(seconds)
         do {
-            // 2026-09-23, user-requested: `submit` used to be a silent `try?` —
-            // given the well-documented uncertainty around whether this ever
-            // actually gets to run at all (see CLAUDE.md), even knowing whether
-            // *scheduling itself* succeeded is valuable, previously invisible info.
-            try BGTaskScheduler.shared.submit(request)
+            // 2026-09-23, user-requested: `submit` used to be a silent `try?` — given the
+            // well-documented uncertainty around whether this ever actually gets to run at
+            // all (see CLAUDE.md), even knowing whether *scheduling itself* succeeded is
+            // valuable, previously invisible info.
+            try scheduler.submitRefresh(identifier: taskIdentifier, earliestBeginDate: earliestBeginDate)
             DebugLog.log("BackgroundSyncScheduler: scheduled, earliest begin date \(earliestBeginDate)")
         } catch {
             DebugLog.log("BackgroundSyncScheduler: scheduling failed: \(error)", level: .error)
         }
+    }
+
+    /// One background sync pass over every active instance, including news announcements
+    /// (the one path where those are appropriate — see `NewsNotifier`), then records the
+    /// run and schedules the next one. Returns whether everything synced cleanly.
+    static func runSync(
+        in context: ModelContext,
+        coordinator: AppSyncCoordinator,
+        scheduler: BackgroundTaskScheduling,
+        interval: PollingInterval
+    ) async -> Bool {
+        // 2026-09-23, user-requested: explicit start/end log entries for the one sync
+        // trigger that previously left no trace at all outside of Instruments — there's
+        // no UI visible while this runs, so without this the only way to know it ran at
+        // all was `DeviceSyncPreferences.lastBackgroundSyncDate()` in Settings.
+        DebugLog.log("BackgroundSyncScheduler: background sync started")
+        // A failed fetch yields no instances (compactMap drops the nil) — written without `?? []`
+        // so there is no never-taken autoclosure region to cover.
+        let instances = [try? context.fetch(FetchDescriptor<Instance>())].compactMap { $0 }.flatMap { $0 }.filter(\.isActive)
+        let succeeded = await coordinator.syncEverything(instances: instances, in: context, notifyOnNewNews: true)
+        DeviceSyncPreferences.recordBackgroundSync()
+        scheduleNext(using: scheduler, interval: interval, now: Date())
+        DebugLog.log("BackgroundSyncScheduler: background sync finished (succeeded: \(succeeded))", level: succeeded ? .info : .warning)
+        return succeeded
     }
 }

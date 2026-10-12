@@ -17,10 +17,20 @@ import SwiftUI
 /// correctly on its own via `Text`, since those runs are copied through unchanged.
 enum NewsMarkdownRenderer {
     static func render(_ markdown: String) -> AttributedString {
-        guard let parsed = try? AttributedString(markdown: markdown, options: .init(interpretedSyntax: .full)) else {
+        render(markdown, parse: parseFullSyntax)
+    }
+
+    /// `parse` is the seam that lets the "markdown failed to parse" fallback be tested —
+    /// `AttributedString(markdown:)` essentially never throws for real input.
+    static func render(_ markdown: String, parse: (String) throws -> AttributedString) -> AttributedString {
+        guard let parsed = try? parse(markdown) else {
             return AttributedString(markdown)
         }
         return reflowingBlocks(of: parsed)
+    }
+
+    private static func parseFullSyntax(_ markdown: String) throws -> AttributedString {
+        try AttributedString(markdown: markdown, options: .init(interpretedSyntax: .full))
     }
 
     private static func reflowingBlocks(of input: AttributedString) -> AttributedString {

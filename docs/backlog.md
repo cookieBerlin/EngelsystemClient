@@ -28,6 +28,9 @@ Take files in this order; remove an item once the file is at 100 %.
       adapters; the MetricKit delivery callbacks and `WatchConnectivityBridge`'s
       iOS branches are not compiled by `swift test` on macOS and need the
       Xcode coverage run (C-05) or an exclusion.
-- [ ] **C-05** Bring the iOS app target under the gate (Xcode coverage run,
-      unit + UI tests), then the Watch app and the complication.
+- [ ] **C-05** iOS app target is at 100 % (gate green, 2026-10-12). Still to do:
+      the Watch app and the complication, then an audit of the 21 excluded
+      SwiftUI files for logic that should be extracted and tested
+      (notably `SettingsView`, `MainView`, `InstanceSetupView`), and XCUITest
+      smoke tests for screens that have none yet.
 - [ ] **C-06** Make the gate blocking (all Kit files at 100 % or excluded).
