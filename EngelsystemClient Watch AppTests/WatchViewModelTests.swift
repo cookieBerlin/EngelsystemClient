@@ -58,14 +58,12 @@ struct WatchSetupViewModelTests {
         #expect(viewModel.errorMessage != nil)
     }
 
-    @Test @MainActor func aPassingConnectionTestOnTheDemoServerClearsTheUserID() async {
+    @Test @MainActor func aPassingConnectionTestOnTheDemoServerMarksTheConnectionTested() async {
         let viewModel = WatchSetupViewModel()
         viewModel.baseURL = Instance.demoBaseURL
         viewModel.apiKey = "demo"
-        viewModel.userIDText = "42"
         await viewModel.testConnection()
         #expect(viewModel.connectionTested)
-        #expect(viewModel.userIDText.isEmpty)
     }
 
     @Test @MainActor func useDemoInstanceInsertsAnInstance() async throws {
@@ -95,11 +93,6 @@ struct WatchSetupViewModelTests {
 }
 
 struct WatchEditInstanceViewModelTests {
-    @Test @MainActor func theFormStartsWithTheInstancesStoredUserID() {
-        let instance = Instance(name: "I", baseURL: "https://example.com", apiKeyKeychainRef: "r", userID: 5)
-        #expect(WatchEditInstanceViewModel(instance: instance).userIDText == "5")
-    }
-
     @Test @MainActor func canTestAndCanSubmitFollowTheFormState() {
         let instance = Instance(name: "I", baseURL: "https://example.com", apiKeyKeychainRef: "r")
         let viewModel = WatchEditInstanceViewModel(instance: instance)
@@ -125,11 +118,9 @@ struct WatchEditInstanceViewModelTests {
         let instance = try seed(baseURL: Instance.demoBaseURL, in: context)
         defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
         let viewModel = WatchEditInstanceViewModel(instance: instance)
-        viewModel.userIDText = "7"
         viewModel.name = "Renamed"
         await viewModel.testConnection(for: instance)
         #expect(viewModel.connectionTested)
-        #expect(viewModel.userIDText.isEmpty)
         #expect(await viewModel.save(instance: instance, in: context))
         #expect(instance.name == "Renamed")
     }

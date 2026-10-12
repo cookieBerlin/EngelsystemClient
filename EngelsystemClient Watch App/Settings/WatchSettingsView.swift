@@ -280,16 +280,6 @@ private struct WatchEditInstanceView: View {
                     Text("Leave blank to keep the current key.")
                         .font(.caption2)
                 }
-                // Hidden unless the last check found the server needs it, or a value
-                // is already configured — see the iOS EditInstanceView equivalent.
-                if !viewModel.selfReferenceWorks || !viewModel.userIDText.isEmpty {
-                    Section {
-                        TextField("User ID", text: $viewModel.userIDText)
-                    } footer: {
-                        Text("This server doesn't support automatic user detection.")
-                            .font(.caption2)
-                    }
-                }
                 // COMPAT(#1709): the server answered 403 to a data request — warn, but allow saving.
                 if viewModel.connectionTested, let accessWarning = viewModel.accessWarning {
                     Section {

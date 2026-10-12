@@ -49,7 +49,6 @@ final class NextShiftViewModel {
         for instance in instances {
             do {
                 let credential = try credentialResolver.credential(for: instance)
-                DebugLog.log("[NextShiftViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
                 let result = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
                 DebugLog.log("[NextShiftViewModel] synced \(result.shifts.count) shift(s) from \(credential.baseURL)")
                 allShifts.append(contentsOf: result.shifts)

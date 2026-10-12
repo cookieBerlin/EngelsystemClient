@@ -536,3 +536,195 @@ The two low-risk informational items (old local path in history; no
 LICENSE) were both resolved the same day with explicit user approval —
 see `roadmap.md`'s "Resolved decisions" for the final record.
 
+## The numeric user-ID / `self` workaround (2026-09-05 – 2026-10-12, removed)
+
+Closed investigation, moved here from `architecture.md` when backlog R-01 removed the workaround. Lessons: a "server rejects
+`self`" diagnosis was wrong — the generated client sent a malformed path — and a defensive fallback kept "just in case" stayed in
+the UI and data model for a month.
+
+An early (2026-09-05) investigation of a real-server bug (Shifts/Profile
+showed empty with no error) concluded the server didn't support the
+`self` user-reference alias — see [`history.md`](history.md) for that
+original diagnosis. ~~**Fix: `Instance.userID: Int?`**, an optional
+numeric fallback (nil = use `self`, the default/common case).~~ **This
+diagnosis was itself wrong — see the 2026-09-17 root-cause entry
+below.** The `userID`
+fallback is kept (a real server could still reject `self` in principle,
+and having it costs nothing), but it was not what was actually broken.
+`Instance.userReference` resolves to `.id(userID)` when set, else `.me`;
+`ShiftSyncService` and `ProfileSyncService`'s three sync calls all read
+`instance.userReference` instead of hardcoding `.me`, and
+`APIClient.fetchOwnProfile`/`fetchOwnAngelTypes` now take a
+`UserReference` parameter (matching `fetchShifts`/`fetchWorklogs`'s
+existing shape) instead of hardcoding it internally. Exposed as an
+optional "User ID" field on every setup/edit form (`InstanceSetupView`,
+`SettingsView`'s `EditInstanceView`, `WatchSetupView`,
+`WatchSettingsView`'s `WatchEditInstanceView`) with footer text
+explaining it's only needed if Shifts/Profile show up empty — the user
+finds their numeric ID in their Engelsystem profile URL. Not validated
+against the server during setup/edit (no `/users/{id}`-shaped call
+happens during the connection test) — it's just saved alongside
+name/baseURL and used on the next sync.
+
+**Actually root-caused, 2026-09-17: the real bug was a broken `{id}`
+path parameter in the generated API client, unrelated to the server at
+all.** After the `userID` persistence bug above was fixed, the user
+still saw `instance.userID = Optional(2), userReference = id(2)`
+followed by a 404 and 0 shifts synced — so the numeric fallback was
+correctly configured and used, and Shifts *still* failed. Traced to
+`UsersIdGetIdParameter` (`Generated/Models/UsersIdGetIdParameter.swift`,
+openapi-generator's wrapper for a path parameter that can be an `Int`
+*or* a `String`): it's a plain `enum` with associated values, **not**
+`RawRepresentable`. The generated `APIHelper.mapValueToPathItem` (used
+to stringify every path parameter before building the request URL)
+special-cases `RawRepresentable` values via `.rawValue`, but falls
+through to returning the value completely unchanged for anything else —
+which then gets string-interpolated as-is into the URL. For a Swift enum
+with associated values, that interpolation produces the case name plus
+its associated value, not the value alone: `.typeInt(2)` became the
+literal path segment `"typeInt(2)"`, and `.typeString("self")` became
+`"typeString(\"self\")"` (percent-encoded to
+`typeString(%22self%22)`). **Every single user-scoped request this app
+has ever made — `/users/{id}/shifts`, `/users/{id}`,
+`/users/{id}/worklogs`, `/users/{id}/angeltypes`, whether `{id}` was
+`self` or a numeric `userID` — was actually requesting a malformed URL
+like `/api/v0-beta/users/typeInt(2)/shifts`, not the URL it looked like
+from the call site.** This means the 2026-09-05 diagnosis above was
+wrong: the server was never actually sent `self` (or a numeric ID) at
+all, on any of these endpoints, so there's no evidence any real
+Engelsystem server has ever actually rejected `self` — the `userID`
+fallback field is being kept anyway (harmless, and this bug could in
+principle have been masking a real server incompatibility for some
+deployment), but the *reported* 404s were 100% this client bug.
+
+  Fix, entirely in the non-generated mapping layer (`APIEndpoint.swift`,
+  not `Generated/` — per this file's standing constraint against
+  hand-editing codegen output): added
+  `extension UsersIdGetIdParameter: CustomStringConvertible`, mapping
+  `.typeInt(v)` → `"\(v)"` and `.typeString(v)` → `v`. String
+  interpolation of an `Any`-typed value *does* dispatch to a
+  `CustomStringConvertible` conformance even when that conformance is
+  added outside the type's own declaration, so this fixes
+  `mapValueToPathItem`'s fallthrough without touching generated code —
+  confirmed both by an isolated `swift -e` snippet and by the regression
+  test below.
+
+  Regression test:
+  `EngelsystemClientKitTests
+  .usersIdShiftsGetRequestBuilderProducesACorrectlyFormattedIDPathSegment`
+  — calls the actual generated `ShiftAPI.usersIdShiftsGetWithRequestBuilder`
+  (not just the conformance in isolation) and asserts `URLString` ends in
+  `/users/2/shifts` and `/users/self/shifts` respectively, so a future
+  `openapi.yml`/codegen regeneration that reintroduces this interaction
+  bug gets caught. Verified it actually catches the regression by
+  temporarily commenting out the `CustomStringConvertible` conformance
+  and re-running: it failed with `URLString` literally reading
+  `/api/v0-beta/users/typeInt(2)/shifts`, confirming both the diagnosis
+  and the fix.
+
+
+**Client-side "does `self` actually work here" check, added the same day**
+so the manual "User ID" fallback field only appears when it's actually
+needed, instead of being a permanently-visible workaround for a bug that
+may no longer exist on a given server:
+- `Instance.selfReferenceWorks: Bool = true` (new field, CloudKit-synced
+  like the rest of `Instance`) — sync between iOS/Watch means a check
+  performed on one device is picked up on the other automatically.
+- `APIClient.selfUserReferenceWorks(_:)` probes `GET /users/self/worklogs`
+  specifically (not `/users/self`) — deliberately picking the one endpoint
+  that's actually shown to be broken on unpatched servers (see above); the
+  other three `self`-capable endpoints never distinguish an old server from
+  a fixed one. A `404` there means "self broken" regardless of whether the
+  user has any worklogs at all (a genuine empty list is a `200`); any other
+  outcome (success, or an unrelated error) is treated as "works", so a
+  single transient network hiccup during the probe can't wrongly reveal the
+  fallback field. The pure interpretation logic is split into
+  `APIClient.selfWorks(afterProbeError:)` specifically so it's unit-testable
+  without a mock HTTP server (there isn't one in this project — the
+  `.notFound` path can't be exercised end-to-end offline, only this pure
+  mapping can).
+- `InstanceSetupService.createInstance`/`updateInstance` run this probe
+  right after the existing `/info` connection test and store the result on
+  `Instance` — always testing the literal `self` value, independent of
+  whatever `userID` is currently configured, so a server that's since been
+  fixed is detected even for an instance that already has a manual
+  override set.
+- **iOS/Watch Setup forms** (`InstanceSetupView`/`InstanceSetupViewModel`,
+  `WatchSetupView`/`WatchSetupViewModel`): Save no longer happens directly
+  off the form. A new **"Test Connection"** button (separate from Save)
+  runs the `/info` + self-probe checks without creating or saving anything;
+  `canSubmit`/Save stays disabled until a test has succeeded
+  (`connectionTested`). The manual User ID field is hidden entirely until
+  that test determines it's actually needed
+  (`connectionTested && !selfReferenceWorks`); editing `baseURL`/`apiKey`
+  afterward invalidates the test (`didSet` resets `connectionTested`),
+  forcing a fresh Test before Save re-enables. If a test finds `self` does
+  work, any previously typed User ID is cleared so it can't be silently
+  saved as a stale, unnecessary override.
+- **iOS/Watch Settings' "Edit Instance" dialogs** (`EditInstanceViewModel`/
+  `WatchEditInstanceViewModel`): same "Test Connection" button added, but
+  unlike Setup it does **not** gate Save — an existing instance already has
+  a last-known-good `selfReferenceWorks` value (from creation or the
+  previous save), and `save()`/`updateInstance` already silently re-probes
+  on every save regardless (unchanged behavior from before this feature).
+  The view model's `connectionTested` here purely drives the Test button's
+  own display (progress/checkmark/label, reset on edit); `selfReferenceWorks`
+  is initialized from `instance.selfReferenceWorks` and only updates when
+  Test is explicitly pressed. The User ID field is shown whenever the
+  latest known result says it's needed, **or** a value is already
+  configured — so an active override is never silently hidden out from
+  under the user just because a fresh check hasn't been run yet.
+
+  **Deleting a now-unnecessary `userID` happens at Save, not at Test
+  Connection** (clarified 2026-09-21, at the user's explicit correction —
+  an earlier version of this persisted the deletion immediately when
+  Test Connection determined `self` works, which is wrong: Verify should
+  only preview, Save should be what commits). `testConnection(for:)`
+  only clears the *form field* (`userIDText = ""`, which also hides the
+  Section) when it finds `self` works — it never touches `instance`
+  itself or calls `modelContext.save()`. The actual deletion happens
+  inside `InstanceSetupService.updateInstance`: whenever the freshly
+  re-probed `selfReferenceWorks` is `true`, it stores `nil` instead of
+  whatever `userID` the caller passed in — so a stale value gets cleared
+  the moment Save is pressed, *even if the user never pressed Test
+  Connection first* (Save always re-probes internally regardless, same
+  as before this feature). Only `updateInstance` (Edit) enforces this;
+  `createInstance` (Setup) stores whatever `userID` it's given as-is,
+  since Setup's own mandatory Test-before-Save gating means it never
+  gets a non-nil `userID` once `self` is known to work in the first
+  place — there's no equivalent "stale leftover value" case there.
+- Tests: `EngelsystemClientKitTests` covers `selfWorks(afterProbeError:)`'s
+  interpretation logic (`.notFound` → false, everything else → true) and
+  that `selfUserReferenceWorks` short-circuits to `true` for the demo
+  credential; `EngelsystemClientTests` adds
+  `EditInstanceViewModelSelfCheckTests`/`InstanceSetupViewModelSelfCheckTests`
+  covering the gating/invalidation/field-clearing behavior above (all
+  against the demo credential, since there's no mock server to exercise a
+  real `.notFound` end-to-end). `testDemoModeNavigationFlow` (which edits
+  and saves an instance via the Settings dialog, without ever pressing
+  "Test Connection" first) re-verified passing unchanged even after Save
+  became gated on `connectionTested` (see below) — it never changes
+  `baseURL`/`apiKey`, only `name`, so `connectionTested` (which starts
+  `true`) is never invalidated in that flow.
+
+**Edit Instance's Save gated on Test Connection too, and the button moved
+to the bottom of the form (2026-09-21, at the user's explicit request)**:
+originally Edit's Save deliberately stayed enabled regardless of
+`connectionTested`, reasoning that `save()` already silently re-verifies
+internally on every call anyway (see above) — but that meant Save stayed
+clickable immediately after editing the server URL or API key, before
+anything had actually confirmed the new value works. Fixed to match
+Setup's behavior: `EditInstanceViewModel`/`WatchEditInstanceViewModel
+.canSubmit` now also requires `connectionTested`, so editing `baseURL`/
+`apiKey` (which already reset `connectionTested` to `false` via their
+`didSet`) disables Save until "Test Connection" succeeds again. The User
+ID field's visibility is unaffected — still driven by `selfReferenceWorks`
+alone, so it keeps showing/hiding from the last-known result even
+mid-edit, before a fresh test has been run. The "Test Connection" section
+itself moved to the very bottom of both `EditInstanceView`/
+`WatchEditInstanceView`'s form (still above the toolbar's Save on iOS,
+directly above the in-form Save section on Watch), after the User ID and
+error sections — previously it sat right after the API Key field, above
+User ID.
+
+

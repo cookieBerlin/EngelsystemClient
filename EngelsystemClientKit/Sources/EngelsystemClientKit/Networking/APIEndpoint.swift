@@ -1,19 +1,8 @@
 import Foundation
 
-/// Encapsulates the "{id}" path parameter of the Engelsystem API (an integer ID or the
-/// string `self`), so callers outside the networking layer don't have to work with generated DTO types.
-public enum UserReference {
-    case me
-    case id(Int)
-}
-
-extension UserReference {
-    var parameter: UsersIdGetIdParameter {
-        switch self {
-        case .me: return .typeString("self")
-        case let .id(id): return .typeInt(id)
-        }
-    }
+extension UsersIdGetIdParameter {
+    /// The user-scoped endpoints are always addressed as the signed-in user (`self`).
+    static let me = UsersIdGetIdParameter.typeString("self")
 }
 
 /// `UsersIdGetIdParameter` (generated, `Generated/Models/UsersIdGetIdParameter.swift`) is a
@@ -28,7 +17,7 @@ extension UserReference {
 /// so this fixes it without touching `Generated/`. Root-caused 2026-09-17: this is what the
 /// 2026-09-05 "server rejects `self`" diagnosis actually was — the server was never sent
 /// `self` or a real numeric ID at all, on *any* user-scoped endpoint (shifts, worklogs,
-/// profile, angel types), regardless of `Instance.userID`.
+/// profile, angel types).
 extension UsersIdGetIdParameter: CustomStringConvertible {
     public var description: String {
         switch self {

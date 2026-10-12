@@ -51,19 +51,6 @@ struct InstanceSetupView: View {
                     Text("Checks the server and API key before adding this instance.")
                 }
 
-                // Only shown once a test has run and determined the server needs it —
-                // see InstanceSetupViewModel.testConnection().
-                if viewModel.connectionTested && !viewModel.selfReferenceWorks {
-                    Section {
-                        TextField("User ID", text: $viewModel.userIDText)
-                            #if os(iOS)
-                            .keyboardType(.numberPad)
-                            #endif
-                    } footer: {
-                        Text("This server doesn't support automatic user detection. Enter your numeric user ID, visible in your Engelsystem profile URL.")
-                    }
-                }
-
                 // COMPAT(#1709): the server answered 403 to a data request — warn, but allow saving.
                 if viewModel.connectionTested, let accessWarning = viewModel.accessWarning {
                     Section {

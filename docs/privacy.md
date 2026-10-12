@@ -29,7 +29,7 @@ profile, or any other data you access through the app.
   Engelsystem server you configure, as an authentication header on
   each request. It is never sent to the app's developer or to any
   third party.
-- **Instance settings** (server name/URL, an optional numeric user ID,
+- **Instance settings** (server name/URL
   and a few internal flags describing what that server supports):
   stored via Apple's CloudKit in *your own* private iCloud container,
   so these settings sync between your own iPhone, iPad, and Apple

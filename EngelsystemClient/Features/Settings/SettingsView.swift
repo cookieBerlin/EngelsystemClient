@@ -374,7 +374,7 @@ private struct InstanceDetailView: View {
     }
 }
 
-/// Combined "Edit Instance" form — name, server, User ID, and API Key in one dialog
+/// Combined "Edit Instance" form — name, server and API Key in one dialog
 /// (see `EditInstanceViewModel` for why this replaced the previously separate "Edit
 /// Name / Server" and "Update API Key" sheets).
 private struct EditInstanceView: View {
@@ -408,20 +408,6 @@ private struct EditInstanceView: View {
                         .autocorrectionDisabled()
                 } footer: {
                     Text("Leave blank to keep the current key. Only fill this in if it's expired, been revoked, or you're pointing this instance at a different account.")
-                }
-                // Hidden when the last check (at creation, the previous save, or a
-                // fresh "Test Connection" tap) found the server resolves `self`
-                // correctly — unless a value is already configured, so an active
-                // override never just disappears silently.
-                if !viewModel.selfReferenceWorks || !viewModel.userIDText.isEmpty {
-                    Section {
-                        TextField("User ID", text: $viewModel.userIDText)
-                            #if os(iOS)
-                            .keyboardType(.numberPad)
-                            #endif
-                    } footer: {
-                        Text("This server doesn't support automatic user detection. Enter your numeric user ID, visible in your Engelsystem profile URL.")
-                    }
                 }
                 // COMPAT(#1709): the server answered 403 to a data request — warn, but allow saving.
                 if viewModel.connectionTested, let accessWarning = viewModel.accessWarning {

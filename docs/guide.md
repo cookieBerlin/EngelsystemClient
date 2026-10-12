@@ -36,8 +36,6 @@ network requests. You can leave Demo Mode on, or switch it off and add a real se
 2. In the app, on the first screen (or **Settings → Add Instance**), enter a **Name** (anything you like), the **Server**
    address (for example `https://engel.example.org`) and your **API key**.
 3. Tap **Test Connection**. When it says the connection is verified, tap **Save**.
-4. If the server cannot resolve "my own account" automatically, the app shows a **User ID** field after the test: enter your
-   numeric user ID (visible in the URL of your profile page).
 
 The API key is stored in the iOS Keychain (synced through iCloud Keychain if you use it) and is only ever sent to the server
 you entered.

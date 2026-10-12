@@ -871,7 +871,7 @@ exists without reading the whole diff history.
   creation time isn't persisted. The combined **"Edit Instance"**
   dialog (`EditInstanceViewModel`) merges what used to be two separate
   actions — "Edit Name / Server" and "Update API Key" — into one form
-  (Name, Server URL, User ID, API Key); the API Key field is blank by
+  (Name, Server URL, API Key); the API Key field is blank by
   default and blank means "keep the existing key" (resolved via
   `InstanceCredentialResolver`), only fill it in to actually change it.
   Saving calls `InstanceSetupService.updateInstance` (the single method
@@ -1093,7 +1093,7 @@ exists without reading the whole diff history.
   something to "fix" by reverting to the value-based form.
   Instance-detail's combined **"Edit Instance"** action
   (`WatchEditInstanceViewModel`, the Watch-target twin of iOS's
-  `EditInstanceViewModel` — same merged name/server/User ID/API Key form,
+  `EditInstanceViewModel` — same merged name/server/API Key form,
   API Key blank-means-unchanged) resolves the existing key via
   `InstanceCredentialResolver` rather than assuming `LocalKeychainStore`,
   since it needs to *read* a key that could in principle live in either

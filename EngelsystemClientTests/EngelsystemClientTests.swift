@@ -12,8 +12,8 @@ import UserNotifications
 import EngelsystemClientKit
 @testable import EngelsystemClient
 
-/// Regression coverage for the 2026-09-16 bug: a user reported that a manually
-/// re-entered `Instance.userID` reverted to `nil` after rebuilding the app from
+/// Regression coverage for the 2026-09-16 bug: a user reported that an edited
+/// instance field reverted after rebuilding the app from
 /// Xcode. Root cause: no production code path ever called `modelContext.save()`
 /// explicitly, relying entirely on SwiftData's autosave — which fires on
 /// app-lifecycle events (e.g. resigning active) that a debug rebuild-and-relaunch
@@ -24,14 +24,6 @@ import EngelsystemClientKit
 /// on-disk store, rather than re-reading the same in-memory `ModelContext` — the
 /// latter would pass even without an explicit save, since the edit is visible
 /// in-memory regardless of whether it was ever flushed to disk.
-///
-/// Exercises `name` rather than the original bug report's `userID`: since 2026-09-21,
-/// `InstanceSetupService.updateInstance` force-clears `userID` whenever
-/// `selfReferenceWorks` is true (see `InstanceSetupServiceTests
-/// .instanceSetupServiceClearsUserIDWhenSelfReferenceWorks`, Kit), and every demo
-/// credential always reports `selfReferenceWorks == true` — so `userID` can no longer
-/// be used as this test's "any edited field" probe. The persistence mechanism being
-/// tested here is unrelated to which field is edited.
 struct EditInstanceViewModelPersistenceTests {
     @Test @MainActor func saveExplicitlyPersistsNameAcrossAFreshModelContainerLoad() async throws {
         let storeURL = FileManager.default.temporaryDirectory
@@ -212,8 +204,6 @@ struct EditInstanceViewModelSelfCheckTests {
         await viewModel.testConnection(for: instance)
 
         #expect(viewModel.connectionTested)
-        #expect(viewModel.selfReferenceWorks)
-        #expect(instance.userID == nil) // testConnection never saves
     }
 
     /// 2026-09-21, user-requested: unlike Setup, Save used to stay enabled here even
@@ -241,44 +231,6 @@ struct EditInstanceViewModelSelfCheckTests {
         viewModel.apiKey = "new-key"
         #expect(!viewModel.canSubmit)
     }
-
-    @Test @MainActor func testConnectionClearsUserIDTextWhenSelfNowWorks() async throws {
-        let (instance, context) = try makeInstanceWithSeededKey()
-        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
-        _ = context // only needed to keep the in-memory store alive for the keychain-backed instance
-
-        let viewModel = EditInstanceViewModel(instance: instance)
-        viewModel.userIDText = "42"
-
-        await viewModel.testConnection(for: instance)
-
-        #expect(viewModel.selfReferenceWorks)
-        #expect(viewModel.userIDText.isEmpty)
-        // Verify only previews, at the user's explicit request — it must not touch the
-        // persisted store on its own; deleting a now-stale userID happens at Save time
-        // instead (see saveClearsAStaleUserIDEvenWithoutPressingTestConnectionFirst
-        // below), not here.
-        #expect(instance.userID == nil)
-    }
-
-    /// 2026-09-21, user-requested: a stale `userID` (e.g. left over from before the
-    /// server's `self`/worklogs bug was fixed) must be cleared once Save is pressed —
-    /// even if the user never explicitly presses "Test Connection" first, since Save
-    /// always re-probes internally (`InstanceSetupService.updateInstance`).
-    @Test @MainActor func saveClearsAStaleUserIDEvenWithoutPressingTestConnectionFirst() async throws {
-        let (instance, context) = try makeInstanceWithSeededKey()
-        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
-        instance.userID = 42 // simulate a pre-existing manual override
-
-        let viewModel = EditInstanceViewModel(instance: instance)
-        viewModel.userIDText = "42" // the form still shows the old value
-
-        let succeeded = await viewModel.save(instance: instance, in: context)
-
-        #expect(succeeded)
-        #expect(instance.selfReferenceWorks)
-        #expect(instance.userID == nil)
-    }
 }
 
 struct InstanceSetupViewModelSelfCheckTests {
@@ -300,7 +252,6 @@ struct InstanceSetupViewModelSelfCheckTests {
 
         await viewModel.testConnection()
         #expect(viewModel.connectionTested)
-        #expect(viewModel.selfReferenceWorks)
         #expect(viewModel.canSubmit)
 
         viewModel.baseURL = Instance.demoBaseURL + "/"

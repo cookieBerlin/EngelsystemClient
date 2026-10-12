@@ -34,7 +34,6 @@ final class ProfileViewModel {
         for instance in instances {
             do {
                 let credential = try credentialResolver.credential(for: instance)
-                DebugLog.log("[ProfileViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
                 let profile = try await syncService.syncProfile(instance: instance, credential: credential, in: modelContext)
                 DebugLog.log("[ProfileViewModel] synced profile '\(profile.name)' from \(credential.baseURL)")
                 let worklogs = try await syncService.syncWorklogs(instance: instance, credential: credential, in: modelContext)

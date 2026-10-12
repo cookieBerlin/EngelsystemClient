@@ -98,8 +98,8 @@ Design (details in the backlog, items K-01 – K-07):
 - **Temporary by design**: every workaround is tagged `COMPAT(#<PR>)` and listed in a register in `docs/architecture.md`.
   Removal is split per pull request (backlog **R-02 – R-04**, plus **R-05** for the final cleanup): as soon as a PR is
   merged, its workarounds go, so afterwards a missing endpoint or a 403 is a real error again and the app may assume the
-  servers support it. **R-01** (the numeric user-ID / `self` workaround, PR #1708, already merged) is independent and not
-  blocked — servers without #1708 are not supported — so it is done first. The 403 warning names the missing privilege and
+  servers support it. The numeric user-ID / `self` workaround (PR #1708, merged) was removed
+  on 2026-10-12 (R-01, done): servers without #1708 are not supported. The 403 warning names the missing privilege and
   says the account must be added to one of the groups that have it (e.g. "API" or "Bureaucrat"); it never mentions pull requests.
 - **Website**: a "Server compatibility" section lists the open PRs (#1709, #1710, #1711), their status and what is unavailable without them (K-08); it is removed or rewritten once they are merged.
 - Decision record: ADR 0013 (device-local capabilities, optional fields).

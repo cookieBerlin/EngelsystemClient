@@ -16,20 +16,6 @@ public final class Instance {
     public var baseURL: String = ""
     // Stores only the Keychain reference key, never the API key itself
     public var apiKeyKeychainRef: String = ""
-    // Fallback for servers that 404 on the documented `self` path parameter alias
-    // (confirmed to happen on at least one real, older Engelsystem deployment) —
-    // nil means "use `self`", the default and normal case. See `userReference` below.
-    public var userID: Int?
-    // Whether the connected server actually resolves the `self` user-reference alias —
-    // set by `InstanceSetupService.createInstance`/`updateInstance` from a dedicated
-    // `APIClient.selfUserReferenceWorks` probe (2026-09-21). Root cause: on unpatched
-    // Engelsystem deployments, `GET /users/self/worklogs` specifically 404s (a genuine
-    // server-side bug, distinct from the client-side path-parameter bug fixed
-    // 2026-09-17 — see CLAUDE.md), while the other three `self`-capable endpoints
-    // (`/users/{id}`, `/shifts`, `/angeltypes`) always worked. Defaults optimistically
-    // to `true` (the normal/fixed-server case); the Settings "Edit Instance" dialogs
-    // only show the manual `userID` field when this is `false`, instead of always.
-    public var selfReferenceWorks: Bool = true
     // Whether this instance's data (Shifts/News/Profile, the Watch's next shift) is
     // currently included. Replaces the old single "active instance" concept (2026-09-17
     // multi-active-instance redesign, CLAUDE.md) — any number of instances can be active
@@ -49,7 +35,7 @@ public final class Instance {
     // Whether this instance's server exposes the `/messages` API (2026-09-23) — not
     // every Engelsystem deployment does yet, so the Messages sidebar entry/screens must
     // stay hidden entirely rather than show and then fail. Defaults pessimistically to
-    // `false` (unlike `selfReferenceWorks`'s optimistic `true`): a server that doesn't
+    // `false`: a server that doesn't
     // support Messages at all should never briefly show the UI before a probe corrects
     // it. Kept up to date by `AppSyncCoordinator`'s lightweight per-sync capability
     // check (`APIClient.messagesSupported(_:)`) — no dedicated Setup/Edit-time probe,
@@ -68,14 +54,12 @@ public final class Instance {
         name: String,
         baseURL: String,
         apiKeyKeychainRef: String,
-        userID: Int? = nil,
         isActive: Bool = true
     ) {
         self.id = id
         self.name = name
         self.baseURL = baseURL
         self.apiKeyKeychainRef = apiKeyKeychainRef
-        self.userID = userID
         self.isActive = isActive
         self.createdAt = Date()
         self.updatedAt = Date()
@@ -103,11 +87,4 @@ public extension Instance {
     static let demoBaseURL = "demo://engelsystem.local"
 
     var isDemo: Bool { normalizedBaseURL == Instance.demoBaseURL }
-
-    /// How to address "myself" in `/users/{id}/...` API calls — `self` unless a
-    /// numeric fallback `userID` has been set for a server that doesn't support that
-    /// alias (see `userID` above).
-    var userReference: UserReference {
-        userID.map { .id($0) } ?? .me
-    }
 }

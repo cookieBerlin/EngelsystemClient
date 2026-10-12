@@ -86,27 +86,27 @@ extension StubbedNetworkTests {
             #expect(cached.commentsCount == 0)
         }
 
-        @Test func userScopedListsUseTheUserReferenceInThePath() async throws {
+        @Test func userScopedListsAreAddressedAsSelf() async throws {
             try StubURLProtocol.route("GET /users/self/shifts", data: DemoData.shifts)
             try StubURLProtocol.route("GET /users/self/worklogs", data: DemoData.worklogs)
-            try StubURLProtocol.route("GET /users/7/angeltypes", data: DemoData.ownAngelTypes)
-            #expect(try await client.fetchShifts(for: .me, credential).count == DemoData.shifts.count)
-            #expect(try await client.fetchWorklogs(for: .me, credential).count == DemoData.worklogs.count)
-            #expect(try await client.fetchOwnAngelTypes(for: .id(7), credential).count == DemoData.ownAngelTypes.count)
+            try StubURLProtocol.route("GET /users/self/angeltypes", data: DemoData.ownAngelTypes)
+            #expect(try await client.fetchShifts(credential).count == DemoData.shifts.count)
+            #expect(try await client.fetchWorklogs(credential).count == DemoData.worklogs.count)
+            #expect(try await client.fetchOwnAngelTypes(credential).count == DemoData.ownAngelTypes.count)
         }
 
         @Test func fetchUsersAndOwnProfileDecode() async throws {
             try StubURLProtocol.route("GET /users", data: DemoData.users)
             try StubURLProtocol.route("GET /users/self", data: DemoData.ownProfile)
             #expect(try await client.fetchUsers(credential).count == DemoData.users.count)
-            let profile = try await client.fetchOwnProfile(for: .me, credential)
+            let profile = try await client.fetchOwnProfile(credential)
             #expect(profile.name == DemoData.ownProfile.name)
         }
 
         @Test func fetchOwnProfileWithoutDataIsADecodingError() async {
             StubURLProtocol.route("GET /users/self", body: Data("{}".utf8))
             await #expect(throws: APIError.decoding("Missing data in /users/{id} response")) {
-                try await client.fetchOwnProfile(for: .me, credential)
+                try await client.fetchOwnProfile(credential)
             }
         }
 
@@ -123,11 +123,11 @@ extension StubbedNetworkTests {
                 StubURLProtocol.route("GET \(path)", body: Data("{}".utf8))
             }
             #expect(try await client.fetchAngelTypes(credential).isEmpty)
-            #expect(try await client.fetchOwnAngelTypes(for: .me, credential).isEmpty)
+            #expect(try await client.fetchOwnAngelTypes(credential).isEmpty)
             #expect(try await client.fetchLocations(credential).isEmpty)
             #expect(try await client.fetchShiftTypes(credential).isEmpty)
-            #expect(try await client.fetchShifts(for: .me, credential).isEmpty)
-            #expect(try await client.fetchWorklogs(for: .me, credential).isEmpty)
+            #expect(try await client.fetchShifts(credential).isEmpty)
+            #expect(try await client.fetchWorklogs(credential).isEmpty)
             #expect(try await client.fetchUsers(credential).isEmpty)
         }
 
@@ -211,15 +211,6 @@ extension StubbedNetworkTests {
             } catch {
                 #expect(error is CancellationError)
             }
-        }
-
-        // MARK: Self-reference probe
-
-        @Test func selfProbeReportsWorkingAndBrokenServers() async throws {
-            try StubURLProtocol.route("GET /users/self/worklogs", data: DemoData.worklogs)
-            #expect(await client.selfUserReferenceWorks(credential))
-            StubURLProtocol.route("GET /users/self/worklogs", status: 404)
-            #expect(await client.selfUserReferenceWorks(credential) == false)
         }
 
         // MARK: Messages

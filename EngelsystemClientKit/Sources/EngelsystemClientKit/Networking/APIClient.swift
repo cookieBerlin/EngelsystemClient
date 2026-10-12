@@ -100,13 +100,13 @@ public final class APIClient {
 
     /// The signed-in user's own angel type memberships (`GET /users/{id}/angeltypes`) —
     /// not to be confused with `fetchAngelTypes`, which lists the instance-wide catalog.
-    public func fetchOwnAngelTypes(for user: UserReference, _ credential: EventCredential) async throws -> [UserAngelType] {
+    public func fetchOwnAngelTypes(_ credential: EventCredential) async throws -> [UserAngelType] {
         if credential.isDemo {
             await DemoData.simulateLatency()
             return DemoData.ownAngelTypes
         }
-        return try await withCredentialList("GET /users/\(user.parameter)/angeltypes", credential) {
-            try await UserAPI.usersIdAngeltypesGet(id: user.parameter).data ?? []
+        return try await withCredentialList("GET /users/self/angeltypes", credential) {
+            try await UserAPI.usersIdAngeltypesGet(id: .me).data ?? []
         }
     }
 
@@ -158,63 +158,24 @@ public final class APIClient {
         }
     }
 
-    public func fetchShifts(for user: UserReference, _ credential: EventCredential) async throws -> [Shift] {
+    public func fetchShifts(_ credential: EventCredential) async throws -> [Shift] {
         if credential.isDemo {
             await DemoData.simulateLatency()
             return DemoData.shifts
         }
-        return try await withCredentialList("GET /users/\(user.parameter)/shifts", credential) {
-            try await ShiftAPI.usersIdShiftsGet(id: user.parameter).data ?? []
+        return try await withCredentialList("GET /users/self/shifts", credential) {
+            try await ShiftAPI.usersIdShiftsGet(id: .me).data ?? []
         }
     }
 
-    public func fetchWorklogs(for user: UserReference, _ credential: EventCredential) async throws -> [Worklog] {
+    public func fetchWorklogs(_ credential: EventCredential) async throws -> [Worklog] {
         if credential.isDemo {
             await DemoData.simulateLatency()
             return DemoData.worklogs
         }
-        return try await withCredentialList("GET /users/\(user.parameter)/worklogs", credential) {
-            try await WorklogAPI.usersIdWorklogsGet(id: user.parameter).data ?? []
+        return try await withCredentialList("GET /users/self/worklogs", credential) {
+            try await WorklogAPI.usersIdWorklogsGet(id: .me).data ?? []
         }
-    }
-
-    /// Probes whether this server actually resolves the `self` user-reference alias,
-    /// independent of whatever `UserReference` a caller would otherwise use — always
-    /// tests the literal `self` value, so a server that's since been fixed can be
-    /// detected even for an `Instance` that already has a manual `userID` fallback
-    /// configured (see `Instance.selfReferenceWorks`). Deliberately probes
-    /// `/users/self/worklogs` specifically, not `/users/self`: on the one real-world
-    /// server implementation bug found for this (2026-09-21, CLAUDE.md), the other
-    /// three `self`-capable endpoints always worked — only `/worklogs` ever 404s on an
-    /// unpatched server, so it's the only endpoint that actually distinguishes "old,
-    /// broken server" from "fixed server". A `404` (`.notFound`) there is a resolution
-    /// failure regardless of whether the user has any worklogs at all (PHP's `(int)
-    /// "self"` becomes `0`, and looking up user `0` always throws) — never confuse
-    /// this with a genuine "no worklogs yet" empty list, which is a `200` either way.
-    /// Any outcome other than a definitive `.notFound` (success, or an unrelated error)
-    /// is treated as "self works" — a single transient network hiccup during this probe
-    /// shouldn't be able to flip the UI into showing the fallback field.
-    public func selfUserReferenceWorks(_ credential: EventCredential) async -> Bool {
-        if credential.isDemo {
-            return true
-        }
-        do {
-            _ = try await withCredential("GET /users/self/worklogs (self-reference probe)", credential) {
-                try await WorklogAPI.usersIdWorklogsGet(id: UserReference.me.parameter).data
-            }
-            return Self.selfWorks(afterProbeError: nil)
-        } catch {
-            return Self.selfWorks(afterProbeError: error)
-        }
-    }
-
-    /// The pure "how to interpret the probe's outcome" logic behind
-    /// `selfUserReferenceWorks`, split out so it's unit-testable without a real network
-    /// round trip (see `EngelsystemClientKitTests`). `nil` means the probe succeeded.
-    static func selfWorks(afterProbeError error: Error?) -> Bool {
-        guard let error else { return true }
-        if case APIError.notFound = error { return false }
-        return true
     }
 
     /// COMPAT(#1709): probes a real data endpoint (`GET /users/self`) during "Test Connection".
@@ -228,7 +189,7 @@ public final class APIClient {
         }
         do {
             _ = try await withCredential("GET /users/self (access probe)", credential) {
-                try await UserAPI.usersIdGet(id: UserReference.me.parameter).data
+                try await UserAPI.usersIdGet(id: .me).data
             }
             return nil
         } catch APIError.forbidden {
@@ -238,13 +199,13 @@ public final class APIClient {
         }
     }
 
-    public func fetchOwnProfile(for user: UserReference, _ credential: EventCredential) async throws -> UsersIdGet200ResponseData {
+    public func fetchOwnProfile(_ credential: EventCredential) async throws -> UsersIdGet200ResponseData {
         if credential.isDemo {
             await DemoData.simulateLatency()
             return DemoData.ownProfile
         }
-        return try await withCredential("GET /users/\(user.parameter)", credential) {
-            guard let data = try await UserAPI.usersIdGet(id: user.parameter).data else {
+        return try await withCredential("GET /users/self", credential) {
+            guard let data = try await UserAPI.usersIdGet(id: .me).data else {
                 throw APIError.decoding("Missing data in /users/{id} response")
             }
             return data
@@ -359,7 +320,7 @@ public final class APIClient {
     /// backs `Instance.messagesSupported`, which gates whether the whole Messages
     /// sidebar entry shows up (2026-09-23, user-requested: "if the instance doesn't
     /// offer the new interface, don't show the GUI"). Demo credential always reports
-    /// `true`, matching `selfUserReferenceWorks`'s equivalent short-circuit.
+    /// `true`.
     ///
     /// A plain `GET /messages` with no special handling would be ambiguous: a 404
     /// there could mean either "this route doesn't exist on this server" (unsupported)
@@ -384,7 +345,7 @@ public final class APIClient {
 
     /// The pure "how to interpret the probe's outcome" logic behind
     /// `messagesSupported(_:)`, split out so it's unit-testable without a real network
-    /// round trip (same reasoning as `selfWorks(afterProbeError:)`). Verified against
+    /// round trip. Verified against
     /// the real server implementation via a cross-session message, not guessed: two
     /// different situations both return HTTP 404 with *different* JSON bodies — a
     /// route that genuinely doesn't exist falls through to the app's shared catch-all

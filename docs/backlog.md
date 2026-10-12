@@ -15,20 +15,8 @@ The workarounds K-01 – K-08 are implemented and registered in `docs/architectu
 tagged `COMPAT(#<PR>)` (greppable), lives in clearly separated code/test files where possible, and is listed in the
 "Compatibility workarounds (temporary)" register in `docs/architecture.md`. The removal tasks **R-02 (#1709), R-03 (#1710)
 and R-04 (#1711)** each remove one PR's workarounds as soon as that PR is merged, so that in the end nothing is optional: a
-missing comments/locations endpoint or a 403 is a real error again. **R-01** (the user-ID / `self` workaround, #1708) is not
-blocked — #1708 is merged and servers without it are not supported — and should be done **first**.
+missing comments/locations endpoint or a 403 is a real error again.
 
-- [ ] **R-01** (not blocked
-- [ ]  — do first) **Remove the user-ID / `self` workaround** (Engelsystem PR #1708, merged; servers without it
-      are not supported, owner decision 2026-10-12; no CloudKit schema backward compatibility is needed either): drop
-      `Instance.userID` and `Instance.selfReferenceWorks`, `Instance.userReference`/`UserReference.id(…)` (always `self`),
-      `APIClient.selfUserReferenceWorks` and its pure interpretation helper, the "User ID" fields and the
-      `selfReferenceWorks` handling in the iOS setup/edit screens and the Watch setup/edit/settings views and view models, the
-      `userID` parameters of `InstanceSetupService` (`createInstance`, `updateInstance`, including "force-clear userID when self
-      works"), the `userID` mentions in `ShiftsViewModel`/`ProfileViewModel`/`NextShiftViewModel` logging and `APIEndpoint`, the
-      related tests, `docs/architecture.md` (instance model, setup flow; the `self`/user-ID investigation notes → move to
-      `docs/history.md`), the FAQ entry "Shifts or Profile are empty, but News works" (also in `docs/support.md`) and the guide's
-      step about the User ID field, and the "worklogs `self`" provenance note ("merged"). Then run all gates, both builds and the UI tests.
 - [ ] **R-02** (blocked until [#1709](https://github.com/engelsystem/engelsystem/pull/1709) is merged) Remove `COMPAT(#1709)`:
       the "Test Connection" 403 warning becomes a hard error again and blocks Save; remove the `API`/`Bureaucrat` group wording
       from the setup hint, `APIError.forbidden`'s message and its test, and from `docs/architecture.md`; delete the #1709 row of

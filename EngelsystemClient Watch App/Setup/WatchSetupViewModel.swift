@@ -15,11 +15,6 @@ final class WatchSetupViewModel {
     var apiKey: String = "" {
         didSet { invalidateTest() }
     }
-    /// Fallback for servers that 404 on the `self` path-parameter alias — see
-    /// `Instance.userID`. Kept as text here since it's an optional numeric field on a
-    /// form; parsed on submit. Only shown in the UI once `testConnection()` has
-    /// determined it's actually needed (`connectionTested && !selfReferenceWorks`).
-    var userIDText: String = ""
 
     var isTesting = false
     var errorMessage: String?
@@ -28,9 +23,8 @@ final class WatchSetupViewModel {
     var accessWarning: String?
 
     /// See the iOS `InstanceSetupViewModel` counterpart for the full rationale — gates
-    /// the Save button and whether the User ID field is shown at all.
+    /// the Save button.
     var connectionTested = false
-    var selfReferenceWorks = true
 
     private let apiClient: APIClient
     private let setupService: InstanceSetupService
@@ -69,10 +63,6 @@ final class WatchSetupViewModel {
         )
         do {
             _ = try await apiClient.fetchInfo(credential)
-            selfReferenceWorks = await apiClient.selfUserReferenceWorks(credential)
-            if selfReferenceWorks {
-                userIDText = ""
-            }
             accessWarning = await apiClient.accessDeniedWarning(credential)
             connectionTested = true
         } catch {
@@ -93,8 +83,7 @@ final class WatchSetupViewModel {
                 name: name.trimmingCharacters(in: .whitespaces),
                 baseURL: baseURL.trimmingCharacters(in: .whitespaces),
                 apiKey: apiKey,
-                store: LocalKeychainStore(),
-                userID: Int(userIDText.trimmingCharacters(in: .whitespaces))
+                store: LocalKeychainStore()
             )
             modelContext.insert(instance)
             try? modelContext.save()

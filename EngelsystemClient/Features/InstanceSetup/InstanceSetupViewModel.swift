@@ -12,11 +12,6 @@ final class InstanceSetupViewModel {
     var apiKey: String = "" {
         didSet { invalidateTest() }
     }
-    /// Fallback for servers that 404 on the `self` path-parameter alias — see
-    /// `Instance.userID`. Kept as text here since it's an optional numeric field on a
-    /// form; parsed on submit. Only shown in the UI once `testConnection()` has
-    /// determined it's actually needed (`connectionTested && !selfReferenceWorks`).
-    var userIDText: String = ""
 
     var isTesting = false
     var errorMessage: String?
@@ -27,13 +22,8 @@ final class InstanceSetupViewModel {
     /// Set once `testConnection()` succeeds against the currently entered
     /// server/key; reset by `invalidateTest()` whenever `baseURL`/`apiKey` change, so
     /// Save always reflects a fresh test of what's currently in the form rather than a
-    /// stale result from an earlier value. Gates both the Save button and whether the
-    /// User ID field is shown at all.
+    /// stale result from an earlier value. Gates the Save button.
     var connectionTested = false
-    /// Result of the last `testConnection()`'s `self`-alias probe — see
-    /// `Instance.selfReferenceWorks`/`APIClient.selfUserReferenceWorks`. Only
-    /// meaningful once `connectionTested` is true.
-    var selfReferenceWorks = true
 
     private let apiClient: APIClient
     private let setupService: InstanceSetupService
@@ -57,13 +47,8 @@ final class InstanceSetupViewModel {
             && !isTesting
     }
 
-    /// Tests the server/key against `/info` and, separately, whether this server
-    /// resolves the `self` user-reference alias (`APIClient.selfUserReferenceWorks`) —
-    /// without creating or saving anything. Lets the User ID field only appear once
-    /// it's actually known to be needed, instead of always showing it up front. If the
-    /// server turns out to support `self` after all, any previously typed User ID is
-    /// cleared so a stale, no-longer-needed value can't silently get saved once Save
-    /// is pressed.
+    /// Tests the server/key against `/info` (and a data request, for the 403 warning) without
+    /// creating or saving anything.
     func testConnection() async {
         errorMessage = nil
         accessWarning = nil
@@ -76,10 +61,6 @@ final class InstanceSetupViewModel {
         )
         do {
             _ = try await apiClient.fetchInfo(credential)
-            selfReferenceWorks = await apiClient.selfUserReferenceWorks(credential)
-            if selfReferenceWorks {
-                userIDText = ""
-            }
             accessWarning = await apiClient.accessDeniedWarning(credential)
             connectionTested = true
         } catch {
@@ -103,8 +84,7 @@ final class InstanceSetupViewModel {
                 name: name.trimmingCharacters(in: .whitespaces),
                 baseURL: baseURL.trimmingCharacters(in: .whitespaces),
                 apiKey: apiKey,
-                store: store,
-                userID: Int(userIDText.trimmingCharacters(in: .whitespaces))
+                store: store
             )
             modelContext.insert(instance)
             try? modelContext.save()

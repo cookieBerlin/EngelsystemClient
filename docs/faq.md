@@ -35,12 +35,6 @@ Check the server address (including `https://`) and the API key, then use **Test
 message under the button tells you the reason: a rejected key (wrong or expired), an account the server denies API access (403), an
 unreachable server, or an invalid address.
 
-### Shifts or Profile are empty, but News works.
-
-Some older Engelsystem servers do not support the "my own account" shortcut on every endpoint. Open the instance in
-**Settings**, tap **Edit Instance** and run **Test Connection**; if needed the app then asks for your numeric user ID (visible
-in the URL of your profile page).
-
 ## Using the app
 
 ### Why do I not see comments, locations or messages?

@@ -31,13 +31,6 @@ Double-check the server URL and your API key (on your Engelsystem
 server open `/settings/api` and press "Show API key"). The app uses
 the Engelsystem REST API v0-beta.
 
-**Shifts/Profile show empty, but News works.**
-Some older Engelsystem servers don't support the `self` shortcut for
-"my own account" on every endpoint. Open the instance's settings in
-the app and use "Test Connection" — if needed, it'll let you enter
-your numeric user ID (visible in your profile's URL on the website) as
-a fallback.
-
 **I don't have an Engelsystem account to try the app.**
 Use "Try Demo Mode" on the first screen — it works entirely with
 sample data, no server or account needed.

@@ -51,7 +51,6 @@ final class ShiftsViewModel {
         for instance in instances {
             do {
                 let credential = try credentialResolver.credential(for: instance)
-                DebugLog.log("[ShiftsViewModel] instance.userID = \(String(describing: instance.userID)), userReference = \(instance.userReference)")
                 let result = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
                 DebugLog.log("[ShiftsViewModel] synced \(result.shifts.count) shift(s) from \(credential.baseURL)")
                 allShifts.append(contentsOf: result.shifts)

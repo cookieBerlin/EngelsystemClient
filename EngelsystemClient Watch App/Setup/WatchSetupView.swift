@@ -34,16 +34,6 @@ struct WatchSetupView: View {
                 }
             }
 
-            // Only shown once a test has run and determined the server needs it.
-            if viewModel.connectionTested && !viewModel.selfReferenceWorks {
-                Section {
-                    TextField("User ID", text: $viewModel.userIDText)
-                } footer: {
-                    Text("This server doesn't support automatic user detection.")
-                        .font(.caption2)
-                }
-            }
-
             // COMPAT(#1709): the server answered 403 to a data request — warn, but allow saving.
             if viewModel.connectionTested, let accessWarning = viewModel.accessWarning {
                 Section {

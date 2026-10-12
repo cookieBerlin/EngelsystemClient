@@ -15,11 +15,6 @@ final class WatchEditInstanceViewModel {
     var baseURL: String {
         didSet { connectionTested = false }
     }
-    /// Fallback for servers that 404 on the `self` path-parameter alias — see
-    /// `Instance.userID`. Kept as text here since it's an optional numeric field on a
-    /// form; parsed on submit. Shown whenever `selfReferenceWorks` says it's needed, or
-    /// a value is already configured (see `WatchSettingsView`'s condition).
-    var userIDText: String
     /// Left blank on open; blank on save means "keep the existing key" — see the iOS
     /// `EditInstanceViewModel`'s matching field for the full rationale.
     var apiKey: String = "" {
@@ -33,13 +28,8 @@ final class WatchEditInstanceViewModel {
 
     /// See the iOS `EditInstanceViewModel` counterpart for the full rationale — gates
     /// Save (`canSubmit`) and drives the "Test Connection" button's own display; reset
-    /// on `baseURL`/`apiKey` edits, so Save re-enables only after a fresh test. Does
-    /// not gate the User ID field's visibility, which is driven by `selfReferenceWorks`
-    /// alone.
+    /// on `baseURL`/`apiKey` edits, so Save re-enables only after a fresh test.
     var connectionTested = true
-    /// Starts from the persisted `instance.selfReferenceWorks`, updates live when
-    /// "Test Connection" is pressed.
-    var selfReferenceWorks: Bool
 
     private let apiClient: APIClient
     private let setupService: InstanceSetupService
@@ -53,8 +43,6 @@ final class WatchEditInstanceViewModel {
     ) {
         self.name = instance.name
         self.baseURL = instance.normalizedBaseURL
-        self.userIDText = instance.userID.map(String.init) ?? ""
-        self.selfReferenceWorks = instance.selfReferenceWorks
         self.apiClient = apiClient
         self.setupService = setupService
         self.credentialResolver = credentialResolver
@@ -72,12 +60,7 @@ final class WatchEditInstanceViewModel {
     }
 
     /// See the iOS `EditInstanceViewModel.testConnection(for:)` counterpart for the
-    /// full rationale.
-    /// See the iOS `EditInstanceViewModel.testConnection(for:)` counterpart for the
-    /// full rationale. Only clears the *form field*, not `instance.userID` itself —
-    /// deleting the persisted value happens at Save time (`InstanceSetupService
-    /// .updateInstance`), not here, so pressing "Test Connection" alone never mutates
-    /// the store.
+    /// full rationale. Pressing "Test Connection" alone never mutates the store.
     func testConnection(for instance: Instance) async {
         errorMessage = nil
         accessWarning = nil
@@ -93,10 +76,6 @@ final class WatchEditInstanceViewModel {
                 apiKey: effectiveAPIKey
             )
             _ = try await apiClient.fetchInfo(credential)
-            selfReferenceWorks = await apiClient.selfUserReferenceWorks(credential)
-            if selfReferenceWorks {
-                userIDText = ""
-            }
             accessWarning = await apiClient.accessDeniedWarning(credential)
             connectionTested = true
         } catch {
@@ -126,7 +105,6 @@ final class WatchEditInstanceViewModel {
                 baseURL: baseURL.trimmingCharacters(in: .whitespaces),
                 apiKey: effectiveAPIKey,
                 newAPIKeyToStore: newKeyToStore,
-                userID: Int(userIDText.trimmingCharacters(in: .whitespaces)),
                 store: store
             )
             try? modelContext.save()

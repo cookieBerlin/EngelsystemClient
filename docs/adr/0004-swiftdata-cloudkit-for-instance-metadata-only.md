@@ -11,7 +11,7 @@ The API data itself (shifts, news, …) can be re-fetched by each device.
 
 ## Decision
 
-- Persist with SwiftData. Only `Instance` (name, server URL, `userID`,
+- Persist with SwiftData. Only `Instance` (name, server URL,
   `isActive`, `messagesSupported`) is CloudKit-backed (container
   `iCloud.net.cuccato.engelsystem.de`); all `Cached*` models are
   local-only per device.

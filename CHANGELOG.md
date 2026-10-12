@@ -6,6 +6,10 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Removed
+- The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's
+  “my own account” support for work logs are no longer supported.
+
 ### Changed
 - Works with Engelsystem servers that lack some newer API features: news without comment counts still load, news comments and
   the Locations area are hidden when a server does not provide them, and shift reminders no longer depend on News or Profile
