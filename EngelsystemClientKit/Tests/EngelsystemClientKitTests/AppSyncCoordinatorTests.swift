@@ -72,6 +72,21 @@ extension StubbedNetworkTests {
             #expect(center.added.isEmpty)
         }
 
+        /// Reminders depend on the shift syncs only: a failing News/Profile/Locations step still schedules them.
+        @Test func shiftRemindersAreScheduledEvenWhenOtherDomainsFail() async throws {
+            try StubURLProtocol.route("GET \(prefix)/users/self/shifts", data: DemoData.shifts)
+            for path in ["/news", "/users/self", "/locations"] {
+                StubURLProtocol.route("GET \(prefix)\(path)", status: 500)
+            }
+            let context = try makeContext()
+            let instance = stubInstance()
+            context.insert(instance)
+
+            let succeeded = await coordinator().syncEverything(instances: [instance], in: context)
+            #expect(!succeeded)
+            #expect(!center.added.isEmpty)
+        }
+
         @Test func aCancelledSyncDoesNotCountAsAFailure() async throws {
             let context = try makeContext()
             let instance = stubInstance()

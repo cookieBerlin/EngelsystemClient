@@ -90,6 +90,9 @@ public struct AppSyncCoordinator {
         let total = max(instances.count * stepsPerInstance, 1)
         var completed = 0
         var allSucceeded = true
+        // Shift reminders only depend on the *shift* syncs of every instance — a failing News,
+        // Profile, Locations or Messages step must not suppress them.
+        var allShiftsSucceeded = true
 
         func reportStep(_ description: String) {
             completed += 1
@@ -110,6 +113,7 @@ public struct AppSyncCoordinator {
             let credential = try? credentialResolver.credential(for: instance)
             if credential == nil {
                 allSucceeded = false
+                allShiftsSucceeded = false
                 DebugLog.log("AppSyncCoordinator: no credential for '\(instance.name)' — skipping", level: .error)
             }
 
@@ -132,6 +136,7 @@ public struct AppSyncCoordinator {
                 } catch {
                     guard !(error is CancellationError) else { continue }
                     allSucceeded = false
+                    allShiftsSucceeded = false
                     DebugLog.log("AppSyncCoordinator: Shifts failed for '\(instance.name)': \(error)", level: .error)
                 }
             }
@@ -197,7 +202,7 @@ public struct AppSyncCoordinator {
             }
         }
 
-        if handleNotifications, allSucceeded, await notificationScheduler.requestAuthorizationIfNeeded() {
+        if handleNotifications, allShiftsSucceeded, await notificationScheduler.requestAuthorizationIfNeeded() {
             let leadTimes = NotificationLeadTimeSettings.resolve(in: modelContext).leadTimesMinutes
             await notificationScheduler.syncNotifications(for: allShifts, leadTimes: leadTimes)
         }

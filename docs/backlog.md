@@ -19,9 +19,6 @@ missing comments/locations endpoint or a 403 is a real error again. **R-01** (th
 blocked — #1708 is merged and servers without it are not supported — and should be done **first**.
 Permanent improvements (not tagged): K-06 (reminders independent of News).
 
-- [ ] **K-06** Reminders: in `AppSyncCoordinator` plan shift reminders whenever every instance's *shift* sync succeeded (new
-      `shiftsSucceeded`), independent of News/Profile/Locations/Messages failures; news announcements stay independent too;
-      tests.
 - [ ] **K-07** Docs and verification: ADR 0013 (states that the workarounds are temporary and when they go), the "Compatibility workarounds (temporary)" register in `docs/architecture.md` (one row per `COMPAT(#<PR>)` tag: what, where, which PR, how to remove), `docs/architecture.md` ("Compatibility with older servers"), `docs/features.md`,
       FAQ ("Why do I not see comments or locations?" — the app hides what a server does not offer), `CHANGELOG.md`; run
       `Scripts/check-all-coverage.sh`, build iOS/Watch (Debug and Release) and the UI tests (erased simulator).
