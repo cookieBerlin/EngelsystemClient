@@ -150,15 +150,41 @@ struct NewsDetailViewModelTests {
         #expect(viewModel.comments.isEmpty)
     }
 
-    @Test @MainActor func setsAnErrorMessageForAnUnknownPost() async throws {
+    /// COMPAT(#1710): a 404 from `GET /news/{id}` hides the comments instead of showing an error.
+    @Test @MainActor func hidesCommentsWhenTheServerHasNoNewsDetail() async throws {
         let instance = try makeInstanceWithSeededKey()
         defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+        let capabilities = ServerCapabilities(defaults: UserDefaults(suiteName: "NewsDetailVM-\(UUID().uuidString)")!)
 
-        let viewModel = NewsDetailViewModel()
+        let viewModel = NewsDetailViewModel(capabilities: capabilities)
         await viewModel.refresh(newsServerID: 999, instance: instance)
 
-        #expect(viewModel.errorMessage != nil)
+        #expect(viewModel.errorMessage == nil)
+        #expect(viewModel.commentsUnavailable)
         #expect(viewModel.comments.isEmpty)
+        #expect(!capabilities.isAvailable(.newsComments, for: instance.id))
+
+        await viewModel.refresh(newsServerID: 1, instance: instance)
+        #expect(!viewModel.commentsUnavailable)
+        #expect(capabilities.isAvailable(.newsComments, for: instance.id))
+    }
+
+    @Test @MainActor func setsAnErrorMessageWhenTheCredentialIsMissing() async {
+        let instance = Instance(name: "NoKey", baseURL: "https://example.org", apiKeyKeychainRef: UUID().uuidString)
+        let viewModel = NewsDetailViewModel()
+        await viewModel.refresh(newsServerID: 1, instance: instance)
+        #expect(viewModel.errorMessage != nil)
+        #expect(!viewModel.commentsUnavailable)
+    }
+
+    @Test @MainActor func commentsLinkNeedsCommentsAndServerSupport() {
+        let capabilities = ServerCapabilities(defaults: UserDefaults(suiteName: "NewsLink-\(UUID().uuidString)")!)
+        let id = UUID()
+        #expect(NewsDetailViewModel.showsCommentsLink(commentsCount: 2, instanceID: id, capabilities: capabilities))
+        #expect(!NewsDetailViewModel.showsCommentsLink(commentsCount: 0, instanceID: id, capabilities: capabilities))
+        capabilities.record(.newsComments, supported: false, for: id)
+        #expect(!NewsDetailViewModel.showsCommentsLink(commentsCount: 2, instanceID: id, capabilities: capabilities))
+        #expect(NewsDetailViewModel.showsCommentsLink(commentsCount: 2, instanceID: id)) // default: shared store, unknown instance
     }
 }
 

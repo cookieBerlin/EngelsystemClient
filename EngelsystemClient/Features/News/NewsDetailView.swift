@@ -35,6 +35,8 @@ struct NewsDetailView: View {
                 .padding(.vertical, 4)
             }
 
+            // COMPAT(#1710): hidden when the server has no news comments.
+            if !viewModel.commentsUnavailable {
             Section("Comments") {
                 if viewModel.isLoading {
                     ProgressView()
@@ -50,6 +52,7 @@ struct NewsDetailView: View {
                         NewsCommentRow(comment: comment)
                     }
                 }
+            }
             }
         }
         .navigationTitle(item.title)

@@ -267,7 +267,7 @@ private struct NewsRow: View {
                 Text(item.createdAt, style: .date)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                if item.commentsCount > 0, let instance {
+                if NewsDetailViewModel.showsCommentsLink(commentsCount: item.commentsCount, instanceID: item.instanceID), let instance {
                     Spacer()
                     NavigationLink {
                         NewsDetailView(item: item, instance: instance)

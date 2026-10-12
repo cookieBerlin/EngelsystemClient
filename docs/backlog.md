@@ -19,9 +19,6 @@ missing comments/locations endpoint or a 403 is a real error again. **R-01** (th
 blocked — #1708 is merged and servers without it are not supported — and should be done **first**.
 Permanent improvements (not tagged): K-06 (reminders independent of News).
 
-- [ ] **K-03** News: show the comments link, `NewsDetailView` and comment counts only when comments are supported; a 404/403
-      from `GET /news/{id}` hides the feature silently (marks it unsupported) instead of showing an error; tests (view-model and
-      `InstanceScope`-style helpers).
 - [ ] **K-04** Locations: hide the Locations sidebar entry unless at least one active instance can list locations (like
       Messages: `MainView.Section.visibleSidebarCases`, fallback selection); a shift's location is plain text without a cached
       location; `LocationDetailViewModel` treats 404/403 as "no refresh available" (no error banner); the list sync's
