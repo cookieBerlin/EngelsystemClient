@@ -2,7 +2,7 @@
 
 Part of the Engelsystem Client documentation set — see [`CLAUDE.md`](../CLAUDE.md) for the entry point and the rest of the doc map.
 
-This file collects investigations, bugs, and decisions that are no longer load-bearing for understanding today's code — the current design lives in [`ARCHITECTURE.md`](ARCHITECTURE.md), [`ENTITLEMENTS.md`](ENTITLEMENTS.md), and [`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md), each of which link back here where the story matters. Kept mostly for the lessons learned (about this Mac's tooling, about which Apple APIs to trust, about workflow mistakes worth not repeating) rather than as a day-to-day reference.
+This file collects investigations, bugs, and decisions that are no longer load-bearing for understanding today's code — the current design lives in [`architecture.md`](architecture.md), [`ENTITLEMENTS.md`](ENTITLEMENTS.md), and [`features.md`](features.md), each of which link back here where the story matters. Kept mostly for the lessons learned (about this Mac's tooling, about which Apple APIs to trust, about workflow mistakes worth not repeating) rather than as a day-to-day reference.
 
 ## API / data-flow bugs
 
@@ -10,7 +10,7 @@ This file collects investigations, bugs, and decisions that are no longer load-b
 empty with no error, while News loaded fine.** Reported and root-caused
 2026-09-05, confirmed via the user's Xcode console with debug logging
 (the predecessor to today's `DebugLog`, see
-[`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md)): `/users/self/shifts`
+[`features.md`](features.md)): `/users/self/shifts`
 and `/users/self` both returned a
 genuine 404 on this server (`[APIClient] 404 for a list endpoint —
 treating as empty list` fired, then `[ProfileViewModel] refresh failed:
@@ -19,14 +19,14 @@ parameter on at least this Engelsystem deployment, despite `openapi.yml`
 documenting it as valid (the *spec* allowing a value doesn't guarantee
 every real server implements it — this server apparently predates that
 alias, or never implemented it). Confirmed present *before* the
-`CancellationError` fix (see [`ARCHITECTURE.md`](ARCHITECTURE.md)) too,
+`CancellationError` fix (see [`architecture.md`](architecture.md)) too,
 so it was never a side effect of
 that fix — it's App/server API-compatibility, not a client concurrency
 bug.
 
 
 **Real server-side `self` bug found and fixed upstream, 2026-09-21**: after the
-client-side path-parameter bug (see [`ARCHITECTURE.md`](ARCHITECTURE.md), "Actually
+client-side path-parameter bug (see [`architecture.md`](architecture.md), "Actually
 root-caused, 2026-09-17") was fixed, the user found and fixed a
 *genuine* server-side bug in their own Engelsystem test deployment (upstream
 `engelsystem/engelsystem`, `src/Controllers/Api/UsersController.php`,
@@ -102,7 +102,7 @@ before the user applied the fix directly to their own test server.
   client process also tears down the simulator.
 
   This does **not** implicate the CloudKit sync work described in
-  [`ARCHITECTURE.md`](ARCHITECTURE.md): the iOS UI
+  [`architecture.md`](architecture.md): the iOS UI
   test (`testDemoModeNavigationFlow`) passed fine multiple times in the
   same sessions, the Kit unit tests (including
   `modelContainerFactorySupportsBothInstanceAndLocalModels`) all pass, and
@@ -117,7 +117,7 @@ before the user applied the fix directly to their own test server.
   after rebuilding the app from Xcode.** Reported by the user against a
   real (non-demo) server: they set the `userID` fallback (see the
   "Resolved bug"/"Fix" entries elsewhere in this file and in
-  [`ARCHITECTURE.md`](ARCHITECTURE.md)) via "Edit Name / Server", rebuilt
+  [`architecture.md`](architecture.md)) via "Edit Name / Server", rebuilt
   the app from Xcode, and the very next sync logged
   `instance.userID = nil, userReference = me` again — the edit had been
   lost. Root cause: **no production code path anywhere ever called
@@ -173,7 +173,7 @@ before the user applied the fix directly to their own test server.
 
   `ICloudAvailability.isAvailable` is `FileManager.default
   .ubiquityIdentityToken != nil` — this is exactly what the project's
-  "Sync strategy" (now in [`ARCHITECTURE.md`](ARCHITECTURE.md))
+  "Sync strategy" (now in [`architecture.md`](architecture.md))
   originally specified as the binding startup check
   (written before any CloudKit code existed). The problem:
   **`ubiquityIdentityToken` belongs to Apple's iCloud Documents/
@@ -240,7 +240,7 @@ before the user applied the fix directly to their own test server.
   cross-device `Instance` sync has ever been confirmed working in
   practice, not just via entitlement/provisioning inspection. The new
   `CloudSyncStatus` footer on both Settings screens (see
-  [`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md)) exists
+  [`features.md`](features.md)) exists
   specifically so this stays visible going forward without needing a
   console attached.
 
@@ -468,7 +468,7 @@ a fresh temp directory before concluding it's a real bug.
 
 Ahead of switching the GitHub repo from private to public (part of
 TestFlight release planning, see
-[`ROADMAP.md`](ROADMAP.md#testflight-release-started-2026-10-09)),
+[`roadmap.md`](roadmap.md#testflight-release-started-2026-10-09)),
 user-requested audit of the entire repository **and its full commit
 history** (83 commits at the time) for anything that shouldn't go
 public — API keys, private keys/certificates, personal data, internal
@@ -525,7 +525,7 @@ real credential), IP addresses, and email addresses in file *content*
   left public in open-source Xcode projects. No action taken.
 - No LICENSE file existed at audit time. **User-approved fix, same
   day**: GPL-2.0 (the user's explicit choice, not suggested by Claude —
-  see `ROADMAP.md`'s "Resolved decisions"), canonical text fetched
+  see `roadmap.md`'s "Resolved decisions"), canonical text fetched
   verbatim via `curl` from `gnu.org` rather than reconstructed from
   memory, inserted into the very first commit (`git rebase --root`,
   combined with the history-scrub rewrite above in one pass) so the
@@ -534,5 +534,5 @@ real credential), IP addresses, and email addresses in file *content*
 **Outcome**: cleared for going public from a secrets-leak perspective.
 The two low-risk informational items (old local path in history; no
 LICENSE) were both resolved the same day with explicit user approval —
-see `ROADMAP.md`'s "Resolved decisions" for the final record.
+see `roadmap.md`'s "Resolved decisions" for the final record.
 

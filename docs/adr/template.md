@@ -14,5 +14,5 @@ What was decided, stated plainly.
 ## Consequences
 
 What this makes easier, what it makes harder, and any trade-offs
-knowingly accepted. Link onward (`docs/IMPLEMENTED_FEATURES.md`, other
+knowingly accepted. Link onward (`docs/features.md`, other
 ADRs) rather than duplicating detail that lives there.

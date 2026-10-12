@@ -1,6 +1,6 @@
 # Architecture
 
-Part of the Engelsystem Client documentation set — see [`CLAUDE.md`](../CLAUDE.md) for the entry point and the rest of the doc map. For the story behind these decisions (bugs found, wrong turns, root causes), see [`HISTORY.md`](HISTORY.md).
+Part of the Engelsystem Client documentation set — see [`CLAUDE.md`](../CLAUDE.md) for the entry point and the rest of the doc map. For the story behind these decisions (bugs found, wrong turns, root causes), see [`history.md`](history.md).
 
 ## Multi-instance concept
 
@@ -161,7 +161,7 @@ file-level detail without re-deriving it:
   swipe-to-activate/deactivate flow end to end. The watchOS UI test's
   source was updated to match (renamed button, dropped "Update API Key"/
   "Active Instance" assertions) but — per the Simulator performance
-  ceiling documented in [`HISTORY.md`](HISTORY.md) — wasn't run; verify
+  ceiling documented in [`history.md`](history.md) — wasn't run; verify
   Watch changes via a manual simulator check instead.
 
 ## Sync strategy (iOS ↔ Watch), binding
@@ -260,7 +260,7 @@ completely standalone when no connection is possible. Implemented as a
    (foreground or still-resident background) — whether this fires reliably
    from a fully suspended/terminated Watch app is unverified, consistent
    with this project's other unverified watchOS background-execution
-   assumptions (see `docs/HISTORY.md`).
+   assumptions (see `docs/history.md`).
 3. **WatchConnectivity nudge** (`WatchConnectivityBridge`,
    `EngelsystemClientKit/Services/`): the explicit, user-requested "Verbund"
    fast path — faster than waiting on CloudKit's server round-trip, but
@@ -423,7 +423,7 @@ separately controllable triggers:
   completed unit of work (including failed ones, so `completed` always
   reaches `total`), and returns whether every instance synced cleanly.
   `notifyOnNewNews` (see the News comments feature in
-  [`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md) for
+  [`features.md`](features.md) for
   `NewsNotifier`) is the one place that flag is ever `true` — background
   sync is the only trigger where a "new post found" push notification
   actually makes sense, since the user isn't already looking at the app.
@@ -556,7 +556,7 @@ Error handling centralized in `APIClient`: 401 → back to Instance Setup,
 realized as "back to Settings" (`MainView.goToSettings`, triggered by
 each feature view model's `isUnauthorized` flag) now that Settings/
 instance management is its own screen — see
-[`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md) for the "Update API
+[`features.md`](features.md) for the "Update API
 Key" action that closes the loop once there.
 
 **`CancellationError` is never surfaced as a user-facing error.** Bug
@@ -580,7 +580,7 @@ guard — this class of bug will otherwise reappear on that screen too.
 ~~**Debug logging via `print` in `Shifts`/`News`/`ProfileViewModel` and the
 Watch app's `NextShiftViewModel`**~~ **Superseded 2026-09-23 by the
 in-app `DebugLog` feature — see
-[`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md).** Every one of
+[`features.md`](features.md).** Every one of
 these `print` call sites (and every other `print` in the app-target/Kit
 source, outside `Generated/`) now routes through `DebugLog.log(...)`
 instead.
@@ -588,7 +588,7 @@ instead.
 
 An early (2026-09-05) investigation of a real-server bug (Shifts/Profile
 showed empty with no error) concluded the server didn't support the
-`self` user-reference alias — see [`HISTORY.md`](HISTORY.md) for that
+`self` user-reference alias — see [`history.md`](history.md) for that
 original diagnosis. ~~**Fix: `Instance.userID: Int?`**, an optional
 numeric fallback (nil = use `self`, the default/common case).~~ **This
 diagnosis was itself wrong — see the 2026-09-17 root-cause entry
@@ -803,7 +803,7 @@ reason to sync them.
   `ubiquityIdentityToken` belongs to a different iCloud subsystem
   (Documents/Ubiquity) than CloudKit and reported `false` even when
   CloudKit itself was genuinely available.** See
-  [`HISTORY.md`](HISTORY.md) for the full investigation. `forceLocalOnly`/
+  [`history.md`](history.md) for the full investigation. `forceLocalOnly`/
   `isStoredInMemoryOnly` parameters exist purely so tests get a fully
   deterministic, side-effect-free container regardless of this machine's
   iCloud state (CloudKit mirroring isn't supported on an in-memory store
@@ -839,7 +839,7 @@ reason to sync them.
   replaces an already-running build kills the old process directly
   without ever hitting one of those events — an edit made shortly before
   the next rebuild can otherwise be silently lost. See
-  [`HISTORY.md`](HISTORY.md) for the incident that surfaced this.
+  [`history.md`](history.md) for the incident that surfaced this.
 - **An already-open `@Query` view doesn't refresh promptly on its own
   when a CloudKit merge lands in the background** —
   `NSPersistentCloudKitContainer`-style merges write directly into the
@@ -863,7 +863,7 @@ reason to sync them.
   `.receive(on: DispatchQueue.main)` to the publisher chain before
   calling `modelContext.save()`, or SwiftUI logs "Publishing changes
   from background threads is not allowed" (hit this exact regression
-  while building the fix — see [`HISTORY.md`](HISTORY.md)). This
+  while building the fix — see [`history.md`](history.md)). This
   project's `MemberImportVisibility` upcoming-feature flag also means
   `.receive(on:)` needs an explicit `import Combine` in both files
   (normally implicit via SwiftUI).

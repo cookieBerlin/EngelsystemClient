@@ -17,44 +17,44 @@ of them up to date as work lands — not just this file:
 - **[`README.md`](README.md)** — short, human-facing overview for
   GitHub visitors (what this is, how to build/run it). Update it
   whenever the project's purpose, scope, or build/run steps change.
-- **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — the current
+- **[`docs/architecture.md`](docs/architecture.md)** — the current
   design: multi-instance concept, iOS↔Watch sync strategy, background
   sync, the data/code flow and its error-handling rules, and CloudKit
   sync for `Instance` metadata.
-- **[`docs/IMPLEMENTED_FEATURES.md`](docs/IMPLEMENTED_FEATURES.md)** —
+- **[`docs/features.md`](docs/features.md)** —
   feature-by-feature current state of `EngelsystemClientKit`, the iOS
   app, and the watchOS app. The single biggest, fastest-growing
   document — append here as features land.
 - **[`docs/ENTITLEMENTS.md`](docs/ENTITLEMENTS.md)** — current
   entitlements/signing configuration and actionable Xcode/Info.plist
   gotchas.
-- **[`docs/HISTORY.md`](docs/HISTORY.md)** — investigations, bugs, and
+- **[`docs/history.md`](docs/history.md)** — investigations, bugs, and
   decisions that are no longer needed to understand today's code, kept
   for the lessons learned. Add here rather than letting closed
   investigations bloat the current-state docs above.
-- **[`docs/ROADMAP.md`](docs/ROADMAP.md)** — forward-looking planning:
+- **[`docs/roadmap.md`](docs/roadmap.md)** — forward-looking planning:
   not-yet-implemented features, release planning (e.g. TestFlight), and
   open decisions awaiting the user's input. All planning discussion
   belongs here, not just in chat — move it here as soon as it firms up
   past "just an idea," and move an item out (into
-  `docs/IMPLEMENTED_FEATURES.md`, with a dated note) once it actually
+  `docs/features.md`, with a dated note) once it actually
   ships.
 - **[`docs/adr/`](docs/adr/)** — Architecture Decision Records, one file
   per significant architectural decision going forward (started
   2026-10-09; existing decisions made before this date live in their
-  original narrative form in `docs/ARCHITECTURE.md`/`docs/HISTORY.md`
+  original narrative form in `docs/architecture.md`/`docs/history.md`
   and are **not** being retroactively converted, unless asked). See
   [`docs/adr/README.md`](docs/adr/README.md) for the index and template.
   Write a new ADR whenever a decision has real trade-offs worth
   recording for a future session — not for routine implementation
-  choices that `docs/IMPLEMENTED_FEATURES.md` already captures fine.
-- **[`docs/BACKLOG.md`](docs/BACKLOG.md)** — concrete, ready-to-pick-up
+  choices that `docs/features.md` already captures fine.
+- **[`docs/backlog.md`](docs/backlog.md)** — concrete, ready-to-pick-up
   development tasks for the next work sessions — the tactical
-  counterpart to `docs/ROADMAP.md`'s strategic/feature-level planning.
+  counterpart to `docs/roadmap.md`'s strategic/feature-level planning.
   A Roadmap item moves to the Backlog once it's broken down into actual
   tasks someone could start on; a Backlog item is removed (not just
   checked off) once it's done and reflected in
-  `docs/IMPLEMENTED_FEATURES.md`.
+  `docs/features.md`.
 
 ## Purpose of the app
 
@@ -73,7 +73,7 @@ official REST API of the respective Engelsystem instance.
   time, switching in Settings)
 - Watch app: standalone (its own network call — WatchConnectivity, added
   2026-09-23, is only an optional fast-path nudge, never a data relay; see
-  `docs/ARCHITECTURE.md`'s "Sync strategy"), shows only the next shift +
+  `docs/architecture.md`'s "Sync strategy"), shows only the next shift +
   complication
 - Demo mode: try the app without a real Engelsystem server or API key
   (see "Demo Mode" below)
@@ -86,7 +86,7 @@ official REST API of the respective Engelsystem instance.
   once the backend endpoint exists.
 
 ~~Send/receive private messages~~ **Implemented 2026-09-23** — see the
-Messages feature in `docs/IMPLEMENTED_FEATURES.md` and the `/messages`
+Messages feature in `docs/features.md` and the `/messages`
 entry under API below. The backend endpoint this used to be blocked on
 now exists (on a not-yet-merged server branch); the client-side GUI is
 gated entirely behind a runtime capability probe
@@ -136,7 +136,7 @@ project's `openapi.yml` by diffing against that branch's copy directly
 schema, then regenerating via `Scripts/generate-api.sh` as usual.
 
 **`/locations/{id}` added 2026-09-23** (the Locations feature — see
-`docs/IMPLEMENTED_FEATURES.md`), same cross-session-branch workflow:
+`docs/features.md`), same cross-session-branch workflow:
 fetched directly from the pushed branch
 (`raw.githubusercontent.com/cookieBerlin/engelsystem/feat/api-locations-detail/resources/api/openapi.yml`,
 PR [engelsystem/engelsystem#1711](https://github.com/engelsystem/engelsystem/pull/1711),
@@ -155,7 +155,7 @@ older cross-session message's field descriptions verbatim, in case the
 branch has moved on since.
 
 **`/messages` added 2026-09-23** (the Messages feature — full read/write
-private messaging, see `docs/IMPLEMENTED_FEATURES.md`), sourced from a
+private messaging, see `docs/features.md`), sourced from a
 not-yet-merged server branch (`feat/api-messages`) via the same
 cross-session-branch workflow as `/news/{id}`/`/locations/{id}` above —
 fetched directly from the branch's `openapi.yml`, not hand-written, then
@@ -235,7 +235,7 @@ deliberately treats it differently from every read-only feature above**:
 | Deployment target | iOS 26.5, watchOS 26.5 |
 | UI | SwiftUI, `@Observable` view models |
 | iPad | `NavigationSplitView` (no plain TabView) |
-| Persistence | SwiftData, CloudKit-backed (see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)) |
+| Persistence | SwiftData, CloudKit-backed (see [`docs/architecture.md`](docs/architecture.md)) |
 | DTOs | generated via OpenAPI Generator (`swift5`, `library=urlsession`,
   `responseAs=AsyncAwait`) from `openapi.yml` — **do not hand-write** |
 | Networking | `URLSession` + `async/await`, custom `APIClient` uses the
@@ -258,7 +258,7 @@ deliberately treats it differently from every read-only feature above**:
   switching (previously iOS-only). This was a deliberate scope decision,
   not scope creep: "minimal" governs which *data views* the Watch shows
   (still just the next shift, no catalog/news), not configuration. See
-  [`docs/IMPLEMENTED_FEATURES.md`](docs/IMPLEMENTED_FEATURES.md) for how
+  [`docs/features.md`](docs/features.md) for how
   it's reached and built.
 
 ## Project/target structure
@@ -307,7 +307,7 @@ to an actual user; it was purely an internal Xcode/project-file
 naming glitch). Fixed via the `xcodeproj` Ruby gem (same tool this
 project already uses for structural `project.pbxproj` changes — see
 "Complication" in
-[`docs/IMPLEMENTED_FEATURES.md`](docs/IMPLEMENTED_FEATURES.md)) rather
+[`docs/features.md`](docs/features.md)) rather
 than hand-editing the pbxproj text: renamed
 the three targets' `name`/`productName`, the three
 `PBXFileSystemSynchronizedRootGroup` paths, the `Products` group's
@@ -334,7 +334,7 @@ a glance.
 1. ✅ Finish `EngelsystemClientKit` package + codegen setup
 2. ✅ SwiftData models (`Instance`, `CachedShift`, `CachedNews`, `CachedUser`,
    `CachedWorklog`) incl. CloudKit configuration — models done, CloudKit
-   wiring still open (see [`docs/IMPLEMENTED_FEATURES.md`](docs/IMPLEMENTED_FEATURES.md))
+   wiring still open (see [`docs/features.md`](docs/features.md))
 3. ✅ `APIClient` + `KeychainSyncStore`/`LocalKeychainStore`
 4. ✅ iOS app: `InstanceSetup` feature (first runnable feature)
 5. ✅ iOS app: Shifts / News / Profile / Settings
@@ -378,7 +378,7 @@ a glance.
   failing (and, confusingly, also hanging for ~10 minutes on
   `xcodebuild`'s own "collecting diagnostics from simulator" step
   afterward — the same red herring shape as the watchOS Simulator
-  ceiling documented in [`docs/HISTORY.md`](docs/HISTORY.md), but a
+  ceiling documented in [`docs/history.md`](docs/history.md), but a
   completely different, mundane cause here). Fix:
   `xcrun simctl shutdown <udid> && xcrun simctl erase <udid>` before
   re-running — a full erase, not just an uninstall, and don't trust a
@@ -405,7 +405,7 @@ a glance.
   1–2 second splash/toast) appeared is inherently racy against cold
   app-launch time on a slow or loaded machine — don't add one.** Hit
   this validating the launch screen (see
-  [`docs/IMPLEMENTED_FEATURES.md`](docs/IMPLEMENTED_FEATURES.md)): a `waitForExistence(timeout:
+  [`docs/features.md`](docs/features.md)): a `waitForExistence(timeout:
   5)` for its text failed outright because cold launch alone had
   already taken 11+ seconds before XCUITest could even query the
   accessibility hierarchy, by which point a 1.2-second on-screen window
@@ -418,7 +418,7 @@ a glance.
   passes in isolation but fails in the full suite" with no sensible
   cause), suspect Xcode/Simulator DerivedData corruption before spending
   time debugging the app code — see
-  [`docs/HISTORY.md`](docs/HISTORY.md) for a confirmed incident and how
+  [`docs/history.md`](docs/history.md) for a confirmed incident and how
   it was diagnosed (a quick standalone `swift <file>.swift` reproduction
   of just the suspect logic bypasses the simulator entirely and is the
   fastest way to rule the app code in or out).

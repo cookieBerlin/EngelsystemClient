@@ -1,6 +1,6 @@
 # Entitlements & Signing
 
-Part of the Engelsystem Client documentation set — see [`CLAUDE.md`](../CLAUDE.md) for the entry point and the rest of the doc map. For the story of how this configuration was arrived at (bundle-ID collisions, namespace churn, App ID quota, etc.), see [`HISTORY.md`](HISTORY.md).
+Part of the Engelsystem Client documentation set — see [`CLAUDE.md`](../CLAUDE.md) for the entry point and the rest of the doc map. For the story of how this configuration was arrived at (bundle-ID collisions, namespace churn, App ID quota, etc.), see [`history.md`](history.md).
 
 ## Current configuration (both targets: iOS app + Watch app)
 
@@ -60,13 +60,13 @@ files out). If you ever need to add another Info.plist key that doesn't
 synthesize via `INFOPLIST_KEY_*`, add it to these existing fragment
 files rather than creating new ones.
 
-> **Watch out going forward**: bundle identifiers are unique across *all* Apple developer accounts, not just this project or team — a rename can fail on a real device with "cannot be registered ... because it is not available" if some other account already holds that exact string (Simulator builds never surface this). And a free/personal Apple Developer account can only register **10 new App IDs per rolling 7-day window** — renaming several targets' bundle identifiers in quick succession can burn through that quota. Both were hit for real during this project's setup; see [`HISTORY.md`](HISTORY.md) for the details. Treat `net.cuccato.engelsystem.de.*` as settled and avoid further bundle-identifier churn unless there's a strong reason.
+> **Watch out going forward**: bundle identifiers are unique across *all* Apple developer accounts, not just this project or team — a rename can fail on a real device with "cannot be registered ... because it is not available" if some other account already holds that exact string (Simulator builds never surface this). And a free/personal Apple Developer account can only register **10 new App IDs per rolling 7-day window** — renaming several targets' bundle identifiers in quick succession can burn through that quota. Both were hit for real during this project's setup; see [`history.md`](history.md) for the details. Treat `net.cuccato.engelsystem.de.*` as settled and avoid further bundle-identifier churn unless there's a strong reason.
 
 **`GitCommitHash` Info.plist key + build-number-on-archive (2026-09-17),
 both added via the `xcodeproj` Ruby gem, not by hand-editing
 `project.pbxproj`/`.xcscheme` directly** (same tool already used for
 `EngelsystemComplication` — see "Complication" in
-[`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md)):
+[`features.md`](features.md)):
 - **Every build** (`EngelsystemClient`, `EngelsystemClient Watch App Watch
   App`, both Debug and Release) runs a `PBXShellScriptBuildPhase` named
   "Embed Git Commit Hash" — the last build phase, after Copy Bundle
@@ -116,7 +116,7 @@ both added via the `xcodeproj` Ruby gem, not by hand-editing
 - **App Group** `group.net.cuccato.engelsystem.de.shared` (Watch app + `EngelsystemComplication`
   extension only, not iOS): shares the next-shift snapshot with the complication
   process (see "Watch app scope" in [`CLAUDE.md`](../CLAUDE.md) and "Complication" in
-  [`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md)). Confirmed working
+  [`features.md`](features.md)). Confirmed working
   for local simulator builds with the free/personal team already configured in
   this project (`DEVELOPMENT_TEAM = 8A5FNU94BM` — changed from the original
   `TYG73A374P` after the user switched the Apple ID signed in to Xcode for

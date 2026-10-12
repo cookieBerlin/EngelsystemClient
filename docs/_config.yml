@@ -9,10 +9,10 @@ theme: jekyll-theme-minimal
 # folder, so CLAUDE.md's existing cross-references into docs/*.md keep working
 # unchanged.
 exclude:
-  - ARCHITECTURE.md
-  - IMPLEMENTED_FEATURES.md
+  - architecture.md
+  - features.md
   - ENTITLEMENTS.md
-  - HISTORY.md
-  - ROADMAP.md
-  - BACKLOG.md
+  - history.md
+  - roadmap.md
+  - backlog.md
   - adr

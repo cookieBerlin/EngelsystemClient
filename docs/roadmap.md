@@ -4,8 +4,8 @@ Forward-looking planning: features not yet implemented, release
 planning, and open decisions awaiting the user's input. Move an item
 here as soon as planning firms up past "just an idea" — not just in
 chat. Once a planned item is broken into concrete tasks, move those
-into [`BACKLOG.md`](BACKLOG.md); once it actually ships, move its entry
-into [`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md) with a dated
+into [`backlog.md`](backlog.md); once it actually ships, move its entry
+into [`features.md`](features.md) with a dated
 note and remove it from here.
 
 ## In progress
@@ -19,7 +19,7 @@ Goal: get the app into TestFlight, both Internal and External testing.
   themselves (not by Claude) before Pages can serve it on the free plan.
 - **Security/privacy audit of the full repo + git history**, done
   2026-10-09 ahead of going public — see
-  [`HISTORY.md`](HISTORY.md#2026-10-09-pre-public-security-audit) for
+  [`history.md`](history.md#2026-10-09-pre-public-security-audit) for
   the full writeup. Result: no real secrets/credentials ever committed.
   Two low-risk informational items found; both resolved the same day —
   the private LAN IP in `CLAUDE.md` was redacted immediately, and the
@@ -40,7 +40,7 @@ Goal: get the app into TestFlight, both Internal and External testing.
     Content generated from the app's actual data handling (CloudKit
     sync, Keychain storage, local-only notifications, no analytics/
     tracking, Demo Mode, and — since 2026-10-09 — on-device MetricKit
-    crash/diagnostics reporting, see `IMPLEMENTED_FEATURES.md`'s
+    crash/diagnostics reporting, see `features.md`'s
     `MetricKitReporter` entry) — not boilerplate. **Must be kept up to
     date whenever data handling changes** — same standing-maintenance
     expectation as `CLAUDE.md` itself.
@@ -51,13 +51,13 @@ Goal: get the app into TestFlight, both Internal and External testing.
     `<user>.github.io/<repo>/...` URL, no custom domain.
   - **Content written 2026-10-09**: `docs/privacy.md`, `docs/support.md`,
     `docs/index.md`, and `docs/_config.yml` (theme `jekyll-theme-minimal`,
-    excludes the dev-facing docs — `ARCHITECTURE.md`/
-    `IMPLEMENTED_FEATURES.md`/`ENTITLEMENTS.md`/`HISTORY.md`/
-    `ROADMAP.md`/`BACKLOG.md`/`adr/` — from being published as public
+    excludes the dev-facing docs — `architecture.md`/
+    `features.md`/`ENTITLEMENTS.md`/`history.md`/
+    `roadmap.md`/`backlog.md`/`adr/` — from being published as public
     pages, so CLAUDE.md's existing cross-references into `docs/*.md`
     keep working unchanged). Not yet verified live — needs the repo to
     actually go public and GitHub Pages enabled first (see
-    `BACKLOG.md`).
+    `backlog.md`).
 - **Repo public, Pages live, app record created** (2026-10-12): Privacy/
   Support URLs verified (HTTP 200) at `cookieberlin.github.io/EngelsystemClient/`.
   Git history was re-scrubbed and force-pushed first (private LAN IP removed).
@@ -77,14 +77,14 @@ Commits, backlog IDs, work loop, CONTRIBUTING, CHANGELOG), but **not**
 the 100 % coverage gate / lint scripts; important earlier decisions get
 converted to ADRs retroactively; `docs/` file names become lowercase.
 See [ADR 0002](adr/0002-adopt-structured-documentation-layout.md) and
-the task list in [`BACKLOG.md`](BACKLOG.md).
+the task list in [`backlog.md`](backlog.md).
 
 Target layout (mapping from today):
 
 - `CLAUDE.md` → slim rules file (~100 lines): language, work loop, commit
   rules, architecture rules, security, commands. API summary, Demo mode,
   tech stack, project structure and testing practices move out.
-- `docs/ARCHITECTURE.md` → `docs/architecture.md`, absorbing the tech
+- `docs/architecture.md` → `docs/architecture.md`, absorbing the tech
   stack, target structure, API summary and Demo mode from `CLAUDE.md`.
 - New `docs/requirements.md` (scope/Phase 1 vs Phase 2 from `CLAUDE.md`),
   `docs/testing.md` (testing section of `CLAUDE.md`), `docs/security.md`,
@@ -92,8 +92,8 @@ Target layout (mapping from today):
   `architecture.md` gets too long.
 - `docs/ENTITLEMENTS.md` → `docs/app-store.md` (identifiers,
   entitlements, privacy, export compliance, TestFlight metadata).
-- `docs/IMPLEMENTED_FEATURES.md` → `docs/features.md`;
-  `docs/HISTORY.md` → `docs/history.md` (kept).
+- `docs/features.md` → `docs/features.md`;
+  `docs/history.md` → `docs/history.md` (kept).
 - New root files: `CONTRIBUTING.md`, `CHANGELOG.md` (Keep a Changelog).
   No `LICENSES.md` for now (no bundled third-party code beyond generated
   DTOs).
@@ -126,7 +126,7 @@ Kept for the record, now that these are no longer blocking anything:
    `EngelsystemClientKit` still builds clean post-rewrite.
 2. **MetricKit data handling model**: **local + manual export/share** —
    implemented 2026-10-09 as `MetricKitReporter`, see
-   `IMPLEMENTED_FEATURES.md` for the full writeup.
+   `features.md` for the full writeup.
 3. **LICENSE**: **GPL-2.0** — added 2026-10-09, the canonical text
    fetched verbatim from `gnu.org` (not reconstructed from memory, to
    avoid any inaccuracy in a legal document) and inserted into the very

@@ -249,7 +249,7 @@ public final class APIClient {
     // The first write feature in this API (previously 100% GET-only) — added on a
     // server branch not yet merged upstream (feat/api-messages, cross-session
     // sourced, verified against the real server implementation rather than guessed —
-    // see docs/ARCHITECTURE.md). Deliberately live-only: no `Cached*` model, no
+    // see docs/architecture.md). Deliberately live-only: no `Cached*` model, no
     // `XSyncService` — every method here hits the network every time it's called,
     // matching `fetchNewsDetail`'s comments (not `fetchShifts`'s cached-list shape),
     // since this is this app's first *mutable*, bidirectional data and avoiding a

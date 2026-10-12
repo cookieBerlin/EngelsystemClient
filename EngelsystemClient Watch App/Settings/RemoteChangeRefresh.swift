@@ -21,7 +21,7 @@ extension View {
     /// app process) is alive — reliably waking from a fully suspended/terminated Watch
     /// app via this notification alone is unverified; the WatchConnectivity nudge and
     /// the Watch's own periodic/app-start sync are what cover that gap (see
-    /// `docs/ARCHITECTURE.md`).
+    /// `docs/architecture.md`).
     func refreshesOnRemoteCloudKitChange(modelContext: ModelContext) -> some View {
         onReceive(
             NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)

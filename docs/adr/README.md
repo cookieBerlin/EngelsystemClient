@@ -4,14 +4,14 @@ Started 2026-10-09. Records significant architectural decisions made
 from this point forward — context, the decision itself, and the
 consequences/trade-offs accepted. Decisions made before this date are
 **not** being retroactively converted; they remain in their original
-narrative form in [`../ARCHITECTURE.md`](../ARCHITECTURE.md) and
-[`../HISTORY.md`](../HISTORY.md).
+narrative form in [`../architecture.md`](../architecture.md) and
+[`../history.md`](../history.md).
 
 ## When to write one
 
 Write an ADR when a decision has real trade-offs worth a future session
 understanding *why* — not for routine implementation choices that
-[`../IMPLEMENTED_FEATURES.md`](../IMPLEMENTED_FEATURES.md) already
+[`../features.md`](../features.md) already
 documents fine on its own. Rule of thumb: if reversing the decision
 later would require re-deriving the reasoning from scratch, it belongs
 here.

@@ -1,10 +1,10 @@
 # Backlog
 
 Concrete, ready-to-pick-up development tasks — the tactical counterpart
-to [`ROADMAP.md`](ROADMAP.md)'s strategic/feature-level planning. An
+to [`roadmap.md`](roadmap.md)'s strategic/feature-level planning. An
 item moves here once it's broken down enough that someone could
 actually start on it; it's removed (not just checked off) once it's
-done and reflected in [`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md).
+done and reflected in [`features.md`](features.md).
 
 ## TestFlight release
 
@@ -14,7 +14,7 @@ done and reflected in [`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md).
 - [ ] Prepare for External Testing / Beta App Review (export compliance
       answers, etc.) once Internal Testing is confirmed working.
 
-## Documentation restructure (see ROADMAP.md)
+## Documentation restructure (see roadmap.md)
 
 Each item is its own commit; update all cross-references (incl.
 `docs/_config.yml` excludes and the memory notes) in the same commit.
@@ -37,6 +37,6 @@ Each item is its own commit; update all cross-references (incl.
 - [ ] **D-09** Add `CONTRIBUTING.md` and `CHANGELOG.md`; update
       `README.md`'s documentation table.
 - [ ] **D-10** Retroactive ADRs 0003ff. for the big earlier decisions
-      (list in ROADMAP.md); dates from `docs/history.md`/git log.
+      (list in roadmap.md); dates from `docs/history.md`/git log.
 - [ ] **D-11** Add backlog IDs to existing items; update the memory note
       on the docs layout.

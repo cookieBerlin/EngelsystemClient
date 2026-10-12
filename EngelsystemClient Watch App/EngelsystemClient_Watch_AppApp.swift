@@ -17,7 +17,7 @@ struct EngelsystemClient_Watch_AppApp: App {
     // app remains standalone per its scope regardless (its own network call for
     // shifts) — WatchConnectivity (below) is only ever a fast-path *supplement* to that,
     // never a replacement (2026-09-23, "keep the Watch fresh" feature; see
-    // docs/ARCHITECTURE.md's "Sync strategy" for the full reasoning).
+    // docs/architecture.md's "Sync strategy" for the full reasoning).
     var sharedModelContainer: ModelContainer = ModelContainerFactory.makeContainer(localSchemaTypes: [
         CachedShift.self,
     ])

@@ -10,7 +10,7 @@ import WatchConnectivity
 /// own independent sync (its own API call, no relay) remains the mechanism that makes it
 /// work with no iPhone nearby at all; this bridge only ever makes an already-working Watch
 /// notice a change sooner while it's actually paired/reachable. See
-/// `docs/ARCHITECTURE.md` ("Sync strategy") for the full writeup, and
+/// `docs/architecture.md` ("Sync strategy") for the full writeup, and
 /// `Instance.shiftsChangedAt` for the CloudKit-based counterpart that covers the
 /// not-currently-paired case.
 ///

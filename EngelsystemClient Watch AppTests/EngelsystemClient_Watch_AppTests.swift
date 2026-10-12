@@ -68,7 +68,7 @@ private func seedDemoInstance(in context: ModelContext) throws -> Instance {
 
 /// 2026-09-23, "keep the Watch fresh" feature — factored out of `NextShiftViewModel
 /// .refresh` so every sync trigger (not just a manual pull-to-refresh) keeps the
-/// complication current; see `docs/ARCHITECTURE.md`.
+/// complication current; see `docs/architecture.md`.
 struct WatchComplicationUpdaterTests {
     @Test @MainActor func refreshWritesTheNearestUpcomingShiftAsTheSnapshot() {
         let store = uniqueTestSnapshotStore()

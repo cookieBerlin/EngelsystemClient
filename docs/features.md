@@ -10,7 +10,7 @@ exists without reading the whole diff history.
 - **Persistence (SwiftData)**: `Instance`, `CachedShift`, `CachedNews`,
   `CachedUser`, `CachedWorklog`, `CachedAngelTypeMembership` models exist.
   `Instance` is **CloudKit-backed** (`ModelContainerFactory`, see "CloudKit
-  sync for Instance metadata" in [`ARCHITECTURE.md`](ARCHITECTURE.md));
+  sync for Instance metadata" in [`architecture.md`](architecture.md));
   the five `Cached*` models are
   local-only and have **no relationship to `Instance`** any more (removed
   when the CloudKit split landed, since SwiftData relationships can't
@@ -203,7 +203,7 @@ exists without reading the whole diff history.
     Verified via the full Kit test suite (67/67) after the change.
 - **`MetricKitReporter`** (`Services/MetricKitReporter.swift`,
   2026-10-09, user-requested crash/diagnostics reporting via
-  Apple's MetricKit — see `docs/ROADMAP.md`'s "Resolved decisions" for
+  Apple's MetricKit — see `docs/roadmap.md`'s "Resolved decisions" for
   the data-handling model that was decided first): subscribes to
   `MXMetricManager` for crash/hang/CPU-exception/disk-write-exception
   diagnostics and performance metrics. Consistent with this app's
@@ -381,7 +381,7 @@ exists without reading the whole diff history.
   value (`Section.sidebarCases` is the subset — `.shifts`/`.news`/
   `.profile` — actually rendered as rows), so `goToSettings()`'s
   401-triggers-navigation behavior (see "Data/code flow" in
-  [`ARCHITECTURE.md`](ARCHITECTURE.md)) keeps
+  [`architecture.md`](architecture.md)) keeps
   working unchanged; only the visible row disappeared.
 - **Shifts** (`Features/Shifts`): lists the signed-in user's shifts
   aggregated across every active instance (see "Multi-instance concept"
@@ -616,7 +616,7 @@ exists without reading the whole diff history.
   (`NewsView.instance(for:)`, matching `item.instanceID` against the
   active instances array) — `CachedNews` itself only carries a plain ID,
   never a live reference (see "CloudKit sync for Instance metadata" in
-  [`ARCHITECTURE.md`](ARCHITECTURE.md) for why relationships across
+  [`architecture.md`](architecture.md) for why relationships across
   `Instance`/`Cached*` don't exist).
 - **Profile** (`Features/Profile`): same pattern via
   `ProfileSyncService`/`ProfileViewModel.refresh(instances:in:)` (profile
@@ -860,7 +860,7 @@ exists without reading the whole diff history.
   `InstanceCredentialResolver` happens to check first can't shadow the
   fresh one. If Shifts/News/Profile hits a 401, `MainView` auto-switches
   to this screen so the key can actually be fixed via that same dialog
-  (see "Data/code flow" in [`ARCHITECTURE.md`](ARCHITECTURE.md)). Also a **Multiple Active Instances**
+  (see "Data/code flow" in [`architecture.md`](architecture.md)). Also a **Multiple Active Instances**
   picker (`MultiInstanceDisplayMode`, see above) and a **Notifications**
   section — see "Multiple reminders" below for the current shape of
   this (it used to be a single "Notify Before Shift" picker; now a
@@ -1008,13 +1008,13 @@ exists without reading the whole diff history.
 - **Own local setup** (`Setup/WatchSetupView`): the Watch app's manual
   entry form (name, server URL, API key, plus a "Try Demo Mode" button),
   using the same `InstanceSetupService` as the iOS app. Since CloudKit
-  sync (see [`ARCHITECTURE.md`](ARCHITECTURE.md)) landed, this is
+  sync (see [`architecture.md`](architecture.md)) landed, this is
   genuinely the **fallback** path now (per "Sync strategy" in
-  [`ARCHITECTURE.md`](ARCHITECTURE.md)) rather than the only way to configure
+  [`architecture.md`](architecture.md)) rather than the only way to configure
   the Watch — an instance created on iPhone should sync here automatically
   via CloudKit — but that hasn't been end-to-end verified yet (see the
   caveats in "CloudKit sync for Instance metadata" in
-  [`ARCHITECTURE.md`](ARCHITECTURE.md)), so treat this
+  [`architecture.md`](architecture.md)), so treat this
   form as still load-bearing until that's confirmed. Always saves the API
   key to its own `LocalKeychainStore` regardless (a deliberate
   simplification, not a bug: an instance entered here manually is meant to
@@ -1042,7 +1042,7 @@ exists without reading the whole diff history.
   sync wasn't an option. `WatchSetupView` (manual entry / "Try Demo
   Mode") remains one tap away via Settings' existing "Add Instance"
   button, so the "Fallback" path documented in
-  [`ARCHITECTURE.md`](ARCHITECTURE.md) is still fully reachable — this
+  [`architecture.md`](architecture.md) is still fully reachable — this
   is a routing change, not a removal. Reactive via `@Query`, same as
   before: once an instance exists (synced in or manually added),
   `ContentView` automatically switches to `WatchMainView` on its own.
@@ -1093,10 +1093,10 @@ exists without reading the whole diff history.
   2026-09-17 redesign, `NextShiftViewModel` syncs every active instance
   and shows the chronologically nearest upcoming shift across all of them
   (still exactly one shift) — see "Multi-instance concept" in
-  [`ARCHITECTURE.md`](ARCHITECTURE.md). After every sync it writes a
+  [`architecture.md`](architecture.md). After every sync it writes a
   `NextShiftSnapshot` to the shared App Group and reloads the
   complication (`WatchComplicationUpdater`, see "Keep the Watch fresh" in
-  [`ARCHITECTURE.md`](ARCHITECTURE.md) — 2026-09-23, factored out so
+  [`architecture.md`](architecture.md) — 2026-09-23, factored out so
   every sync trigger keeps the complication current, not just this
   screen's own pull-to-refresh) — see `EngelsystemComplication` below.
 - watchOS UI Testing needs generous timeouts and a scroll-until-visible
@@ -1134,4 +1134,4 @@ exists without reading the whole diff history.
   Watch Face editing UI (no automation available for that flow here).
 
 
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for CloudKit sync of `Instance` metadata.
+See [`architecture.md`](architecture.md) for CloudKit sync of `Instance` metadata.
