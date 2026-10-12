@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Generates the App Store screenshots from Demo Mode (UI test class ScreenshotTests, seeded by the Debug-only
 # `-seed-demo-instance` launch argument) into Screenshots/<device>/<language>/NN-<scene>.png (git-ignored).
-# Usage: Scripts/screenshots.sh [iphone|ipad|watch|all]   (default: all; watch is not implemented yet)
-# Env:   IPHONE_TYPE (default iPhone-18-Pro-Max, the 6.9" class), IPAD_TYPE (default iPad-Pro-13-inch-M5-12GB)
+# Usage: Scripts/screenshots.sh [iphone|ipad|watch|all]   (default: all)
+# Env:   IPHONE_TYPE (default iPhone-18-Pro-Max, the 6.9" class), IPAD_TYPE (default iPad-Pro-13-inch-M5-12GB),
+#        WATCH_TYPE (default Apple-Watch-Ultra-4-49mm)
 # The script creates and uses its own simulators ("EngelsystemClient Screenshots …"); yours stay untouched.
 # Needs an unlocked screen (UI tests). A fresh simulator is slow for a while — a run takes several minutes.
 # App Store sizes (App Store Connect › Screenshot specifications, checked 2026-10-12): iPhone 6.9" 1320 × 2868,
@@ -19,6 +20,11 @@ IPHONE_SIZE="1320x2868"
 IPAD_NAME="EngelsystemClient Screenshots iPad"
 IPAD_TYPE="com.apple.CoreSimulator.SimDeviceType.${IPAD_TYPE:-iPad-Pro-13-inch-M5-12GB}"
 IPAD_SIZE="2752x2064" # landscape; the test rotates the iPad
+WATCH_NAME="EngelsystemClient Screenshots Watch"
+WATCH_TYPE="com.apple.CoreSimulator.SimDeviceType.${WATCH_TYPE:-Apple-Watch-Ultra-4-49mm}"
+WATCH_SIZE="422x514"
+WATCH_BUNDLE_ID="net.cuccato.engelsystem.de.EngelsystemClient.watchkitapp"
+WATCH_SCENES=(01-next-shift)
 
 # Creates the simulator if missing and returns its UDID on stdout.
 ensure_simulator() { # name device-type
@@ -30,13 +36,9 @@ ensure_simulator() { # name device-type
   echo "$udid"
 }
 
-# Boots the simulator with English (US), light appearance and the status bar Apple uses in marketing images
-# (9:41, full battery without the charging bolt, Wi-Fi and cellular), and removes a previous install of the app so every run starts with
-# fresh state (including the notification permission prompt the test handles).
-prepare_simulator() { # udid
+# Switches a booted simulator to English (US) (a reboot is needed once) so system text and time formats are English.
+ensure_english() { # udid
   local udid="$1"
-  xcrun simctl boot "$udid" 2> /dev/null || true
-  xcrun simctl bootstatus "$udid" -b > /dev/null
   if [[ "$(xcrun simctl spawn "$udid" defaults read -g AppleLocale 2> /dev/null)" != "en_US" ]]; then
     xcrun simctl spawn "$udid" defaults write -g AppleLanguages -array en
     xcrun simctl spawn "$udid" defaults write -g AppleLocale en_US
@@ -44,6 +46,16 @@ prepare_simulator() { # udid
     xcrun simctl boot "$udid"
     xcrun simctl bootstatus "$udid" -b > /dev/null
   fi
+}
+
+# Boots the simulator with English (US), light appearance and the status bar Apple uses in marketing images
+# (9:41, full battery without the charging bolt, Wi-Fi and cellular), and removes a previous install of the app so every run starts with
+# fresh state (including the notification permission prompt the test handles).
+prepare_simulator() { # udid
+  local udid="$1"
+  xcrun simctl boot "$udid" 2> /dev/null || true
+  xcrun simctl bootstatus "$udid" -b > /dev/null
+  ensure_english "$udid"
   xcrun simctl ui "$udid" appearance light
   xcrun simctl status_bar "$udid" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 \
     --cellularMode active --cellularBars 4 --batteryState discharging --batteryLevel 100
@@ -123,13 +135,14 @@ PY
     echo "error: ScreenshotTests failed (exit $status) — see build/Screenshots-$device.log" >&2
     return 1
   fi
-  verify_device "$device" "$target" "$size"
+  verify_device "$device" "$target" "$size" "${SCENES[@]}"
 }
 
 # Every scene must exist with the exact App Store pixel size (after baking in the EXIF orientation); prints a summary.
-verify_device() { # device dir expected-size
+verify_device() { # device dir expected-size scene...
   local device="$1" dir="$2" size="$3" failed=0 scene file actual
-  for scene in "${SCENES[@]}"; do
+  shift 3
+  for scene in "$@"; do
     file="$dir/$scene.png"
     if [[ ! -f "$file" ]]; then
       echo "error: missing scene $scene for $device" >&2
@@ -148,6 +161,30 @@ verify_device() { # device dir expected-size
   return $failed
 }
 
+# Apple Watch: no UI test (watchOS UI tests are slow and flaky); the Debug-only launch arguments seed a demo instance and
+# skip the notification prompt, then the simulator screen is captured after the first sync.
+run_watch() {
+  local udid target="Screenshots/watch/$LANGUAGE"
+  udid="$(ensure_simulator "$WATCH_NAME" "$WATCH_TYPE")"
+  rm -rf "$target"
+  mkdir -p "$target" build
+  echo "==> watch ($udid)"
+  xcrun simctl boot "$udid" 2> /dev/null || true
+  xcrun simctl bootstatus "$udid" -b > /dev/null
+  ensure_english "$udid"
+  xcrun simctl uninstall "$udid" "$WATCH_BUNDLE_ID" 2> /dev/null || true
+  xcodebuild build -scheme "EngelsystemClient Watch App" -destination "platform=watchOS Simulator,id=$udid" \
+    -derivedDataPath build/ScreenshotsDerivedData > build/Screenshots-watch.log 2>&1 \
+    || { echo "error: the Watch app build failed — see build/Screenshots-watch.log" >&2; return 1; }
+  local app
+  app="$(find build/ScreenshotsDerivedData/Build/Products -name 'EngelsystemClient Watch App.app' -path '*watchsimulator*' | head -1)"
+  xcrun simctl install "$udid" "$app"
+  xcrun simctl launch "$udid" "$WATCH_BUNDLE_ID" -seed-demo-instance -skipNotificationPrompt YES > /dev/null
+  sleep 45 # first sync of the seeded demo instance on a (possibly fresh, slow) simulator
+  xcrun simctl io "$udid" screenshot "$target/01-next-shift.png" > /dev/null 2>&1
+  verify_device "watch" "$target" "$WATCH_SIZE" "${WATCH_SCENES[@]}"
+}
+
 main() {
   local what="${1:-all}"
   case "$what" in
@@ -160,11 +197,8 @@ main() {
   if [[ "$what" == "ipad" || "$what" == "all" ]]; then
     run_ui_device "ipad" "$(ensure_simulator "$IPAD_NAME" "$IPAD_TYPE")" "$IPAD_SIZE"
   fi
-  if [[ "$what" == "watch" ]]; then
-    echo "error: watch is not implemented yet" >&2
-    exit 2
-  elif [[ "$what" == "all" ]]; then
-    echo "note: watch is not implemented yet (backlog S-05)"
+  if [[ "$what" == "watch" || "$what" == "all" ]]; then
+    run_watch
   fi
 }
 main "$@"

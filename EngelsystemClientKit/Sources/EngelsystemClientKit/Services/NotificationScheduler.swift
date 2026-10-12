@@ -83,10 +83,24 @@ public struct NotificationScheduler {
         self.center = center
     }
 
+    /// `-skipNotificationPrompt YES` (a launch argument, i.e. a defaults key) makes Debug builds neither ask for nor
+    /// use notification permission — so the screenshot script's Watch scene isn't covered by the system prompt.
+    /// Always `false` in Release builds.
+    public static let skipPromptDefaultsKey = "skipNotificationPrompt"
+
+    static func shouldSkipPrompt(in defaults: UserDefaults) -> Bool {
+        #if DEBUG
+        defaults.bool(forKey: skipPromptDefaultsKey)
+        #else
+        false
+        #endif
+    }
+
     /// Requests notification authorization if not already determined. Returns whether
     /// notifications are (now) allowed.
     @discardableResult
     public func requestAuthorizationIfNeeded() async -> Bool {
+        if Self.shouldSkipPrompt(in: .standard) { return false }
         switch await center.authorizationStatus() {
         case .authorized, .provisional, .ephemeral:
             return true

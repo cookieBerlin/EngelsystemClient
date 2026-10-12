@@ -62,6 +62,20 @@ struct NotificationServicesTests {
         #expect(await NotificationScheduler(center: StatusCenter(future)).requestAuthorizationIfNeeded() == false)
     }
 
+    @Test func theDebugSkipArgumentSuppressesThePrompt() async {
+        let defaults = UserDefaults(suiteName: "SkipPrompt-\(UUID().uuidString)")!
+        #expect(!NotificationScheduler.shouldSkipPrompt(in: defaults))
+        defaults.set(true, forKey: NotificationScheduler.skipPromptDefaultsKey)
+        #expect(NotificationScheduler.shouldSkipPrompt(in: defaults))
+
+        // End to end through the standard defaults (where launch arguments land): no prompt, not allowed.
+        UserDefaults.standard.set(true, forKey: NotificationScheduler.skipPromptDefaultsKey)
+        defer { UserDefaults.standard.removeObject(forKey: NotificationScheduler.skipPromptDefaultsKey) }
+        let center = StatusCenter(.notDetermined)
+        #expect(await NotificationScheduler(center: center).requestAuthorizationIfNeeded() == false)
+        #expect(center.requested == 0)
+    }
+
     @Test func shiftBodyMentionsTheLocationOnlyWhenKnown() {
         func shift(location: String?) -> CachedShift {
             CachedShift(
