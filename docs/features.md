@@ -325,8 +325,15 @@ exists without reading the whole diff history.
   user asked why. ~~Defaults to Shifts on launch.~~ **Changed
   2026-09-22, at the user's request: resumes on whichever data section
   (Shifts/News/Profile) was last selected**, instead of always starting
-  on Shifts — `Section.shifts` is now only the fallback for "nothing
-  stored yet"/an unrecognized value. `.settings` itself is deliberately
+  on Shifts. **Changed again 2026-10-12, at the user's request: the
+  default is the main page (the sidebar list), not Shifts** — "nothing
+  stored yet"/an unrecognized value now yields *no* selection
+  (`initialSelection` returns `Section?`; on iPhone the sidebar list is
+  shown, in wide layouts the detail column shows a "Select a Section"
+  placeholder), and with **no active instance the app always lands on
+  the sidebar**, whatever was stored (`hasActiveInstances` parameter,
+  evaluated at launch only — not when the last instance is deactivated
+  while sitting in Settings). `.settings` itself is deliberately
   never remembered as the resume target, even though it's a real,
   storable `Section` raw value — landing back in Settings on next launch
   just because that's where the 401-triggered `goToSettings()` happened
@@ -337,7 +344,7 @@ exists without reading the whole diff history.
   default directly, so `init` reads `UserDefaults.standard` by hand
   instead. The actual decision logic — what to resume on given a raw
   stored value, and whether a given section should be persisted at all —
-  is two `static` pure functions (`initialSelection(fromStoredRawValue:)`
+  is two `static` pure functions (`initialSelection(fromStoredRawValue:hasActiveInstances:)`
   /`shouldPersistAsLastSelectedSection(_:)`), not inlined into `init`/
   `.onChange`, so it's unit-testable
   (`EngelsystemClientTests.MainViewLastSelectedSectionTests`) without

@@ -39,16 +39,24 @@ struct MainView: View {
     init(instances: [Instance]) {
         self.instances = instances
         let storedRawValue = UserDefaults.standard.string(forKey: Self.lastSelectedSectionKey)
-        _selection = State(initialValue: Self.initialSelection(fromStoredRawValue: storedRawValue))
+        _selection = State(initialValue: Self.initialSelection(
+            fromStoredRawValue: storedRawValue,
+            hasActiveInstances: instances.contains(where: \.isActive)
+        ))
     }
 
     /// Resolves the section to start on from a raw stored value — `nil` (never
     /// stored yet) or anything unrecognized (a raw value from a future version, say)
-    /// falls back to `.shifts`. A `static` pure function, not inlined into `init`, so
+    /// yields no selection at all (2026-10-12, user-requested: the default is the main
+    /// page — the sidebar list — not the Shifts screen). A `static` pure function, not inlined into `init`, so
     /// it's unit-testable (`EngelsystemClientTests.MainViewLastSelectedSectionTests`)
     /// without touching `UserDefaults` at all.
-    static func initialSelection(fromStoredRawValue rawValue: String?) -> Section {
-        rawValue.flatMap(Section.init(rawValue:)) ?? .shifts
+    /// Also yields no selection when no instance is active (2026-10-12, user-requested):
+    /// without data to show, the sidebar (with its empty state) is always the landing
+    /// page, whatever was open last.
+    static func initialSelection(fromStoredRawValue rawValue: String?, hasActiveInstances: Bool) -> Section? {
+        guard hasActiveInstances else { return nil }
+        return rawValue.flatMap(Section.init(rawValue:))
     }
 
     /// Whether a given selection should actually be persisted as "the last selected
@@ -180,19 +188,25 @@ struct MainView: View {
             .refreshable { await runFullSync() }
         } detail: {
             NavigationStack {
-                switch Self.resolvedSelection(selection, visibleSections: visibleSidebarSections) {
-                case .shifts:
-                    ShiftsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
-                case .news:
-                    NewsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
-                case .profile:
-                    ProfileView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
-                case .locations:
-                    LocationsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
-                case .messages:
-                    MessagesView(instances: activeInstances.filter(\.messagesSupported), syncStatus: syncStatus, onUnauthorized: goToSettings)
-                case .settings:
-                    SettingsView(instances: instances)
+                if selection == nil {
+                    // Nothing chosen yet (iPad/Mac-style wide layouts; on iPhone the
+                    // sidebar list itself is the visible main page).
+                    ContentUnavailableView("Select a Section", systemImage: "sidebar.left")
+                } else {
+                    switch Self.resolvedSelection(selection, visibleSections: visibleSidebarSections) {
+                    case .shifts:
+                        ShiftsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
+                    case .news:
+                        NewsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
+                    case .profile:
+                        ProfileView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
+                    case .locations:
+                        LocationsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
+                    case .messages:
+                        MessagesView(instances: activeInstances.filter(\.messagesSupported), syncStatus: syncStatus, onUnauthorized: goToSettings)
+                    case .settings:
+                        SettingsView(instances: instances)
+                    }
                 }
             }
         }

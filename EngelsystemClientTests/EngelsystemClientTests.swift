@@ -420,17 +420,22 @@ struct MainSyncStatusTests {
 /// user-requested: the app previously always started on Shifts, regardless of what
 /// was last open).
 struct MainViewLastSelectedSectionTests {
-    @Test func fallsBackToShiftsWhenNothingWasStoredYet() {
-        #expect(MainView.initialSelection(fromStoredRawValue: nil) == .shifts)
+    @Test func startsOnTheMainPageWhenNothingWasStoredYet() {
+        #expect(MainView.initialSelection(fromStoredRawValue: nil, hasActiveInstances: true) == nil)
     }
 
-    @Test func fallsBackToShiftsForAnUnrecognizedStoredValue() {
-        #expect(MainView.initialSelection(fromStoredRawValue: "not-a-real-section") == .shifts)
+    @Test func startsOnTheMainPageForAnUnrecognizedStoredValue() {
+        #expect(MainView.initialSelection(fromStoredRawValue: "not-a-real-section", hasActiveInstances: true) == nil)
+    }
+
+    @Test func alwaysStartsOnTheMainPageWhenNoInstanceIsActive() {
+        #expect(MainView.initialSelection(fromStoredRawValue: "news", hasActiveInstances: false) == nil)
+        #expect(MainView.initialSelection(fromStoredRawValue: "settings", hasActiveInstances: false) == nil)
     }
 
     @Test func resumesOnAPreviouslyStoredDataSection() {
-        #expect(MainView.initialSelection(fromStoredRawValue: "news") == .news)
-        #expect(MainView.initialSelection(fromStoredRawValue: "profile") == .profile)
+        #expect(MainView.initialSelection(fromStoredRawValue: "news", hasActiveInstances: true) == .news)
+        #expect(MainView.initialSelection(fromStoredRawValue: "profile", hasActiveInstances: true) == .profile)
     }
 
     /// `.settings` is a real, storable raw value (`Section` itself doesn't know
@@ -440,7 +445,7 @@ struct MainViewLastSelectedSectionTests {
     /// would honor it if it somehow got stored anyway (e.g. by a future bug), which
     /// is why `shouldPersistAsLastSelectedSection` below matters on the write side.
     @Test func wouldResumeOnSettingsIfItWereEverActuallyStored() {
-        #expect(MainView.initialSelection(fromStoredRawValue: "settings") == .settings)
+        #expect(MainView.initialSelection(fromStoredRawValue: "settings", hasActiveInstances: true) == .settings)
     }
 
     @Test func onlyDataSectionsShouldBePersisted() {
