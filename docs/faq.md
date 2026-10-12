@@ -8,6 +8,11 @@ New to the app? Start with the [User Guide](guide.md). Anything not answered her
 
 ## Getting started
 
+### How do I join the beta?
+
+Open the [TestFlight invitation](https://testflight.apple.com/join/Ksn65tz9) on your iPhone or iPad. TestFlight (Apple's free app) asks you to install the app and
+keeps it up to date. You can send feedback with screenshots from inside TestFlight.
+
 ### I do not have an Engelsystem account. Can I still try the app?
 
 Yes. Tap **Try Demo Mode** on the first screen. It uses built-in sample data and needs no server and no API key.

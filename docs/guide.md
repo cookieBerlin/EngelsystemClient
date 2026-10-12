@@ -10,9 +10,9 @@ Chaos Communication Congress. It connects directly to your event's Engelsystem s
 account with the app's developer and no tracking (see the [Privacy Policy](privacy.md)). Questions? See the
 [FAQ](faq.md) or [Support](support.md).
 
-> **Beta:** the app is currently tested through Apple's TestFlight. Join with the TestFlight app on your iPhone or iPad
-> (a public link will be added here once it is available). Please report problems through TestFlight's "Send Beta Feedback"
-> or on [Support](support.md).
+> **Beta:** the app is currently tested through Apple's TestFlight. [Join the beta](https://testflight.apple.com/join/Ksn65tz9) on your iPhone or iPad
+> (you need Apple's free TestFlight app). Please report problems through TestFlight's "Send Beta Feedback" or on
+> [Support](support.md).
 
 ## What the app does (and does not)
 
