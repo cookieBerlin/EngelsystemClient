@@ -8,6 +8,17 @@ import SwiftData
 public enum DemoSeeding {
     public static let launchArgument = "-seed-demo-instance"
 
+    /// Debug-only: the Watch app opens its Settings screen on launch, for the Watch settings screenshot.
+    public static let openSettingsArgument = "-open-settings"
+
+    public static func shouldOpenSettings(arguments: [String]) -> Bool {
+        #if DEBUG
+        arguments.contains(openSettingsArgument)
+        #else
+        false
+        #endif
+    }
+
     /// Seeds only when the argument was passed (Debug builds) and no instance exists yet.
     public static func shouldSeed(arguments: [String], existingInstanceCount: Int) -> Bool {
         #if DEBUG

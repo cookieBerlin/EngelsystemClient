@@ -34,6 +34,11 @@ struct DemoSeedingTests {
         #expect(!DemoSeeding.shouldSeed(arguments: ["-other"], existingInstanceCount: 0))
     }
 
+    @Test func opensSettingsOnlyWhenAsked() {
+        #expect(DemoSeeding.shouldOpenSettings(arguments: [DemoSeeding.openSettingsArgument]))
+        #expect(!DemoSeeding.shouldOpenSettings(arguments: [DemoSeeding.launchArgument]))
+    }
+
     @Test func insertsADemoInstanceAndItsKey() async throws {
         let context = try makeContext()
         let store = MemoryStore()

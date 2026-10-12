@@ -24,7 +24,7 @@ WATCH_NAME="EngelsystemClient Screenshots Watch"
 WATCH_TYPE="com.apple.CoreSimulator.SimDeviceType.${WATCH_TYPE:-Apple-Watch-Ultra-4-49mm}"
 WATCH_SIZE="422x514"
 WATCH_BUNDLE_ID="net.cuccato.engelsystem.de.EngelsystemClient.watchkitapp"
-WATCH_SCENES=(01-next-shift)
+WATCH_SCENES=(01-next-shift 02-settings)
 
 # Creates the simulator if missing and returns its UDID on stdout.
 ensure_simulator() { # name device-type
@@ -182,6 +182,11 @@ run_watch() {
   xcrun simctl launch "$udid" "$WATCH_BUNDLE_ID" -seed-demo-instance -skipNotificationPrompt YES > /dev/null
   sleep 45 # first sync of the seeded demo instance on a (possibly fresh, slow) simulator
   xcrun simctl io "$udid" screenshot "$target/01-next-shift.png" > /dev/null 2>&1
+  # Second scene: relaunch straight into Settings (the instance is already seeded).
+  xcrun simctl terminate "$udid" "$WATCH_BUNDLE_ID" > /dev/null 2>&1 || true
+  xcrun simctl launch "$udid" "$WATCH_BUNDLE_ID" -open-settings -skipNotificationPrompt YES > /dev/null
+  sleep 20
+  xcrun simctl io "$udid" screenshot "$target/02-settings.png" > /dev/null 2>&1
   verify_device "watch" "$target" "$WATCH_SIZE" "${WATCH_SCENES[@]}"
 }
 

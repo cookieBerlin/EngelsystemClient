@@ -16,6 +16,8 @@ struct NextShiftView: View {
 
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = NextShiftViewModel()
+    // Debug-only launch argument (a no-op in Release): opens Settings on launch for the screenshot script.
+    @State private var isShowingSettings = DemoSeeding.shouldOpenSettings(arguments: ProcessInfo.processInfo.arguments)
     @Query private var allShifts: [CachedShift]
 
     init(instances: [Instance], isAppStartSyncing: Bool = false) {
@@ -89,6 +91,7 @@ struct NextShiftView: View {
             .padding()
             .frame(maxWidth: .infinity)
         }
+        .navigationDestination(isPresented: $isShowingSettings) { WatchSettingsView() }
         .navigationTitle("Next Shift")
         // No `.task`-on-appear sync (2026-09-22) — `WatchMainView` now owns the
         // app-start sync; this view only refreshes via an explicit pull-to-refresh.

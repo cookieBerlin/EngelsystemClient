@@ -167,7 +167,7 @@ scene is missing. Needs an unlocked screen; a run takes several minutes per devi
 |---|---|---|---|
 | iPhone | iPhone 18 Pro Max | 1320 × 2868 | `01-shifts`, `02-news`, `03-profile`, `04-locations`, `05-messages`, `06-settings` |
 | iPad | iPad Pro 13-inch (M5), landscape | 2752 × 2064 | the same six |
-| Apple Watch | Apple Watch Ultra 4 (49mm) | 422 × 514 | `01-next-shift` |
+| Apple Watch | Apple Watch Ultra 4 (49mm) | 422 × 514 | `01-next-shift`, `02-settings` |
 
 Sizes checked against App Store Connect's "Screenshot specifications" on 2026-10-12.
 
