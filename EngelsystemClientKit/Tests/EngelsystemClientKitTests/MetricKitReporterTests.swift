@@ -18,12 +18,64 @@ struct MetricKitReporterTests {
         #expect(MetricKitReporter.shared.exportText() == nil)
     }
 
-    @Test func persistAppendsJSONLinesAndExportTextJoinsThemBack() {
-        MetricKitReporter.shared.persist(jsonLine: #"{"payload":1}"#)
-        MetricKitReporter.shared.persist(jsonLine: #"{"payload":2}"#)
+    @Test func persistWrapsEachPayloadWithAReceivedTimestampOnePerLine() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        MetricKitReporter.shared.persist(jsonLine: #"{"payload":1}"#, now: now)
+        MetricKitReporter.shared.persist(jsonLine: #"{"payload":2}"#, now: now)
 
-        let exported = MetricKitReporter.shared.exportText()
-        #expect(exported == "{\"payload\":1}\n{\"payload\":2}\n")
+        let lines = try #require(MetricKitReporter.shared.exportText())
+            .split(separator: "\n").map(String.init)
+        #expect(lines.count == 2)
+        let first = try #require(
+            try JSONSerialization.jsonObject(with: Data(lines[0].utf8)) as? [String: Any]
+        )
+        #expect(first["receivedAt"] as? String == ISO8601DateFormatter().string(from: now))
+        #expect((first["payload"] as? [String: Int]) == ["payload": 1])
+    }
+
+    @Test func retainedDropsEntriesOlderThanTheMaxAge() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        func line(_ daysAgo: Double, _ id: Int) -> String {
+            let stamp = ISO8601DateFormatter().string(from: now.addingTimeInterval(-daysAgo * 86_400))
+            return "{\"receivedAt\":\"\(stamp)\",\"payload\":{\"id\":\(id)}}"
+        }
+        let lines = [line(40, 1), line(29, 2), line(1, 3)]
+        let kept = MetricKitReporter.retained(lines, now: now, maxAge: 30 * 86_400, maxBytes: 1_000_000)
+        #expect(kept == [lines[1], lines[2]])
+    }
+
+    @Test func retainedDropsLinesWithoutAReadableTimestamp() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let kept = MetricKitReporter.retained(
+            [#"{"payload":1}"#, "not json"], now: now, maxAge: 86_400, maxBytes: 1_000_000
+        )
+        #expect(kept.isEmpty)
+    }
+
+    @Test func retainedDropsTheOldestFirstWhenOverTheSizeLimit() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let stamp = ISO8601DateFormatter().string(from: now)
+        let lines = (1...4).map { "{\"receivedAt\":\"\(stamp)\",\"payload\":{\"id\":\($0)}}" }
+        let oneLine = lines[0].utf8.count + 1
+        let kept = MetricKitReporter.retained(lines, now: now, maxAge: 86_400, maxBytes: oneLine * 2)
+        #expect(kept == [lines[2], lines[3]])
+    }
+
+    @Test func retainedAlwaysKeepsTheNewestEntryEvenIfItAloneIsTooLarge() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let stamp = ISO8601DateFormatter().string(from: now)
+        let lines = (1...2).map { "{\"receivedAt\":\"\(stamp)\",\"payload\":{\"id\":\($0)}}" }
+        let kept = MetricKitReporter.retained(lines, now: now, maxAge: 86_400, maxBytes: 1)
+        #expect(kept == [lines[1]])
+    }
+
+    @Test func pruneExpiresOldEntriesOnDisk() {
+        let old = Date(timeIntervalSince1970: 1_800_000_000)
+        MetricKitReporter.shared.persist(jsonLine: #"{"payload":1}"#, now: old)
+        #expect(MetricKitReporter.shared.exportText() != nil)
+
+        MetricKitReporter.shared.prune(now: old.addingTimeInterval(MetricKitReporter.maxAge + 60))
+        #expect(MetricKitReporter.shared.exportText() == nil)
     }
 
     @Test func clearRemovesEverythingPersisted() {

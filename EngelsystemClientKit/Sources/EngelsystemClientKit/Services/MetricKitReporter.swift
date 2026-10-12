@@ -32,12 +32,20 @@ public final class MetricKitReporter: NSObject {
         return caches.appendingPathComponent("metrickit-diagnostics.jsonl")
     }()
 
+    /// Retention limits (2026-10-12): stored payloads older than `maxAge` are dropped, and
+    /// the oldest are dropped first once the file exceeds `maxBytes`. The newest entry is
+    /// always kept, even if it alone is larger than `maxBytes`, so a fresh crash report is
+    /// never lost to the limit.
+    static let maxAge: TimeInterval = 30 * 24 * 60 * 60
+    static let maxBytes = 1_000_000
+
     private override init() {
         super.init()
     }
 
     /// Call once at app launch.
     public func activate() {
+        prune()
         #if os(iOS) && canImport(MetricKit)
         MXMetricManager.shared.add(self)
         DebugLog.log("MetricKitReporter: subscribed to MXMetricManager")
@@ -79,20 +87,60 @@ public final class MetricKitReporter: NSObject {
         return "MetricKitReporter: received \(parts.joined(separator: ", ")) diagnostic(s)"
     }
 
-    /// Cheap append-only write, same shape as `DebugLog`'s own disk persistence —
-    /// deliveries are rare enough (at most daily, or once at the next launch after a
-    /// crash) that there's no need for the trim-on-overflow logic `DebugLog` has for
-    /// its much more frequent log entries.
-    func persist(jsonLine: String) {
-        let line = jsonLine + "\n"
-        guard let data = line.data(using: .utf8) else { return }
-        if let handle = try? FileHandle(forWritingTo: Self.fileURL) {
-            handle.seekToEndOfFile()
-            handle.write(data)
-            handle.closeFile()
-        } else {
-            try? data.write(to: Self.fileURL)
+    /// Appends one payload, wrapped as `{"receivedAt": <ISO 8601>, "payload": <payload JSON>}`
+    /// (one line per delivery), then applies the retention limits. Deliveries are rare
+    /// (at most daily, or once at the next launch after a crash), so rewriting the
+    /// file when pruning is cheap.
+    func persist(jsonLine: String, now: Date = Date()) {
+        let stamp = ISO8601DateFormatter().string(from: now)
+        let line = "{\"receivedAt\":\"\(stamp)\",\"payload\":\(jsonLine)}"
+        var lines = storedLines()
+        lines.append(line)
+        write(Self.retained(lines, now: now, maxAge: Self.maxAge, maxBytes: Self.maxBytes))
+    }
+
+    /// Applies the retention limits to what's already on disk (called at launch, so old
+    /// entries expire even if no new delivery arrives).
+    func prune(now: Date = Date()) {
+        let lines = storedLines()
+        guard !lines.isEmpty else { return }
+        write(Self.retained(lines, now: now, maxAge: Self.maxAge, maxBytes: Self.maxBytes))
+    }
+
+    /// Pure retention logic: drops lines older than `maxAge` (or without a readable
+    /// `receivedAt`, e.g. written by an older build), then drops the oldest lines until the
+    /// total size fits `maxBytes`, always keeping at least the newest surviving line.
+    static func retained(_ lines: [String], now: Date, maxAge: TimeInterval, maxBytes: Int) -> [String] {
+        let formatter = ISO8601DateFormatter()
+        var kept = lines.filter { line in
+            guard let data = line.data(using: .utf8),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let stamp = object["receivedAt"] as? String,
+                  let date = formatter.date(from: stamp)
+            else { return false }
+            return now.timeIntervalSince(date) <= maxAge
         }
+        func size(_ l: [String]) -> Int { l.reduce(0) { $0 + $1.utf8.count + 1 } }
+        while kept.count > 1 && size(kept) > maxBytes {
+            kept.removeFirst()
+        }
+        return kept
+    }
+
+    private func storedLines() -> [String] {
+        guard let data = try? Data(contentsOf: Self.fileURL),
+              let text = String(data: data, encoding: .utf8)
+        else { return [] }
+        return text.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+    }
+
+    private func write(_ lines: [String]) {
+        guard !lines.isEmpty else {
+            clear()
+            return
+        }
+        let text = lines.joined(separator: "\n") + "\n"
+        try? text.data(using: .utf8)?.write(to: Self.fileURL, options: .atomic)
     }
 }
 
