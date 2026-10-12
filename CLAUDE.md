@@ -32,6 +32,29 @@ of them up to date as work lands — not just this file:
   decisions that are no longer needed to understand today's code, kept
   for the lessons learned. Add here rather than letting closed
   investigations bloat the current-state docs above.
+- **[`docs/ROADMAP.md`](docs/ROADMAP.md)** — forward-looking planning:
+  not-yet-implemented features, release planning (e.g. TestFlight), and
+  open decisions awaiting the user's input. All planning discussion
+  belongs here, not just in chat — move it here as soon as it firms up
+  past "just an idea," and move an item out (into
+  `docs/IMPLEMENTED_FEATURES.md`, with a dated note) once it actually
+  ships.
+- **[`docs/adr/`](docs/adr/)** — Architecture Decision Records, one file
+  per significant architectural decision going forward (started
+  2026-10-09; existing decisions made before this date live in their
+  original narrative form in `docs/ARCHITECTURE.md`/`docs/HISTORY.md`
+  and are **not** being retroactively converted, unless asked). See
+  [`docs/adr/README.md`](docs/adr/README.md) for the index and template.
+  Write a new ADR whenever a decision has real trade-offs worth
+  recording for a future session — not for routine implementation
+  choices that `docs/IMPLEMENTED_FEATURES.md` already captures fine.
+- **[`docs/BACKLOG.md`](docs/BACKLOG.md)** — concrete, ready-to-pick-up
+  development tasks for the next work sessions — the tactical
+  counterpart to `docs/ROADMAP.md`'s strategic/feature-level planning.
+  A Roadmap item moves to the Backlog once it's broken down into actual
+  tasks someone could start on; a Backlog item is removed (not just
+  checked off) once it's done and reflected in
+  `docs/IMPLEMENTED_FEATURES.md`.
 
 ## Purpose of the app
 
@@ -103,8 +126,8 @@ project (`github.com/cookieBerlin/engelsystem`, branch
 `feat/api-news-comments`) via a cross-session message from a separate
 Claude session working on that server — **not merged to that fork's own
 main yet**, only combined into a local-only `develop` branch and
-deployed live on the shared dev test server (`a private LAN host`) at the
-time this was added. Returns a `NewsDetail` (the existing `News` shape
+deployed live on a private LAN dev test server at the time this was
+added. Returns a `NewsDetail` (the existing `News` shape
 plus a `comments: [NewsComment]` array, each `{id, text, user:
 Reference, created_at, updated_at}`); the existing `News`/`/news` list
 also gained a new required `comments_count` field. Applied to this

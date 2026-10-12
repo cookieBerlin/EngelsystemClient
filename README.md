@@ -10,6 +10,8 @@ no server-side changes required.
 - View your own shifts, grouped by day
 - Read news/announcements, including comments
 - View your profile, angel types, and worklogs
+- Browse locations/rooms, linked from each shift
+- Send and receive private messages (on instances whose server supports it)
 - Local reminders before your shifts start (no server push involved)
 - Manage multiple Engelsystem instances/events at once
 - A companion Apple Watch app showing just your next shift, plus a
@@ -48,3 +50,7 @@ This README covers the basics for building and running the app. The full
 architecture, implementation status, and decision history are documented
 for contributors (human or AI) starting at [`CLAUDE.md`](CLAUDE.md), which
 links out to the rest of the [`docs/`](docs) folder.
+
+## License
+
+[GPL-2.0](LICENSE).

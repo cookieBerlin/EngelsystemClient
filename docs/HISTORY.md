@@ -464,3 +464,75 @@ debugging the app code — verify with a quick standalone `swift
 the simulator entirely) and/or a one-off `-derivedDataPath` pointed at
 a fresh temp directory before concluding it's a real bug.
 
+## 2026-10-09: Pre-public security audit
+
+Ahead of switching the GitHub repo from private to public (part of
+TestFlight release planning, see
+[`ROADMAP.md`](ROADMAP.md#testflight-release-started-2026-10-09)),
+user-requested audit of the entire repository **and its full commit
+history** (83 commits at the time) for anything that shouldn't go
+public — API keys, private keys/certificates, personal data, internal
+infrastructure details.
+
+**Method**: `git log --all --name-only` for suspicious filenames
+(`.pem`/`.p12`/`.mobileprovision`/`.env`/etc. — none ever committed);
+`git log --all -p` grepped for private-key PEM headers (none),
+generic `key=`/`secret=`/`token=`/`password=` assignment patterns
+(every hit was a test fixture like `"demo-key"`/`"some-key"`, never a
+real credential), IP addresses, and email addresses in file *content*
+(as opposed to commit metadata).
+
+**Findings**:
+- **No real secrets, credentials, private keys, or certificates have
+  ever been committed.** Every "secret-shaped" string found in history
+  is a test fixture (`DemoData`, unit test literals like
+  `"old-demo-key"`/`"replacement-key"`) or a placeholder domain
+  (`*.example.com`, `*.demo.engelsystem.local`).
+- **A private LAN IP** (`a private LAN host`, a dev test server mentioned
+  in the News-comments feature's API provenance writeup) was present in
+  `CLAUDE.md`. Low risk (not internet-routable) but redacted immediately
+  to a generic description — see `CLAUDE.md`'s `/news/{id}` entry.
+- **An early commit hardcoded a local absolute path**
+  (`/Users/cookie/Documents/Projekte/...`) inside what later became
+  `Scripts/generate-api.sh`. The *current* script already resolves its
+  own location at runtime (`SCRIPT_DIR="$(cd "$(dirname
+  "${BASH_SOURCE[0]}")" && pwd)"`) — not a live bug — but the old value
+  would otherwise have remained visible in history forever. Reveals a
+  local macOS username and folder name, not a credential.
+  **User-approved fix, same day**: scrubbed via
+  `git filter-repo --replace-text` (installed via `brew install
+  git-filter-repo` for this). Before rewriting: stashed the in-flight
+  docs changes (`git stash push -u`) and took a full backup
+  (`git bundle create ... --all`) so the rewrite had a rollback path.
+  The rewrite itself (a plain `--replace-text` rule swapping the real
+  path for a placeholder) changed all 83 commit hashes — same scope as
+  the 2026-09 German-content rewrite. `git filter-repo` also removes
+  the `origin` remote as a safety measure; re-added it afterward.
+  Verified: `git log --all -p | grep /Users/cookie` found zero real
+  occurrences afterward (the only hit left was this very paragraph's
+  own description of the issue, in an unrelated stashed doc change,
+  not a leak), and `EngelsystemClientKit` still built clean.
+- **The git author email** (`cookie@cuccato.net`, used on all 83
+  commits) will be publicly visible once the repo is public — standard
+  GitHub behavior, not a bug; noted for the user's awareness since it
+  matches their own domain and was presumably intentional, not flagged
+  for any fix.
+- **No `.DS_Store`/`xcuserdata`/`.xcuserstate` ever committed** — the
+  `.gitignore` has correctly excluded these from the start.
+- Apple Developer Team ID (`8A5FNU94BM`) appears in `project.pbxproj` —
+  not a secret by itself (can't be used without the matching private
+  signing key/certificate, neither of which is in this repo); commonly
+  left public in open-source Xcode projects. No action taken.
+- No LICENSE file existed at audit time. **User-approved fix, same
+  day**: GPL-2.0 (the user's explicit choice, not suggested by Claude —
+  see `ROADMAP.md`'s "Resolved decisions"), canonical text fetched
+  verbatim via `curl` from `gnu.org` rather than reconstructed from
+  memory, inserted into the very first commit (`git rebase --root`,
+  combined with the history-scrub rewrite above in one pass) so the
+  license covers the whole project history, not just new commits.
+
+**Outcome**: cleared for going public from a secrets-leak perspective.
+The two low-risk informational items (old local path in history; no
+LICENSE) were both resolved the same day with explicit user approval —
+see `ROADMAP.md`'s "Resolved decisions" for the final record.
+
