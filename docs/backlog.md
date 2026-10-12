@@ -19,8 +19,6 @@ done and reflected in [`features.md`](features.md).
 Each item is its own commit; update all cross-references (incl.
 `docs/_config.yml` excludes and the memory notes) in the same commit.
 
-- [ ] **D-09** Add `CONTRIBUTING.md` and `CHANGELOG.md`; update
-      `README.md`'s documentation table.
 - [ ] **D-10** Retroactive ADRs 0003ff. for the big earlier decisions
       (list in roadmap.md); dates from `docs/history.md`/git log.
 - [ ] **D-11** Add backlog IDs to existing items; update the memory note

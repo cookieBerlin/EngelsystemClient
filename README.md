@@ -46,10 +46,22 @@ xcodebuild test -scheme EngelsystemClient \
 
 ## Documentation
 
-This README covers the basics for building and running the app. The full
-architecture, implementation status, and decision history are documented
-for contributors (human or AI) starting at [`CLAUDE.md`](CLAUDE.md), which
-links out to the rest of the [`docs/`](docs) folder.
+| Document | Content |
+|----------|---------|
+| [CLAUDE.md](CLAUDE.md) | Rules for the coding agent, documentation map |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Workflow, commit rules, definition of done |
+| [CHANGELOG.md](CHANGELOG.md) | User-visible changes |
+| [docs/requirements.md](docs/requirements.md) | Scope, Phase 2 rules, Watch scope |
+| [docs/architecture.md](docs/architecture.md) | Tech stack, structure, API, sync, data flow |
+| [docs/features.md](docs/features.md) | Implemented features in detail |
+| [docs/testing.md](docs/testing.md) | Test practices |
+| [docs/security.md](docs/security.md) | Credentials, transport, logging |
+| [docs/app-store.md](docs/app-store.md) | Identifiers, entitlements, privacy, export compliance |
+| [docs/release.md](docs/release.md) | TestFlight / release checklist |
+| [docs/roadmap.md](docs/roadmap.md), [docs/backlog.md](docs/backlog.md) | Planning and next tasks |
+| [docs/adr/](docs/adr/README.md) | Architecture Decision Records |
+| [docs/history.md](docs/history.md) | Closed investigations and lessons learned |
+| [Privacy Policy](https://cookieberlin.github.io/EngelsystemClient/privacy) · [Support](https://cookieberlin.github.io/EngelsystemClient/support) | Published pages |
 
 ## License
 
