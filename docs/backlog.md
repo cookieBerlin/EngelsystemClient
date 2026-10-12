@@ -19,9 +19,6 @@ done and reflected in [`features.md`](features.md).
 Each item is its own commit; update all cross-references (incl.
 `docs/_config.yml` excludes and the memory notes) in the same commit.
 
-- [ ] **D-02** `git mv` docs to lowercase names (`architecture`,
-      `features`, `history`, `roadmap`, `backlog`) and fix links,
-      `_config.yml` excludes, `CLAUDE.md` map.
 - [ ] **D-03** Move tech stack, project structure, API summary and Demo
       mode from `CLAUDE.md` into `docs/architecture.md`.
 - [ ] **D-04** Create `docs/requirements.md` from `CLAUDE.md`'s scope
