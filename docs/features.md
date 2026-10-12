@@ -216,6 +216,18 @@ exists without reading the whole diff history.
   is additionally persisted as JSON Lines to a Caches-directory file, so
   a tester can explicitly export/share it (e.g. to attach to a bug
   report email) rather than it only being visible inside the app.
+  - **Retention (2026-10-12)**: each stored line is
+    `{"receivedAt": <ISO 8601>, "payload": <MetricKit JSON>}`. Entries
+    older than 30 days are dropped (at launch via `prune()` and on every
+    delivery), then the oldest are dropped until the file is ≤ 1 MB; the
+    newest entry is always kept. Lines without a readable timestamp
+    (older builds) are dropped. Pure logic in
+    `MetricKitReporter.retained(_:now:maxAge:maxBytes:)`, unit-tested.
+  - **Hint before sharing (2026-10-12)**: Settings → Diagnostics →
+    "Export Diagnostics" opens `ExportDiagnosticsView` (size, what the
+    reports contain, "nothing is sent on its own", retention) with the
+    `ShareLink` inside it — `ShareLink` can't be triggered
+    programmatically, so it moved into the sheet.
   - **iOS-only** (`#if os(iOS)`), like Locations/Messages — no
     diagnostics UI on the Watch. The `MXMetricManagerSubscriber`
     conformance itself is also behind `canImport(MetricKit)`, which is

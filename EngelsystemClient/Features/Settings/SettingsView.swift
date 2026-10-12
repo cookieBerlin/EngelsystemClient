@@ -15,6 +15,12 @@ import EngelsystemClientKit
 /// single flat list with a per-row `Toggle` bound directly to `instance.isActive`, no
 /// sections. People change their minds about UI decisions; this isn't a mistake being
 /// corrected, just a later preference overriding an earlier one.
+/// `sheet(item:)` needs an `Identifiable` payload; a bare `String` isn't one.
+private struct DiagnosticsExport: Identifiable {
+    let id = UUID()
+    let text: String
+}
+
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage(NewsNotifier.enabledUserDefaultsKey)
@@ -36,6 +42,7 @@ struct SettingsView: View {
     // @Query, not @AppStorage like the settings above.
     @Query private var leadTimeSettingsRows: [NotificationLeadTimeSettings]
     @State private var isPresentingSetup = false
+    @State private var diagnosticsToExport: DiagnosticsExport?
     @State private var cloudSyncStatus: CloudSyncStatus = .checking
 
     private var multiInstanceDisplayMode: Binding<MultiInstanceDisplayMode> {
@@ -206,7 +213,9 @@ struct SettingsView: View {
                     DebugLogView()
                 }
                 if let diagnosticsText = MetricKitReporter.shared.exportText() {
-                    ShareLink(item: diagnosticsText, preview: SharePreview("MetricKit Diagnostics")) {
+                    Button {
+                        diagnosticsToExport = DiagnosticsExport(text: diagnosticsText)
+                    } label: {
                         Label("Export Diagnostics", systemImage: "square.and.arrow.up")
                     }
                 } else {
@@ -216,7 +225,7 @@ struct SettingsView: View {
             } header: {
                 Text("Diagnostics")
             } footer: {
-                Text("Records internal sync and notification activity for troubleshooting. Never includes API keys or other secrets. Off by default; turning it off doesn't erase what's already logged — use \"Clear\" in the log view for that. \"Export Diagnostics\" shares crash/hang/performance data collected on-device by Apple's MetricKit — nothing is sent anywhere automatically.")
+                Text("Records internal sync and notification activity for troubleshooting. Never includes API keys or other secrets. Off by default; turning it off doesn't erase what's already logged — use \"Clear\" in the log view for that. \"Export Diagnostics\" shares crash/hang/performance data collected on-device by Apple's MetricKit — nothing is sent anywhere automatically, and you see what it contains before sharing.")
             }
 
             Section {
@@ -245,6 +254,9 @@ struct SettingsView: View {
         }
         .task {
             cloudSyncStatus = await CloudSyncStatus.current(containerIdentifier: ModelContainerFactory.cloudKitContainerIdentifier)
+        }
+        .sheet(item: $diagnosticsToExport) { export in
+            ExportDiagnosticsView(diagnosticsText: export.text)
         }
         .sheet(isPresented: $isPresentingSetup) {
             InstanceSetupView()

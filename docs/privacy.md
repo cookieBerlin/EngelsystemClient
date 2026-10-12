@@ -4,7 +4,7 @@ title: Privacy Policy
 
 # Privacy Policy
 
-**Last updated: 2026-10-09**
+**Last updated: 2026-10-12**
 
 This page describes what data the Engelsystem Client app ("the app")
 collects and how it's handled. It's kept up to date whenever the app's
@@ -58,7 +58,11 @@ profile, or any other data you access through the app.
   device; the app never transmits them automatically. You can
   explicitly export/share them (Settings → Diagnostics → "Export
   Diagnostics") — for example, to attach to a bug report email — but
-  that only happens if you choose to do it.
+  that only happens if you choose to do it, after a screen explaining
+  what they contain (device model, iOS and app version, call stacks,
+  performance figures — not your API key, shifts, or messages). The
+  app keeps these reports on your device for at most 30 days and at
+  most 1 MB.
 - **Demo Mode**: uses entirely synthetic, pre-built sample data. No
   network requests are made at all while using Demo Mode.
 

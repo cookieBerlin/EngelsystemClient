@@ -21,6 +21,7 @@ First TestFlight build (version 0.1.0).
   settings; background refresh keeps its data fresh.
 - Configurable background sync.
 - Debug log (Settings › Diagnostics) and on-device crash/diagnostics
-  reports via MetricKit that you can export manually; nothing is sent
-  automatically.
+  reports via MetricKit that you can export manually after a screen
+  explaining what they contain; they are kept on the device for at most
+  30 days / 1 MB, and nothing is sent automatically.
 - Privacy Policy and Support pages published via GitHub Pages.
