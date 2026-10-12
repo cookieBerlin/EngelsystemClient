@@ -1,0 +1,18 @@
+title: Engelsystem Client
+description: Privacy Policy and Support for the Engelsystem Client app
+theme: jekyll-theme-minimal
+
+# Only privacy.md/support.md/index.md are meant to be a public site — the rest of
+# this folder is internal project documentation (architecture, implemented
+# features, entitlements, history, roadmap, backlog, ADRs), not meant to be
+# published as pages of its own. Excluded here rather than moved to a separate
+# folder, so CLAUDE.md's existing cross-references into docs/*.md keep working
+# unchanged.
+exclude:
+  - ARCHITECTURE.md
+  - IMPLEMENTED_FEATURES.md
+  - ENTITLEMENTS.md
+  - HISTORY.md
+  - ROADMAP.md
+  - BACKLOG.md
+  - adr
