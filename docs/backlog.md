@@ -30,11 +30,8 @@ Take files in this order; remove an item once the file is at 100 %.
       `InstanceCredentialResolver`, `LocationSyncService`, `DebugLog`,
       `DemoData`.
 - [ ] **C-04** Owner approval needed for exclusions of code tests cannot
-      drive. Pending proposal: `Services/SystemCloudKitAccount.swift`
-      (3-line `CKContainer` adapter; test processes lack CloudKit
-      entitlements, logic is tested through an injected closure). Further
-      candidates
-      (e.g. the MetricKit delivery callbacks, Keychain access-group
+      drive. `SystemCloudKitAccount.swift` is approved and excluded
+      (2026-10-12). Further candidates (e.g. the MetricKit delivery callbacks, Keychain access-group
       behavior); add them to `Scripts/coverage-exclusions.txt` only after
       approval.
 - [ ] **C-05** Bring the iOS app target under the gate (Xcode coverage run,

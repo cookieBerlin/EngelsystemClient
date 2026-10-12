@@ -3,3 +3,4 @@
 # Every entry needs a justification comment and owner approval (see docs/testing.md).
 
 */Sources/EngelsystemClientKit/Generated/*   # OpenAPI Generator output, never hand-edited (ADR 0003); regenerated from openapi.yml. Excluded by construction
+*/Sources/EngelsystemClientKit/Services/SystemCloudKitAccount.swift   # CKContainer adapter: test processes lack CloudKit entitlements; logic is tested through the injected closure in ICloudAvailability. Owner approval 2026-10-12
