@@ -20,5 +20,3 @@ Beta App Review as of 2026-10-12; if Apple rejects it, the owner reports the rea
 - [ ] **S-05** Apple Watch screenshot via the seed argument and `simctl io`.
 - [ ] **S-06** Docs (`app-store.md`, `release.md`, `.gitignore`) and the ADR.
 - [ ] **S-07** Full run on all devices; review every image; fix scene issues.
-- [ ] **S-08** (optional, discuss) The demo data is minimal (2 shifts, 2 news, 1 conversation), so Shifts/News/Profile screenshots are
-      half empty. Enrich `DemoData` for nicer images? It changes counts asserted in many tests.

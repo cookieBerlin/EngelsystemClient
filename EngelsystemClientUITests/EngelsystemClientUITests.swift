@@ -67,7 +67,7 @@ final class EngelsystemClientUITests: XCTestCase {
         // detail screen (Locations feature). Wrapped in a `NavigationLink`/`Label`, so
         // it's exposed as a button, not a static text — same idiom as News's "N
         // Comments" link below.
-        let heavenLocationLink = app.buttons["Heaven"]
+        let heavenLocationLink = app.buttons["Heaven"].firstMatch // several demo shifts are at Heaven
         XCTAssertTrue(heavenLocationLink.waitForExistence(timeout: 5))
         heavenLocationLink.tap()
         XCTAssertTrue(app.navigationBars["Heaven"].waitForExistence(timeout: 5))

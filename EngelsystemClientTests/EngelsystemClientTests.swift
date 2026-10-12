@@ -694,7 +694,7 @@ struct MessagesViewModelTests {
         await viewModel.refresh(instances: [instance])
 
         #expect(viewModel.errorMessage == nil)
-        #expect(viewModel.conversationsByInstanceID[instance.id]?.count == 1)
+        #expect(viewModel.conversationsByInstanceID[instance.id]?.count == 3)
     }
 
     @Test @MainActor func aFailureOnOneInstanceDoesNotBlockOthersFromRefreshing() async throws {
@@ -707,7 +707,7 @@ struct MessagesViewModelTests {
         await viewModel.refresh(instances: [bad, good])
 
         #expect(viewModel.errorMessage != nil)
-        #expect(viewModel.conversationsByInstanceID[good.id]?.count == 1)
+        #expect(viewModel.conversationsByInstanceID[good.id]?.count == 3)
         #expect(viewModel.conversationsByInstanceID[bad.id] == nil)
     }
 }

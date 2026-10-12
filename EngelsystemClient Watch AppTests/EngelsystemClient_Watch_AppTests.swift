@@ -123,7 +123,7 @@ struct WatchShiftsSyncCoordinatorTests {
 
         await coordinator.refresh(instances: [instance], in: context, handleNotifications: false)
 
-        #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
+        #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 7)
     }
 
     @Test @MainActor func refreshDoesNothingWhenInstancesIsEmpty() async throws {
@@ -174,7 +174,7 @@ struct WatchConnectivityReceiverTests {
 
         await receiver.handleApplicationContext(handleNotifications: false)
 
-        #expect(try container.mainContext.fetch(FetchDescriptor<CachedShift>()).count == 2)
+        #expect(try container.mainContext.fetch(FetchDescriptor<CachedShift>()).count == 7)
     }
 }
 

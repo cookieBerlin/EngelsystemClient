@@ -1158,3 +1158,8 @@ exists without reading the whole diff history.
 
 
 See [`architecture.md`](architecture.md) for CloudKit sync of `Instance` metadata.
+- **Richer demo data (2026-10-12)**: Demo Mode now shows a livelier event for screenshots and trials — 7 shifts over four
+  days at 4 locations (Heaven, Chill Space, Workshop Room A, Foodcourt) with 6 shift types, 5 news posts (a pinned
+  welcome, a highlighted one with a comment, a Markdown list, two meetings), 3 worklogs, 3 angel types (own memberships:
+  confirmed, supporter, unconfirmed) and 3 conversations (Helper Angel unread, Another Angel with the demo user's own reply
+  last, Night Shift Nick unread). The first upcoming shift is still "Info Desk Shift" (the Watch's next shift).

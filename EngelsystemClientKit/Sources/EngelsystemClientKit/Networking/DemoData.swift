@@ -26,6 +26,16 @@ enum DemoData {
             mapUrl: nil, contact: ContactDect(dect: nil),
             url: "https://demo.engelsystem.local/locations/2"
         ),
+        Location(
+            id: 3, name: "Workshop Room A", description: "Hands-on workshops, about 40 seats",
+            mapUrl: nil, contact: ContactDect(dect: "1003"),
+            url: "https://demo.engelsystem.local/locations/3"
+        ),
+        Location(
+            id: 4, name: "Foodcourt", description: "Catering and the helper lounge",
+            mapUrl: nil, contact: ContactDect(dect: "1004"),
+            url: "https://demo.engelsystem.local/locations/4"
+        ),
     ]
 
     /// Backs `APIClient.fetchLocation(id:_:)`'s demo path — `nil` for an unknown id,
@@ -38,6 +48,9 @@ enum DemoData {
         ShiftType(id: 1, name: "Set-up", description: "Building up the venue before the event"),
         ShiftType(id: 2, name: "Info Desk", description: "Helping visitors at the info desk"),
         ShiftType(id: 3, name: "Teardown", description: "Tearing down the venue after the event"),
+        ShiftType(id: 4, name: "Registration", description: "Welcoming and registering visitors"),
+        ShiftType(id: 5, name: "Workshop Support", description: "Helping speakers and participants in the workshop rooms"),
+        ShiftType(id: 6, name: "Catering", description: "Serving food and keeping the helper lounge tidy"),
     ]
 
     static let angelTypes: [AngelType] = [
@@ -46,6 +59,18 @@ enum DemoData {
             restricted: false,
             contact: AngelTypeContact(name: "Coordination", email: "coordination@demo.engelsystem.local", dect: nil),
             url: "https://demo.engelsystem.local/angeltypes/1"
+        ),
+        AngelType(
+            id: 2, name: "Info Desk Angel", description: "Answers questions at the info desk; needs a short introduction",
+            restricted: true,
+            contact: AngelTypeContact(name: "Info Desk Lead", email: "infodesk@demo.engelsystem.local", dect: "1002"),
+            url: "https://demo.engelsystem.local/angeltypes/2"
+        ),
+        AngelType(
+            id: 3, name: "Workshop Helper", description: "Supports workshop speakers and participants",
+            restricted: false,
+            contact: AngelTypeContact(name: "Workshop Team", email: "workshops@demo.engelsystem.local", dect: nil),
+            url: "https://demo.engelsystem.local/angeltypes/3"
         ),
     ]
 
@@ -89,6 +114,30 @@ enum DemoData {
                 url: "https://demo.engelsystem.local/news/2",
                 commentsCount: 0
             ),
+            News(
+                id: 3, name: "Lost & found has moved to Heaven",
+                text: "Found something? Hand it in at the Heaven info desk — the old box at the entrance is gone.",
+                isMeeting: false, isPinned: false, isHighlighted: true,
+                createdAt: now.addingTimeInterval(-3600 * 24), updatedAt: nil,
+                url: "https://demo.engelsystem.local/news/3",
+                commentsCount: 1
+            ),
+            News(
+                id: 4, name: "Catering schedule",
+                text: "Lunch is served from noon at the Foodcourt:\n\n- Vegetarian\n- Vegan\n- Gluten-free on request\n\nHelpers eat first.",
+                isMeeting: false, isPinned: false, isHighlighted: false,
+                createdAt: now.addingTimeInterval(-3600 * 26), updatedAt: nil,
+                url: "https://demo.engelsystem.local/news/4",
+                commentsCount: 0
+            ),
+            News(
+                id: 5, name: "Helper meeting: day two",
+                text: "Short sync at 9:00 in Workshop Room A. Coffee is on us.",
+                isMeeting: true, isPinned: false, isHighlighted: false,
+                createdAt: now.addingTimeInterval(-3600 * 30), updatedAt: nil,
+                url: "https://demo.engelsystem.local/news/5",
+                commentsCount: 0
+            ),
         ]
     }
 
@@ -112,6 +161,14 @@ enum DemoData {
                     id: 2, text: "Thanks for the update, see you there.",
                     user: Reference(id: 3, name: "Another Angel"),
                     createdAt: now.addingTimeInterval(-1800), updatedAt: nil
+                ),
+            ]
+        case 3:
+            comments = [
+                NewsComment(
+                    id: 3, text: "Great, I will bring the umbrella I found yesterday.",
+                    user: Reference(id: 3, name: "Another Angel"),
+                    createdAt: now.addingTimeInterval(-3600 * 20), updatedAt: nil
                 ),
             ]
         default:
@@ -144,6 +201,46 @@ enum DemoData {
                 scheduleGuid: nil, createdAt: nil, updatedAt: nil,
                 neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/2"
             ),
+            Shift(
+                id: 3, name: "Registration Desk", description: "Welcome and register arriving visitors",
+                startsAt: now.addingTimeInterval(3600 * 20), endsAt: now.addingTimeInterval(3600 * 24),
+                location: Reference(id: 1, name: "Heaven"),
+                shiftType: Reference(id: 4, name: "Registration"),
+                scheduleGuid: nil, createdAt: nil, updatedAt: nil,
+                neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/3"
+            ),
+            Shift(
+                id: 4, name: "Workshop Support: Soldering", description: "Hand out kits and help beginners",
+                startsAt: now.addingTimeInterval(3600 * 26), endsAt: now.addingTimeInterval(3600 * 29),
+                location: Reference(id: 3, name: "Workshop Room A"),
+                shiftType: Reference(id: 5, name: "Workshop Support"),
+                scheduleGuid: nil, createdAt: nil, updatedAt: nil,
+                neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/4"
+            ),
+            Shift(
+                id: 5, name: "Foodcourt Helper", description: "Serve lunch and keep the lounge tidy",
+                startsAt: now.addingTimeInterval(3600 * 30), endsAt: now.addingTimeInterval(3600 * 34),
+                location: Reference(id: 4, name: "Foodcourt"),
+                shiftType: Reference(id: 6, name: "Catering"),
+                scheduleGuid: nil, createdAt: nil, updatedAt: nil,
+                neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/5"
+            ),
+            Shift(
+                id: 6, name: "Late Night Info Desk", description: "Quiet hours, mostly lost-and-found questions",
+                startsAt: now.addingTimeInterval(3600 * 44), endsAt: now.addingTimeInterval(3600 * 48),
+                location: Reference(id: 1, name: "Heaven"),
+                shiftType: Reference(id: 2, name: "Info Desk"),
+                scheduleGuid: nil, createdAt: nil, updatedAt: nil,
+                neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/6"
+            ),
+            Shift(
+                id: 7, name: "Teardown Crew", description: "Pack up Heaven after the closing ceremony",
+                startsAt: now.addingTimeInterval(3600 * 70), endsAt: now.addingTimeInterval(3600 * 76),
+                location: Reference(id: 1, name: "Heaven"),
+                shiftType: Reference(id: 3, name: "Teardown"),
+                scheduleGuid: nil, createdAt: nil, updatedAt: nil,
+                neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/7"
+            ),
         ]
     }
 
@@ -155,11 +252,23 @@ enum DemoData {
                 createdBy: Reference(id: 1, name: "Demo Angel"),
                 workedAt: now.addingTimeInterval(-3600 * 16), createdAt: nil, updatedAt: nil
             ),
+            Worklog(
+                id: 2, description: "Info desk during the opening", hours: 4,
+                createdBy: Reference(id: 1, name: "Demo Angel"),
+                workedAt: now.addingTimeInterval(-3600 * 30), createdAt: nil, updatedAt: nil
+            ),
+            Worklog(
+                id: 3, description: "Heaven clean-up after the first meeting", hours: 2,
+                createdBy: Reference(id: 1, name: "Demo Angel"),
+                workedAt: now.addingTimeInterval(-3600 * 10), createdAt: nil, updatedAt: nil
+            ),
         ]
     }
 
     static let ownAngelTypes: [UserAngelType] = [
         UserAngelType(confirmed: true, supporter: false, angeltype: Reference(id: 1, name: "Engel")),
+        UserAngelType(confirmed: true, supporter: true, angeltype: Reference(id: 2, name: "Info Desk Angel")),
+        UserAngelType(confirmed: false, supporter: false, angeltype: Reference(id: 3, name: "Workshop Helper")),
     ]
 
     static var ownProfile: UsersIdGet200ResponseData {
@@ -225,9 +334,10 @@ private final class DemoMessageStore {
 
     private init() {
         let now = Date()
-        // One seeded conversation (with "Helper Angel", id 2) so the conversation
-        // list isn't empty in demo mode — one incoming, unread message, so the
-        // "mark as read on open"/unread-badge behavior has something to show.
+        // Three seeded conversations so the list looks alive in demo mode: "Helper Angel"
+        // (id 2, the newest, one incoming unread message — so the "mark as read on open"/
+        // unread-badge behavior has something to show), "Another Angel" (id 3, a back-and-forth
+        // that ends with the demo user's own reply) and "Night Shift Nick" (id 4, older, unread).
         messagesByOtherUserID = [
             2: [
                 Message(
@@ -235,6 +345,28 @@ private final class DemoMessageStore {
                     sender: Reference(id: 2, name: "Helper Angel"),
                     receiver: Reference(id: Self.demoUserID, name: "demo"),
                     read: false, createdAt: now.addingTimeInterval(-3600), updatedAt: nil
+                ),
+            ],
+            3: [
+                Message(
+                    id: 2, text: "Thanks for covering the info desk!",
+                    sender: Reference(id: 3, name: "Another Angel"),
+                    receiver: Reference(id: Self.demoUserID, name: "demo"),
+                    read: true, createdAt: now.addingTimeInterval(-3600 * 5), updatedAt: nil
+                ),
+                Message(
+                    id: 3, text: "Anytime, see you at the meeting.",
+                    sender: Reference(id: Self.demoUserID, name: "demo"),
+                    receiver: Reference(id: 3, name: "Another Angel"),
+                    read: true, createdAt: now.addingTimeInterval(-3600 * 4.5), updatedAt: nil
+                ),
+            ],
+            4: [
+                Message(
+                    id: 4, text: "Can we swap the late night shift?",
+                    sender: Reference(id: 4, name: "Night Shift Nick"),
+                    receiver: Reference(id: Self.demoUserID, name: "demo"),
+                    read: false, createdAt: now.addingTimeInterval(-3600 * 26), updatedAt: nil
                 ),
             ],
         ]

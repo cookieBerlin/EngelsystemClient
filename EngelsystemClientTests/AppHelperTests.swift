@@ -74,7 +74,7 @@ struct BackgroundSyncSchedulerTests {
         )
 
         #expect(succeeded)
-        #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
+        #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 7)
         #expect(scheduler.submitted.count == 1)
         #expect(DeviceSyncPreferences.lastBackgroundSyncDate() != nil)
     }

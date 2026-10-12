@@ -96,7 +96,7 @@ extension StubbedNetworkTests {
             let viewModel = LocationsViewModel()
             await viewModel.refresh(instances: [instance], in: context)
             #expect(viewModel.errorMessage == nil)
-            #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2)
+            #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 4)
         }
 
         @Test @MainActor func locationsRefreshReportsMissingCredentialUnauthorizedAndIgnoresCancellation() async throws {
@@ -130,7 +130,7 @@ extension StubbedNetworkTests {
             let viewModel = NewsViewModel()
             await viewModel.refresh(instances: [instance], in: context)
             #expect(viewModel.errorMessage == nil)
-            #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 2)
+            #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 5)
         }
 
         @Test @MainActor func newsRefreshReportsMissingCredentialUnauthorizedAndIgnoresCancellation() async throws {

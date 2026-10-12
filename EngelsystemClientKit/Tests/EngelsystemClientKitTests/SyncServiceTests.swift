@@ -46,14 +46,14 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
 
     let service = ShiftSyncService()
     let first = try await service.sync(instance: instance, credential: demoCredential, in: context)
-    #expect(first.shifts.count == 2)
+    #expect(first.shifts.count == DemoData.shifts.count)
     #expect(first.didChange) // fresh inserts always count as a change
-    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == DemoData.shifts.count)
 
     // Syncing again must update the existing rows in place, not duplicate them.
     let second = try await service.sync(instance: instance, credential: demoCredential, in: context)
-    #expect(second.shifts.count == 2)
-    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
+    #expect(second.shifts.count == DemoData.shifts.count)
+    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == DemoData.shifts.count)
 }
 
 /// `CachedShift.apply(_:)` is the pure diffing logic `ShiftSyncResult.didChange` relies
@@ -97,15 +97,15 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
 
     let service = NewsSyncService()
     let first = try await service.sync(instance: instance, credential: demoCredential, in: context)
-    #expect(first.items.count == 2)
-    #expect(first.insertedItems.count == 2)
+    #expect(first.items.count == DemoData.news.count)
+    #expect(first.insertedItems.count == DemoData.news.count)
 
     // Syncing again must update the existing rows in place (reporting them as
     // already-known, not newly inserted), not duplicate them.
     let second = try await service.sync(instance: instance, credential: demoCredential, in: context)
-    #expect(second.items.count == 2)
+    #expect(second.items.count == DemoData.news.count)
     #expect(second.insertedItems.isEmpty)
-    #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == DemoData.news.count)
 }
 
 @Test @MainActor func locationSyncServiceInsertsAndUpdatesWithoutDuplicating() async throws {
@@ -115,13 +115,13 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
 
     let service = LocationSyncService()
     let first = try await service.sync(instance: instance, credential: demoCredential, in: context)
-    #expect(first.count == 2)
-    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2)
+    #expect(first.count == DemoData.locations.count)
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == DemoData.locations.count)
 
     // Syncing again must update the existing rows in place, not duplicate them.
     let second = try await service.sync(instance: instance, credential: demoCredential, in: context)
-    #expect(second.count == 2)
-    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2)
+    #expect(second.count == DemoData.locations.count)
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == DemoData.locations.count)
 }
 
 /// 2026-09-23, "keep the Watch fresh"-adjacent feature (Locations): `refreshOne` backs
@@ -135,11 +135,11 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
 
     let service = LocationSyncService()
     _ = try await service.sync(instance: instance, credential: demoCredential, in: context)
-    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == DemoData.locations.count)
 
     let refreshed = try await service.refreshOne(serverID: 1, instance: instance, credential: demoCredential, in: context)
     #expect(refreshed.name == "Heaven")
-    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2) // still no duplicate
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == DemoData.locations.count) // still no duplicate
 }
 
 @Test func apiClientFetchLocationReturnsDemoDataAndThrowsNotFoundForUnknownID() async throws {
@@ -178,10 +178,10 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     #expect(progressUpdates.count == 5) // Shifts + News + Profile + Locations + Messages, one active instance
     #expect(progressUpdates.last?.completed == 5)
     #expect(progressUpdates.last?.total == 5)
-    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
-    #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == DemoData.shifts.count)
+    #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == DemoData.news.count)
     #expect(try context.fetch(FetchDescriptor<CachedUser>()).count == 1)
-    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == DemoData.locations.count)
     #expect(instance.messagesSupported)
 }
 
@@ -230,7 +230,7 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     )
 
     #expect(progressUpdates.count == 1)
-    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 2)
+    #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == DemoData.shifts.count)
     #expect(try context.fetch(FetchDescriptor<CachedNews>()).isEmpty)
     #expect(try context.fetch(FetchDescriptor<CachedLocation>()).isEmpty)
 }
@@ -266,15 +266,15 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     #expect(try context.fetch(FetchDescriptor<CachedUser>()).count == 1)
 
     let worklogs = try await service.syncWorklogs(instance: instance, credential: demoCredential, in: context)
-    #expect(worklogs.count == 1)
+    #expect(worklogs.count == DemoData.worklogs.count)
     _ = try await service.syncWorklogs(instance: instance, credential: demoCredential, in: context)
-    #expect(try context.fetch(FetchDescriptor<CachedWorklog>()).count == 1)
+    #expect(try context.fetch(FetchDescriptor<CachedWorklog>()).count == DemoData.worklogs.count)
 
     let angelTypes = try await service.syncAngelTypes(instance: instance, credential: demoCredential, in: context)
-    #expect(angelTypes.count == 1)
+    #expect(angelTypes.count == DemoData.ownAngelTypes.count)
     #expect(angelTypes.first?.angelTypeName == "Engel")
     _ = try await service.syncAngelTypes(instance: instance, credential: demoCredential, in: context)
-    #expect(try context.fetch(FetchDescriptor<CachedAngelTypeMembership>()).count == 1)
+    #expect(try context.fetch(FetchDescriptor<CachedAngelTypeMembership>()).count == DemoData.ownAngelTypes.count)
 }
 
 @Test func instanceCredentialResolverThrowsWhenNoKeyIsStored() {

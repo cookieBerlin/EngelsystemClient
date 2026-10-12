@@ -362,13 +362,13 @@ import Testing
     let credential = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
     let client = APIClient.shared
 
-    #expect(try await client.fetchNews(credential).count == 2)
-    #expect(try await client.fetchLocations(credential).count == 2)
-    #expect(try await client.fetchShiftTypes(credential).count == 3)
-    #expect(try await client.fetchAngelTypes(credential).count == 1)
-    #expect(try await client.fetchOwnAngelTypes(for: .me, credential).count == 1)
-    #expect(try await client.fetchShifts(for: .me, credential).count == 2)
-    #expect(try await client.fetchWorklogs(for: .me, credential).count == 1)
+    #expect(try await client.fetchNews(credential).count == DemoData.news.count)
+    #expect(try await client.fetchLocations(credential).count == DemoData.locations.count)
+    #expect(try await client.fetchShiftTypes(credential).count == DemoData.shiftTypes.count)
+    #expect(try await client.fetchAngelTypes(credential).count == DemoData.angelTypes.count)
+    #expect(try await client.fetchOwnAngelTypes(for: .me, credential).count == DemoData.ownAngelTypes.count)
+    #expect(try await client.fetchShifts(for: .me, credential).count == DemoData.shifts.count)
+    #expect(try await client.fetchWorklogs(for: .me, credential).count == DemoData.worklogs.count)
 
     let profile = try await client.fetchOwnProfile(for: .me, credential)
     #expect(profile.name == "demo")
@@ -466,7 +466,7 @@ import Testing
     let client = APIClient.shared
 
     let conversations = try await client.fetchConversations(credential)
-    #expect(conversations.count == 1)
+    #expect(conversations.count == 3)
     #expect(conversations.first?.unreadMessages == 1)
 
     let thread = try await client.fetchConversation(otherUserID: 2, credential)
@@ -487,10 +487,10 @@ import Testing
     let stranger = try await client.sendMessage(to: 999, text: "Hello stranger", credential)
     #expect(stranger.receiver.name == "User 999")
     let twoConversations = try await client.fetchConversations(credential)
-    #expect(twoConversations.map(\.otherUser.id) == [999, 2])
+    #expect(twoConversations.map(\.otherUser.id) == [999, 2, 3, 4])
     #expect(try await client.fetchConversation(otherUserID: 424_242, credential).isEmpty)
     try await client.deleteMessage(id: stranger.id, credential)
-    #expect(try await client.fetchConversations(credential).count == 1) // emptied conversations disappear
+    #expect(try await client.fetchConversations(credential).count == 3) // emptied conversations disappear
 
     let markedRead = try await client.setMessageRead(id: thread[0].id, read: true, credential)
     #expect(markedRead.read)
@@ -505,4 +505,13 @@ import Testing
     await #expect(throws: APIError.notFound) {
         _ = try await APIClient.shared.setMessageRead(id: 999_999, read: true, credential)
     }
+}
+
+@Test func demoNewsDetailCarriesCommentsMatchingTheirCountAndNilForUnknownPosts() async throws {
+    let credential = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
+    for item in DemoData.news {
+        let detail = try await APIClient.shared.fetchNewsDetail(id: item.id, credential)
+        #expect(detail.comments.count == item.commentsCount)
+    }
+    #expect(DemoData.newsDetail(id: 999) == nil)
 }
