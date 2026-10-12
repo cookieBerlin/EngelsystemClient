@@ -155,3 +155,28 @@ both added via the `xcodeproj` Ruby gem, not by hand-editing
   App Groups and Keychain Sharing don't require a paid Apple Developer Program
   membership**, only automatic signing with any team.
 
+## Screenshots
+
+`Scripts/screenshots.sh [iphone|ipad|watch|all]` generates every App Store screenshot from Demo Mode into
+`Screenshots/<device>/en/NN-<scene>.png` (git-ignored); design and rationale in
+[ADR 0011](adr/0011-native-tooling-for-app-store-screenshots.md). It creates and uses its own simulators, sets English (US),
+light appearance and the 9:41 status bar, runs the scenes on a fresh install, verifies the exact pixel size and fails if a
+scene is missing. Needs an unlocked screen; a run takes several minutes per device.
+
+| Device | Simulator (created by the script) | Size | Scenes |
+|---|---|---|---|
+| iPhone | iPhone 18 Pro Max | 1320 × 2868 | `01-shifts`, `02-news`, `03-profile`, `04-locations`, `05-messages`, `06-settings` |
+| iPad | iPad Pro 13-inch (M5), landscape | 2752 × 2064 | the same six |
+| Apple Watch | Apple Watch Ultra 4 (49mm) | 422 × 514 | `01-next-shift` |
+
+Sizes checked against App Store Connect's "Screenshot specifications" on 2026-10-12.
+
+- **Add or change an iPhone/iPad scene**: edit `EngelsystemClientUITests/ScreenshotTests.swift` (a `capture("NN-name")` call after
+  opening the screen) and add the name to `SCENES` in the script. Scene content comes from `DemoData`.
+- **Watch**: no UI test; the Debug build is launched with `-seed-demo-instance -skipNotificationPrompt YES` and captured with
+  `simctl io screenshot`. Both launch arguments do nothing in Release builds.
+- **Known cosmetics**: the Watch shows the real time; the iPad shows its windowing chrome (app name in the status bar, a
+  window handle in the lower right corner); some screens show "Last Synced: …".
+- **Gotchas**: build with normal simulator signing (never `CODE_SIGNING_ALLOWED=NO`); the first sync's notification prompt only
+  appears after a real interaction, so the test keeps nudging it; Apple's `WidgetRenderer_Default` may log a watchdog crash
+  report on a fresh simulator — harmless.

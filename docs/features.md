@@ -1163,3 +1163,7 @@ See [`architecture.md`](architecture.md) for CloudKit sync of `Instance` metadat
   welcome, a highlighted one with a comment, a Markdown list, two meetings), 3 worklogs, 3 angel types (own memberships:
   confirmed, supporter, unconfirmed) and 3 conversations (Helper Angel unread, Another Angel with the demo user's own reply
   last, Night Shift Nick unread). The first upcoming shift is still "Info Desk Shift" (the Watch's next shift).
+- **App Store screenshot generation (2026-10-12)**: `Scripts/screenshots.sh` produces 13 screenshots (iPhone 6.9" ×6, iPad 13"
+  landscape ×6, Apple Watch Ultra ×1) from Demo Mode — see `app-store.md` ("Screenshots") and ADR 0011. Debug-only launch
+  arguments `-seed-demo-instance` (`DemoSeeding`) and `-skipNotificationPrompt YES` (`NotificationScheduler`); UI test class
+  `ScreenshotTests`.

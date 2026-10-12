@@ -30,6 +30,12 @@ complication — see "Build number" in [`app-store.md`](app-store.md) for the nu
    exempt; `ITSAppUsesNonExemptEncryption = NO` is set in
    `EngelsystemClient-Info.plist`, so no per-build question.
 
+## App Store screenshots
+
+Run `Scripts/screenshots.sh` (see "Screenshots" in [`app-store.md`](app-store.md)) and upload `Screenshots/iphone/en/`,
+`Screenshots/ipad/en/` and `Screenshots/watch/en/` in App Store Connect before the first App Store submission, and again
+whenever the UI or the demo data changes visibly.
+
 ## TestFlight
 
 - **Internal testing**: no Beta App Review; testers are App Store Connect

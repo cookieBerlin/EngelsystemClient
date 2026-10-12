@@ -10,8 +10,4 @@ done and reflected in [`features.md`](features.md).
 _(No open tasks. TestFlight: build 0.1.0 (2) is in internal testing and submitted for
 Beta App Review as of 2026-10-12; if Apple rejects it, the owner reports the reason here.)_
 
-## App Store screenshots (see ROADMAP.md)
-
-- [ ] **S-05** Apple Watch screenshot via the seed argument and `simctl io`.
-- [ ] **S-06** Docs (`app-store.md`, `release.md`, `.gitignore`) and the ADR.
-- [ ] **S-07** Full run on all devices; review every image; fix scene issues.
+\n

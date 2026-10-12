@@ -67,45 +67,6 @@ Goal: get the app into TestFlight, both Internal and External testing.
 - **External Testing** — submitted for Beta App Review 2026-10-12 (build 0.1.0 (2)); waiting
   for Apple.
 
-### App Store screenshots, generated automatically (planned 2026-10-12)
-
-Goal: one command produces every screenshot the App Store needs, reproducibly, from Demo Mode.
-Decisions (owner, 2026-10-12): devices **iPhone 6.9", iPad 13", Apple Watch**; scenes **Shifts, News,
-Profile, Locations, Messages (a conversation), Settings**; **light appearance only**; **plain
-screenshots** (no frames/captions); English only.
-
-Design:
-
-- **Entry point** `Scripts/screenshots.sh [iphone|ipad|watch|all]`, native tooling only
-  (`xcodebuild`, `simctl`, `xcresulttool`, `sips`) — no fastlane/Ruby dependency (would need an ADR
-  and adds nothing here). Output `Screenshots/<device>/en/NN-<scene>.png`, git-ignored.
-- **Own simulators** created on demand by the script ("EngelsystemClient Screenshots iPhone/iPad/
-  Watch": iPhone 18 Pro Max, iPad Pro 13-inch M5, Apple Watch Ultra 4), so the developer's simulators
-  stay untouched. Prepared per run: English (US), light appearance, status bar override
-  (9:41, full battery/Wi-Fi/cellular), freshly erased app state.
-- **iPhone/iPad scenes** are a new XCUITest class `ScreenshotTests` in `EngelsystemClientUITests`
-  (run via `-only-testing:EngelsystemClientUITests/ScreenshotTests`, no extra test plan; it takes minutes, so it is not part of the normal runs): launch → "Try Demo Mode" → sidebar →
-  open each screen → `capture("01-shifts")` as a kept `XCTAttachment`. iPad runs in landscape. The script
-  exports the attachments from the `.xcresult` and renames them in scene order.
-- **Watch**: UI tests on the Watch simulator are slow and flaky (see `history.md`), so the Watch scene
-  uses a **DEBUG-only launch argument** (`-seed-demo-instance`) that inserts a demo instance on launch;
-  the script launches the Watch app with it and grabs `simctl io … screenshot`. Same argument available
-  to the iOS scenes to skip the setup screen where that makes a scene faster. The decision logic
-  (`shouldSeedDemoInstance(arguments:)`) lives in a tested type; the seeding adapter is thin.
-- **Verification step** in the script: each PNG must have the exact pixel size the App Store accepts for
-  its device class (table kept in the script, checked against App Store Connect's screenshot
-  specifications when implemented); EXIF/XMP stripped from the PNGs; the run fails if a scene is missing.
-- **Docs**: new "Screenshots" section in `app-store.md` (devices, sizes, scenes, how to add a scene),
-  step added to `release.md`, `.gitignore` entry, ADR for "native tooling, DEBUG seed argument".
-- **Coverage gate**: new app-side code stays at 100 % (seed decision tested; adapter excluded as a thin
-  adapter); UI test code is not measured.
-- **Constraints**: needs an unlocked screen (UI tests), about 10–15 minutes for all devices, and must not
-  use the developer's own simulators.
-
-Steps (each its own commit): 1 `-seed-demo-instance` + tests; 2 `ScreenshotTests` for iPhone with
-`capture` helper + test plan; 3 `Scripts/screenshots.sh` for iPhone (simulator prep, export, rename,
-size check); 4 iPad (landscape); 5 Watch; 6 docs + ADR; 7 full run and review of every image.
-
 ## Open decisions
 
 Awaiting the user's input — nothing below should be assumed/acted on

@@ -144,3 +144,6 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   apps' `WindowGroup`): inserts a Demo Mode instance when none exists. Used by the screenshot script. **Do
   not build the app with `CODE_SIGNING_ALLOWED=NO` to run it** — that strips the iCloud entitlement and the
   app traps in `CKContainer(identifier:)` at launch (seen 2026-10-12); build with the simulator's normal signing.
+- **`-skipNotificationPrompt YES`** (Debug builds only, honoured by `NotificationScheduler`): skips the notification permission
+  prompt; used for the Watch screenshot. **`ScreenshotTests`** is not a regression test — run it through
+  `Scripts/screenshots.sh` (see `app-store.md`).
