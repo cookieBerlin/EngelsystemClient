@@ -1,16 +1,19 @@
 /* Engelsystem Client site: small additions to Bootstrap 5.3. */
 .brand-icon { width: 1.6rem; height: 1.6rem; border-radius: .4rem; margin-right: .5rem; vertical-align: -.35rem; }
 
-/* Screenshots get a visible frame in both modes (a white app screen on a white page, or the black Watch screen on a
-   dark page, would otherwise have no edge). */
+/* Screenshots get a clearly visible frame in both modes: a white app screen on a white page (or the black Watch screen on a
+   dark page) would otherwise have no edge. Light mode uses a mid-gray 2px border and a stronger shadow. */
 main img {
   max-width: 100%;
   height: auto;
-  border: 1px solid var(--bs-border-color);
+  border: 2px solid var(--bs-gray-500);
   border-radius: 1rem;
-  box-shadow: 0 .25rem 1rem rgba(0, 0, 0, .12);
+  box-shadow: 0 .4rem 1.25rem rgba(0, 0, 0, .28);
 }
-[data-bs-theme="dark"] main img { border-color: var(--bs-secondary-color); box-shadow: 0 .25rem 1rem rgba(0, 0, 0, .5); }
+[data-bs-theme="dark"] main img { border-color: var(--bs-gray-600); box-shadow: 0 .4rem 1.25rem rgba(0, 0, 0, .6); }
+
+/* The landing page's screenshot strip sits on a tinted panel so the white screens stand out from the page. */
+.shots { background: var(--bs-secondary-bg); border-radius: 1.5rem; padding: 1.75rem .75rem .75rem; }
 
 .shots img { max-height: 420px; width: auto; margin: 0 .25rem 1rem; }
 .shots img.watch { max-height: 300px; }
