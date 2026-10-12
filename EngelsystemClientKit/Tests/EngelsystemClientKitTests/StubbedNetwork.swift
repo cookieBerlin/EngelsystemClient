@@ -1,4 +1,5 @@
 import Foundation
+import Testing
 @testable import EngelsystemClientKit
 
 /// Routes the generated API client's requests to canned responses instead of the network,
@@ -91,3 +92,9 @@ final class StubRequestBuilder<T>: URLSessionRequestBuilder<T>, @unchecked Senda
 final class StubDecodableRequestBuilder<T: Decodable>: URLSessionDecodableRequestBuilder<T>, @unchecked Sendable {
     override func createURLSession() -> URLSessionProtocol { StubbedNetwork.session }
 }
+
+/// Parent of every suite that uses `StubbedNetwork`: they all share process-wide state (the
+/// generator's request builder factory and the stub routes), so they must never run in
+/// parallel with each other. `.serialized` applies to the nested suites too.
+@Suite(.serialized)
+struct StubbedNetworkTests {}

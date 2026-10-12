@@ -18,22 +18,16 @@ done and reflected in [`features.md`](features.md).
 
 ## Coverage ramp-up (ADR 0009)
 
-Baseline 2026-10-12 (`Scripts/check-coverage.sh`): Kit own code 76 %; after
-C-01/C-02 88 %.
+Baseline 2026-10-12 (`Scripts/check-coverage.sh`): Kit own code 76 %; **Kit now
+at 100 %, gate green** (C-01 to C-03 done).
 Take files in this order; remove an item once the file is at 100 %.
 
-- [ ] **C-03** Remaining Kit files below 100 %: `NewsNotifier`,
-      `KeychainSyncStore`, `PollingInterval`, `CloudSyncStatus`,
-      `WatchConnectivityBridge`, `APIError`, `LocalKeychainStore`,
-      `NotificationScheduler`, `AppSyncCoordinator`, the `Cached*` models,
-      `ModelContainerFactory`, `NotificationLeadTimeSettings`,
-      `InstanceCredentialResolver`, `LocationSyncService`, `DebugLog`,
-      `DemoData`.
-- [ ] **C-04** Owner approval needed for exclusions of code tests cannot
-      drive. `SystemCloudKitAccount.swift` is approved and excluded
-      (2026-10-12). `SystemKeychainClient.swift` is excluded (standing approval for thin adapters, 2026-10-12). Further candidates (e.g. the MetricKit delivery callbacks, Keychain access-group
-      behavior); add them to `Scripts/coverage-exclusions.txt` only after
-      approval.
+- [ ] **C-04** Exclusions so far (all owner-approved): `SystemCloudKitAccount`,
+      `ModelContainerFactory`, `SystemKeychainClient`,
+      `SystemNotificationCenter`. Standing approval covers further thin
+      adapters; the MetricKit delivery callbacks and `WatchConnectivityBridge`'s
+      iOS branches are not compiled by `swift test` on macOS and need the
+      Xcode coverage run (C-05) or an exclusion.
 - [ ] **C-05** Bring the iOS app target under the gate (Xcode coverage run,
       unit + UI tests), then the Watch app and the complication.
 - [ ] **C-06** Make the gate blocking (all Kit files at 100 % or excluded).

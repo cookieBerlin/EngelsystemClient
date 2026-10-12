@@ -29,22 +29,30 @@ public enum CloudSyncStatus: Equatable {
         }
     }
 
-    /// Queries `CKContainer.accountStatus()` — CloudKit's own, documented-correct
-    /// availability check (unlike `FileManager.ubiquityIdentityToken`, which belongs to
-    /// a different iCloud subsystem entirely — see `ICloudAvailability`).
-    public static func current(containerIdentifier: String) async -> CloudSyncStatus {
+    /// Queries CloudKit's own, documented-correct availability check (unlike
+    /// `FileManager.ubiquityIdentityToken`, which belongs to a different iCloud
+    /// subsystem entirely — see `ICloudAvailability`). `accountStatus` is the seam for the
+    /// real `CKContainer` call; the convenience `current(containerIdentifier:)` that wires
+    /// it up lives in `SystemCloudKitAccount.swift`.
+    public static func current(
+        containerIdentifier: String,
+        accountStatus: (String) async throws -> CKAccountStatus
+    ) async -> CloudSyncStatus {
         do {
-            let status = try await CKContainer(identifier: containerIdentifier).accountStatus()
-            switch status {
-            case .available: return .active
-            case .noAccount: return .noAccount
-            case .restricted: return .restricted
-            case .temporarilyUnavailable: return .temporarilyUnavailable
-            case .couldNotDetermine: return .unknown
-            @unknown default: return .unknown
-            }
+            return status(for: try await accountStatus(containerIdentifier))
         } catch {
             return .error(error.localizedDescription)
+        }
+    }
+
+    static func status(for accountStatus: CKAccountStatus) -> CloudSyncStatus {
+        switch accountStatus {
+        case .available: return .active
+        case .noAccount: return .noAccount
+        case .restricted: return .restricted
+        case .temporarilyUnavailable: return .temporarilyUnavailable
+        case .couldNotDetermine: return .unknown
+        @unknown default: return .unknown
         }
     }
 }

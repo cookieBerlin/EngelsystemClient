@@ -18,7 +18,7 @@ import EngelsystemClientKit
 /// run from inside a test. Mirrors `EngelsystemClientKitTests.SyncServiceTests`'
 /// `UnusedNotificationCenter`.
 private final class UnusedNotificationCenter: NotificationCenterScheduling, @unchecked Sendable {
-    func notificationSettings() async -> UNNotificationSettings { fatalError("not used with handleNotifications: false") }
+    func authorizationStatus() async -> UNAuthorizationStatus { fatalError("not used with handleNotifications: false") }
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool { fatalError("not used with handleNotifications: false") }
     func pendingNotificationRequests() async -> [UNNotificationRequest] { fatalError("not used with handleNotifications: false") }
     func add(_ request: UNNotificationRequest) async throws { fatalError("not used with handleNotifications: false") }

@@ -171,6 +171,6 @@ public extension CachedShift {
     /// date; the day header carries that instead).
     static func groupedByDay(_ shifts: [CachedShift], calendar: Calendar = .current) -> [(day: Date, shifts: [CachedShift])] {
         let grouped = Dictionary(grouping: shifts) { calendar.startOfDay(for: $0.startsAt) }
-        return grouped.keys.sorted().map { day in (day, sortedByStartTime(grouped[day] ?? [])) }
+        return grouped.sorted { $0.key < $1.key }.map { (day: $0.key, shifts: sortedByStartTime($0.value)) }
     }
 }

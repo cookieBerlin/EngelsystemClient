@@ -20,7 +20,12 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   macOS — it needs an Xcode-based coverage run
   (`xcodebuild test -enableCodeCoverage YES`, then `xcrun xccov view
   --report`) or a justified exclusion. Baseline 2026-10-12: Kit own code
-  76 %, iOS app unit tests 15.5 %, Watch app 0 %.
+  76 %, iOS app unit tests 15.5 %, Watch app 0 %. **Kit reached 100 %
+  (gate passes) the same day**; iOS app and Watch app are still to do.
+  Seams used to get there: injectable closures/protocols for CloudKit
+  (`SystemCloudKitAccount`), the Keychain (`KeychainClient`) and the
+  notification center (`NotificationCenterScheduling`), each with a thin,
+  excluded `System…` adapter.
 - **Testing `APIClient`'s real network path** (2026-10-12): the generated
   client is redirected to canned responses via
   `EngelsystemAPIAPI.requestBuilderFactory` — see
@@ -28,7 +33,9 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   subclasses overriding `createURLSession()`). Register routes as
   `StubURLProtocol.route("GET /news", data: …)` (bodies are demo data
   encoded with the generator's own encoder). Suites using it must be
-  `.serialized`, call `StubbedNetwork.install()` in `init`, and must not
+  nested in `StubbedNetworkTests` (the serialized parent — the stub state is
+  process-wide, so they must never run in parallel with each other), call
+  `StubbedNetwork.install()` in `init`, and must not
   mutate the shared `DemoMessageStore` (other tests expect it untouched).
   The test target builds in Swift 5 language mode for this reason (the
   generator's globals are not Swift 6 concurrency-safe).

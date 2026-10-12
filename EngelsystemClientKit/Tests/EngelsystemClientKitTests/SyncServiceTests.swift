@@ -4,32 +4,32 @@ import UserNotifications
 import Testing
 @testable import EngelsystemClientKit
 
-/// Never actually invoked in these tests (`AppSyncCoordinator` is always called with
-/// `handleNotifications: false` here) — exists only so `AppSyncCoordinator`'s init
-/// doesn't fall back to its literal `NotificationScheduler()` default, which would
-/// construct the real `UNUserNotificationCenter.current()` and crash immediately
-/// under `swift test`'s CLI harness (no host app bundle). See the doc comment on
-/// `AppSyncCoordinator.syncEverything`'s `handleNotifications` parameter.
-private final class UnusedNotificationCenter: NotificationCenterScheduling, @unchecked Sendable {
-    func notificationSettings() async -> UNNotificationSettings { fatalError("not used with handleNotifications: false") }
-    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool { fatalError("not used with handleNotifications: false") }
-    func pendingNotificationRequests() async -> [UNNotificationRequest] { fatalError("not used with handleNotifications: false") }
-    func add(_ request: UNNotificationRequest) async throws { fatalError("not used with handleNotifications: false") }
-    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) { fatalError("not used with handleNotifications: false") }
+/// Accepts and records everything, authorized by default — the coordinator talks to this
+/// instead of the real notification center (which crashes under `swift test`).
+final class RecordingNotificationCenter: NotificationCenterScheduling, @unchecked Sendable {
+    var status: UNAuthorizationStatus = .authorized
+    var added: [UNNotificationRequest] = []
+    func authorizationStatus() async -> UNAuthorizationStatus { status }
+    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool { status == .authorized }
+    func pendingNotificationRequests() async -> [UNNotificationRequest] { added }
+    func add(_ request: UNNotificationRequest) async throws { added.append(request) }
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+        added.removeAll { identifiers.contains($0.identifier) }
+    }
 }
 
 @MainActor
 private func makeTestCoordinator() -> AppSyncCoordinator {
     AppSyncCoordinator(
-        notificationScheduler: NotificationScheduler(center: UnusedNotificationCenter()),
-        newsNotifier: NewsNotifier(center: UnusedNotificationCenter())
+        notificationScheduler: NotificationScheduler(center: RecordingNotificationCenter()),
+        newsNotifier: NewsNotifier(center: RecordingNotificationCenter())
     )
 }
 
 @MainActor
 private func makeInMemoryContext() throws -> ModelContext {
     let schema = Schema([
-        Instance.self, CachedShift.self, CachedNews.self, CachedUser.self,
+        Instance.self, NotificationLeadTimeSettings.self, CachedShift.self, CachedNews.self, CachedUser.self,
         CachedWorklog.self, CachedAngelTypeMembership.self, CachedLocation.self,
     ])
     let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -171,7 +171,6 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     let succeeded = await makeTestCoordinator().syncEverything(
         instances: [instance],
         in: context,
-        handleNotifications: false,
         onProgress: { progressUpdates.append($0) }
     )
 
@@ -206,8 +205,7 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     _ = await makeTestCoordinator().syncEverything(
         instances: [instance],
         in: context,
-        shiftsOnly: true,
-        handleNotifications: false
+        shiftsOnly: true
     )
 
     #expect(instance.shiftsChangedAt > Date.distantPast)
@@ -228,7 +226,6 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
         instances: [instance],
         in: context,
         shiftsOnly: true,
-        handleNotifications: false,
         onProgress: { progressUpdates.append($0) }
     )
 
@@ -248,7 +245,6 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     let succeeded = await makeTestCoordinator().syncEverything(
         instances: [instance],
         in: context,
-        handleNotifications: false,
         onProgress: { progressUpdates.append($0) }
     )
 

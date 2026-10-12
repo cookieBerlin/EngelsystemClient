@@ -10,3 +10,9 @@ public enum SystemCloudKitAccount {
         try await CKContainer(identifier: containerIdentifier).accountStatus()
     }
 }
+
+public extension CloudSyncStatus {
+    static func current(containerIdentifier: String) async -> CloudSyncStatus {
+        await current(containerIdentifier: containerIdentifier, accountStatus: SystemCloudKitAccount.accountStatus(containerIdentifier:))
+    }
+}

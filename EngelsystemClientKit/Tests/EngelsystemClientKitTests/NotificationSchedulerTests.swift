@@ -8,13 +8,7 @@ private final class FakeNotificationCenter: NotificationCenterScheduling, @unche
     var addedRequests: [UNNotificationRequest] = []
     private var pending: [UNNotificationRequest] = []
 
-    func notificationSettings() async -> UNNotificationSettings {
-        // UNNotificationSettings has no public initializer, so tests drive authorization
-        // via `requestAuthorizationIfNeeded`'s return value instead of this method's result
-        // when they need a specific status; callers that only care about scheduling behavior
-        // can ignore it.
-        fatalError("notificationSettings() is not used by the tests in this file")
-    }
+    func authorizationStatus() async -> UNAuthorizationStatus { authorizationStatus }
 
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool {
         authorizationStatus == .authorized

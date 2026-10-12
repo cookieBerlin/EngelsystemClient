@@ -5,14 +5,14 @@ import UserNotifications
 /// `NotificationScheduler` uses, so tests can inject a fake instead of touching
 /// the real system notification center.
 public protocol NotificationCenterScheduling {
-    func notificationSettings() async -> UNNotificationSettings
+    /// Just the status (not `UNNotificationSettings`, which has no public initializer and
+    /// so couldn't be faked in tests).
+    func authorizationStatus() async -> UNAuthorizationStatus
     func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool
     func pendingNotificationRequests() async -> [UNNotificationRequest]
     func add(_ request: UNNotificationRequest) async throws
     func removePendingNotificationRequests(withIdentifiers identifiers: [String])
 }
-
-extension UNUserNotificationCenter: NotificationCenterScheduling {}
 
 /// Schedules local reminders (no server push — the API doesn't support it) before
 /// each upcoming shift starts, generated from the shifts currently in `CachedShift`.
@@ -50,14 +50,21 @@ public struct NotificationScheduler {
     /// and for which of the configured lead times. Kept separate from
     /// `syncNotifications` so it's unit-testable without a notification center at all.
     public static func plan(for shifts: [CachedShift], leadTimes: [Int]) -> [PlannedNotification] {
+        plannedPairs(for: shifts, leadTimes: leadTimes).map(\.item)
+    }
+
+    /// `plan`, but keeping each planned notification paired with its shift, so
+    /// `syncNotifications` never has to look a shift up again by UID.
+    static func plannedPairs(for shifts: [CachedShift], leadTimes: [Int]) -> [(item: PlannedNotification, shift: CachedShift)] {
         CachedShift.upcomingShifts(from: shifts).flatMap { shift in
-            leadTimes.compactMap { minutesBefore -> PlannedNotification? in
+            leadTimes.compactMap { minutesBefore -> (item: PlannedNotification, shift: CachedShift)? in
                 guard let fireDate = shift.notificationDate(minutesBefore: minutesBefore) else { return nil }
-                return PlannedNotification(
+                let item = PlannedNotification(
                     identifier: identifier(for: shift, minutesBefore: minutesBefore),
                     shiftUID: shift.uid,
                     fireDate: fireDate
                 )
+                return (item, shift)
             }
         }
     }
@@ -71,7 +78,8 @@ public struct NotificationScheduler {
 
     private let center: NotificationCenterScheduling
 
-    public init(center: NotificationCenterScheduling = UNUserNotificationCenter.current()) {
+    /// The real-center convenience initializer, `init()`, lives in `SystemNotificationCenter.swift`.
+    public init(center: NotificationCenterScheduling) {
         self.center = center
     }
 
@@ -79,8 +87,7 @@ public struct NotificationScheduler {
     /// notifications are (now) allowed.
     @discardableResult
     public func requestAuthorizationIfNeeded() async -> Bool {
-        let settings = await center.notificationSettings()
-        switch settings.authorizationStatus {
+        switch await center.authorizationStatus() {
         case .authorized, .provisional, .ephemeral:
             return true
         case .notDetermined:
@@ -107,8 +114,8 @@ public struct NotificationScheduler {
     /// simply stops appearing in `plan(...)`, so the existing "cancel what's no
     /// longer planned" logic below prunes it without any extra code.
     public func syncNotifications(for shifts: [CachedShift], leadTimes: [Int]) async {
-        let planned = Self.plan(for: shifts, leadTimes: leadTimes)
-        let plannedIdentifiers = Set(planned.map(\.identifier))
+        let planned = Self.plannedPairs(for: shifts, leadTimes: leadTimes)
+        let plannedIdentifiers = Set(planned.map(\.item.identifier))
 
         let pending = await center.pendingNotificationRequests()
         let staleIdentifiers = pending
@@ -119,9 +126,7 @@ public struct NotificationScheduler {
         }
 
         let alreadyScheduled = Set(pending.map(\.identifier))
-        for item in planned where !alreadyScheduled.contains(item.identifier) {
-            guard let shift = shifts.first(where: { $0.uid == item.shiftUID }) else { continue }
-
+        for (item, shift) in planned where !alreadyScheduled.contains(item.identifier) {
             let content = UNMutableNotificationContent()
             content.title = shift.title
             content.body = Self.body(for: shift)

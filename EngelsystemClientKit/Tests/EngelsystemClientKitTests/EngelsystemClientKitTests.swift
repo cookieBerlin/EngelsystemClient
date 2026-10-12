@@ -478,6 +478,19 @@ import Testing
 
     let updatedThread = try await client.fetchConversation(otherUserID: 2, credential)
     #expect(updatedThread.count == 2)
+    // The latest message is now one the demo user sent, so the "other user" is its receiver.
+    let afterSend = try await client.fetchConversations(credential)
+    #expect(afterSend.first?.otherUser.id == 2)
+
+    // A brand-new conversation with someone who isn't a known demo user: named by id,
+    // sorted first (newest), and an unknown conversation reads as empty.
+    let stranger = try await client.sendMessage(to: 999, text: "Hello stranger", credential)
+    #expect(stranger.receiver.name == "User 999")
+    let twoConversations = try await client.fetchConversations(credential)
+    #expect(twoConversations.map(\.otherUser.id) == [999, 2])
+    #expect(try await client.fetchConversation(otherUserID: 424_242, credential).isEmpty)
+    try await client.deleteMessage(id: stranger.id, credential)
+    #expect(try await client.fetchConversations(credential).count == 1) // emptied conversations disappear
 
     let markedRead = try await client.setMessageRead(id: thread[0].id, read: true, credential)
     #expect(markedRead.read)

@@ -59,7 +59,8 @@ public struct NewsNotifier {
 
     private let center: NotificationCenterScheduling
 
-    public init(center: NotificationCenterScheduling = UNUserNotificationCenter.current()) {
+    /// The real-center convenience initializer, `init()`, lives in `SystemNotificationCenter.swift`.
+    public init(center: NotificationCenterScheduling) {
         self.center = center
     }
 

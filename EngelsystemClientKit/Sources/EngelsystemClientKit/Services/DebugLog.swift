@@ -149,7 +149,7 @@ public final class DebugLog {
             return
         }
         let line = entry.persistedLine + "\n"
-        guard let data = line.data(using: .utf8) else { return }
+        let data = Data(line.utf8)
         if let handle = try? FileHandle(forWritingTo: Self.fileURL) {
             handle.seekToEndOfFile()
             handle.write(data)

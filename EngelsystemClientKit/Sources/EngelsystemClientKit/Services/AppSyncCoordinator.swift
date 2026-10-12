@@ -74,13 +74,9 @@ public struct AppSyncCoordinator {
     /// `completed` always reaches `total` by the end regardless of errors — a caller
     /// driving a progress bar from this doesn't need its own separate "did it finish"
     /// bookkeeping.
-    /// `handleNotifications` exists purely so tests can exercise the sync logic
-    /// without touching `NotificationScheduler.requestAuthorizationIfNeeded()` —
-    /// that method calls the real `UNUserNotificationCenter.notificationSettings()`,
-    /// which returns `UNNotificationSettings`, a type with no public initializer at
-    /// all, so no fake can honestly stand in for it (see the existing, deliberately
-    /// untested boundary in `NotificationSchedulerTests`'s `FakeNotificationCenter`).
-    /// Always `true` in production; only ever passed `false` from tests.
+    /// `handleNotifications: false` skips all notification work (shift reminders and the
+    /// new-news announcement). Always `true` in production; the app targets' view-model
+    /// tests pass `false` so they don't depend on a notification center at all.
     @discardableResult
     public func syncEverything(
         instances: [Instance],
@@ -201,17 +197,15 @@ public struct AppSyncCoordinator {
             }
         }
 
-        if handleNotifications {
-            if allSucceeded, await notificationScheduler.requestAuthorizationIfNeeded() {
-                let leadTimes = NotificationLeadTimeSettings.resolve(in: modelContext).leadTimesMinutes
-                await notificationScheduler.syncNotifications(for: allShifts, leadTimes: leadTimes)
-            }
+        if handleNotifications, allSucceeded, await notificationScheduler.requestAuthorizationIfNeeded() {
+            let leadTimes = NotificationLeadTimeSettings.resolve(in: modelContext).leadTimesMinutes
+            await notificationScheduler.syncNotifications(for: allShifts, leadTimes: leadTimes)
+        }
 
-            if notifyOnNewNews, !newNewsByInstance.isEmpty, await notificationScheduler.requestAuthorizationIfNeeded() {
-                let newItems = newNewsByInstance.map(\.item)
-                let instanceName = newNewsByInstance.count == 1 ? newNewsByInstance.first?.instanceName : nil
-                await newsNotifier.notify(newItems: newItems, instanceName: instanceName)
-            }
+        if handleNotifications, notifyOnNewNews, !newNewsByInstance.isEmpty, await notificationScheduler.requestAuthorizationIfNeeded() {
+            let newItems = newNewsByInstance.map(\.item)
+            let instanceName = newNewsByInstance.count == 1 ? newNewsByInstance.first?.instanceName : nil
+            await newsNotifier.notify(newItems: newItems, instanceName: instanceName)
         }
 
         DebugLog.log("AppSyncCoordinator finished (allSucceeded: \(allSucceeded))", level: allSucceeded ? .info : .warning)

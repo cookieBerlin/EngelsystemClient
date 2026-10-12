@@ -22,7 +22,8 @@ struct KeychainItemStore {
 
     func save(apiKey: String, for reference: String) throws {
         let data = Data(apiKey.utf8)
-        let addQuery = baseQuery(for: reference).merging([kSecValueData as String: data]) { _, new in new }
+        var addQuery = baseQuery(for: reference)
+        addQuery[kSecValueData as String] = data
 
         let status = client.add(addQuery)
         if status == errSecDuplicateItem {
