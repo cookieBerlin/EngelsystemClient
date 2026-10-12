@@ -32,7 +32,7 @@ password; if it ever leaks, reset it on the same page.
 ### The app cannot connect to my server.
 
 Check the server address (including `https://`) and the API key, then use **Test Connection** again. If it still fails, the
-message under the button tells you the reason: a rejected key (wrong or expired), a server that refuses API access ("No API access"), an
+message under the button tells you the reason: a rejected key (wrong or expired), an account the server denies API access (403), an
 unreachable server, or an invalid address.
 
 ### Shifts or Profile are empty, but News works.
@@ -42,6 +42,18 @@ Some older Engelsystem servers do not support the "my own account" shortcut on e
 in the URL of your profile page).
 
 ## Using the app
+
+### Why do I not see comments, locations or messages?
+
+The app only shows what your server offers. News comments, the Locations area and Messages depend on Engelsystem features
+that are partly still open pull requests; see [Server compatibility](guide.md#server-compatibility) for the list and status.
+Nothing is wrong with your account or the app — the area appears automatically after a sync once your server supports it.
+
+### Test Connection warns that the account is “not allowed to use the API (403)”.
+
+The server answered, but denied this account access to its data. Ask the server administrators to add your account to a group
+that has the “api” privilege, for example “API” or “Bureaucrat” (this requirement disappears once the Engelsystem change
+[#1709](https://github.com/engelsystem/engelsystem/pull/1709) is in your server). You can still save the instance and test again later.
 
 ### Why do I not see "Messages"?
 

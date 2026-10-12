@@ -1167,3 +1167,13 @@ See [`architecture.md`](architecture.md) for CloudKit sync of `Instance` metadat
   landscape ×6, Apple Watch Ultra ×1) from Demo Mode — see `app-store.md` ("Screenshots") and ADR 0011. Debug-only launch
   arguments `-seed-demo-instance` (`DemoSeeding`) and `-skipNotificationPrompt YES` (`NotificationScheduler`); UI test class
   `ScreenshotTests`.
+
+### Compatibility with servers lacking open Engelsystem PRs (2026-10-12, temporary)
+
+Details and the full register: [`architecture.md`](architecture.md#compatibility-workarounds-temporary), ADR 0013.
+- News decode without `comments_count`; comments (link, screen) appear only on servers that support them.
+- The Locations area is hidden when no active instance lets the account read locations; shift locations then stay plain text;
+  a missing `GET /locations/{id}` is a silent no-op.
+- "Test Connection" probes a data endpoint and shows an orange warning on 403 (privilege/group wording, saving still allowed).
+- Shift reminders are planned whenever the shift syncs succeeded (permanent change, independent of News/Profile failures).
+

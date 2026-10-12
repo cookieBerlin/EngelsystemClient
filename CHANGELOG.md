@@ -6,6 +6,12 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Works with Engelsystem servers that lack some newer API features: news without comment counts still load, news comments and
+  the Locations area are hidden when a server does not provide them, and shift reminders no longer depend on News or Profile
+  syncing successfully.
+- "Test Connection" now also checks a real data request and warns when the account is not allowed to use the API (403).
+
 ## [0.1.0] - 2026-10-12
 
 First TestFlight build (version 0.1.0, build 2).

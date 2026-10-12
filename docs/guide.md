@@ -111,6 +111,23 @@ Your instances are shared between iPhone and Watch through iCloud.
 To add the **complication**: on the Watch, touch and hold the watch face, tap **Edit**, choose a complication slot and pick
 **Next Shift** (circular, rectangular and inline styles are available).
 
+## Server compatibility
+
+The app uses Engelsystem's REST API **v0-beta**. A few things it can show need changes in Engelsystem that are still **open
+pull requests** at [engelsystem/engelsystem](https://github.com/engelsystem/engelsystem/pulls) (status 2026-10-12). Until they
+are merged **and** your event runs a server version that includes them, the app keeps working and simply hides what is missing:
+
+| Pull request | Status | Without it |
+|---|---|---|
+| [#1709](https://github.com/engelsystem/engelsystem/pull/1709) — own data and news without the API privilege | open | Every request needs an account in a group with the server's `api` privilege (for example “API” or “Bureaucrat”). Otherwise **Test Connection** warns that the account is not allowed to use the API (403) and no data loads. |
+| [#1710](https://github.com/engelsystem/engelsystem/pull/1710) — news comments | open | No comments and no comment counts in **News**. |
+| [#1711](https://github.com/engelsystem/engelsystem/pull/1711) — single location, locations without the API privilege | open | **Locations** may be missing entirely (when only the API group may read them) and a single location cannot be refreshed. |
+| Private messages (a messages API) | not part of Engelsystem yet | **Messages** only appears on servers that offer it. |
+{: .table}
+
+Already merged and nothing to worry about: [#1708](https://github.com/engelsystem/engelsystem/pull/1708) (work logs for “my
+own account”) and [#1712](https://github.com/engelsystem/engelsystem/pull/1712) (API tests).
+
 ## Good to know
 
 - **Reminders** are scheduled from the last sync, so open the app (or pull to refresh) after a schedule change.

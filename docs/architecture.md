@@ -208,6 +208,27 @@ deliberately treats it differently from every read-only feature above**:
   minimal scope.
 
 
+## Compatibility workarounds (temporary)
+
+Register of everything that exists only because Engelsystem pull requests are not merged yet (decision: ADR 0013, planned
+2026-10-12, built by backlog K-01 – K-06). Every spot is tagged `COMPAT(#<PR>)` — `git grep "COMPAT("` lists them all. The
+removal tasks R-02 (#1709), R-03 (#1710), R-04 (#1711) and R-05 (final cleanup) delete them once the PRs are merged, after
+which a missing endpoint or a 403 is a real error again. The app **hides what a server lacks** instead of showing errors.
+
+| PR | What the workaround does | Where |
+|---|---|---|
+| #1710 (news comments) | `comments_count` optional in our `openapi.yml`; missing value cached as 0 | `openapi.yml`, `CachedNews` |
+| #1710 | comments supported ⇔ `/news` items carry `comments_count`; recorded per instance | `NewsSyncService`, `ServerCapabilities.newsCommentsSupported` |
+| #1710 | "N Comments" link only on supported servers; 404/403 from `GET /news/{id}` hides the comments section silently | `NewsDetailViewModel`, `NewsView`, `NewsDetailView` |
+| #1711 (locations) | `GET /locations` forbidden ⇒ Locations hidden for that instance (no error); `GET /locations/{id}` 404/403 ⇒ silent no-op | `LocationSyncService`, `LocationDetailViewModel` |
+| #1711 | Locations sidebar row needs one active instance that can list locations; shift location is plain text otherwise | `MainView.Section.visibleSidebarCases`, `ShiftRow` |
+| #1709 (no `api` privilege for own data) | "Test Connection" probes `GET /users/self`; a 403 shows a neutral warning (privilege + groups, no PR mention) and still allows Save | `APIClient.accessDeniedWarning`, `APIError.missingPrivilegeMessage`, the four connection-test view models and views |
+| all | device-local `ServerCapabilities` store (`UserDefaults`, `@Observable`), unknown ⇒ available | `ServerCapabilities` (deleted by R-05) |
+
+Not part of this register: the Messages capability probe (`Instance.messagesSupported`, ADR 0006) — the messages API is not part
+of these PRs — and K-06, which stays: shift reminders are planned whenever the *shift* syncs succeeded, independent of News,
+Profile, Locations or Messages failing.
+
 ## Demo mode (for testing without a real server)
 
 - **Purpose:** let the app (and reviewers/testers without an Engelsystem
@@ -643,7 +664,7 @@ separately controllable triggers:
   shared sync logic behind both app-start and background/interval sync —
   loops every active instance, resolves a credential, syncs Shifts (+
   shift notifications, same rule as `ShiftsViewModel`: only rescheduled
-  when every instance synced cleanly), and — unless `shiftsOnly` (the
+  when every instance's *shift* sync succeeded — News/Profile/Locations/Messages failures don't matter), and — unless `shiftsOnly` (the
   Watch's app-start sync, which has no News/Profile catalog to sync at
   all) — News and Profile too. Reports one `Progress` update per
   completed unit of work (including failed ones, so `completed` always

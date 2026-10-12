@@ -7,9 +7,9 @@ item moves here once it's broken down enough that someone could
 actually start on it; it's removed (not just checked off) once it's
 done and reflected in [`features.md`](features.md).
 
-## Compatibility with servers lacking the open Engelsystem PRs (see ROADMAP.md)
+## Removing the compatibility workarounds (see ROADMAP.md, ADR 0013)
 
-Each item is its own commit; all gates, both app builds and the UI tests must stay green; tests for everything new.
+The workarounds K-01 – K-08 are implemented and registered in `docs/architecture.md` ("Compatibility workarounds (temporary)"). Each removal task is its own commit; all gates, both app builds and the UI tests must stay green.
 
 **These workarounds are temporary.** Every code path, comment and test that exists only because a PR is not merged is
 tagged `COMPAT(#<PR>)` (greppable), lives in clearly separated code/test files where possible, and is listed in the
@@ -17,20 +17,7 @@ tagged `COMPAT(#<PR>)` (greppable), lives in clearly separated code/test files w
 and R-04 (#1711)** each remove one PR's workarounds as soon as that PR is merged, so that in the end nothing is optional: a
 missing comments/locations endpoint or a 403 is a real error again. **R-01** (the user-ID / `self` workaround, #1708) is not
 blocked — #1708 is merged and servers without it are not supported — and should be done **first**.
-Permanent improvements (not tagged): K-06 (reminders independent of News).
 
-- [ ] **K-07** Docs and verification: ADR 0013 (states that the workarounds are temporary and when they go), the "Compatibility workarounds (temporary)" register in `docs/architecture.md` (one row per `COMPAT(#<PR>)` tag: what, where, which PR, how to remove), `docs/architecture.md` ("Compatibility with older servers"), `docs/features.md`,
-      FAQ ("Why do I not see comments or locations?" — the app hides what a server does not offer), `CHANGELOG.md`; run
-      `Scripts/check-all-coverage.sh`, build iOS/Watch (Debug and Release) and the UI tests (erased simulator).
-
-- [ ] **K-08** Website: add a "Server compatibility" section to `docs/guide.md` (short pointer in `docs/faq.md` and, if useful, on
-      the landing page) that says which Engelsystem pull requests the app relies on, their status, and what is unavailable
-      without them: [#1709](https://github.com/engelsystem/engelsystem/pull/1709) (open) — without it the account needs the
-      server's API privilege/group for every request, otherwise "No API access"; [#1710](https://github.com/engelsystem/engelsystem/pull/1710)
-      (open) — without it no news comments and no comment counts; [#1711](https://github.com/engelsystem/engelsystem/pull/1711)
-      (open) — without it no per-location refresh (cached location details stay visible); private messages — need a server
-      with the messages API (not part of Engelsystem yet). Already merged and therefore not listed as a gap: #1708 (`self` in
-      worklogs), #1712. The app hides every feature a server lacks (K-01 – K-04). Keep the statuses current.
 - [ ] **R-01** (not blocked
 - [ ]  — do first) **Remove the user-ID / `self` workaround** (Engelsystem PR #1708, merged; servers without it
       are not supported, owner decision 2026-10-12; no CloudKit schema backward compatibility is needed either): drop
