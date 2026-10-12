@@ -15,4 +15,8 @@ exclude:
   - history.md
   - roadmap.md
   - backlog.md
+  - requirements.md
+  - testing.md
+  - security.md
+  - release.md
   - adr
