@@ -49,3 +49,4 @@ point at it, so the history of *why things changed* stays readable.
 ## Index
 
 - [0001](0001-github-pages-over-wiki-for-legal-pages.md) — GitHub Pages (not a Wiki) for the Privacy Policy/Support pages
+- [0002](0002-adopt-structured-documentation-layout.md) — Adopt a structured documentation layout and working rules
