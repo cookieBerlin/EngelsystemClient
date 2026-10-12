@@ -8,6 +8,28 @@ import SwiftData
 public enum DemoSeeding {
     public static let launchArgument = "-seed-demo-instance"
 
+    /// Debug-only: deletes every instance on launch, so UI tests always start at the "no instance
+    /// configured" setup screen instead of depending on the simulator's earlier state.
+    public static let resetArgument = "-reset-instances"
+
+    public static func shouldReset(arguments: [String]) -> Bool {
+        #if DEBUG
+        arguments.contains(resetArgument)
+        #else
+        false
+        #endif
+    }
+
+    /// Deletes all instances when `shouldReset` says so. Returns whether it ran.
+    @MainActor
+    @discardableResult
+    public static func resetIfRequested(arguments: [String], in modelContext: ModelContext) -> Bool {
+        guard shouldReset(arguments: arguments) else { return false }
+        try? modelContext.delete(model: Instance.self)
+        try? modelContext.save()
+        return true
+    }
+
     /// Debug-only: the Watch app opens its Settings screen on launch, for the Watch settings screenshot.
     public static let openSettingsArgument = "-open-settings"
 
@@ -33,6 +55,7 @@ public enum DemoSeeding {
     @MainActor
     @discardableResult
     public static func seedIfRequested(arguments: [String], in modelContext: ModelContext, store: APIKeyStore) async -> Bool {
+        resetIfRequested(arguments: arguments, in: modelContext)
         // A failed count is treated as 0 (compactMap drops the nil) — written without `?? 0`
         // so there is no never-taken autoclosure region to cover.
         let existing = [try? modelContext.fetchCount(FetchDescriptor<Instance>())].compactMap { $0 }.reduce(0, +)

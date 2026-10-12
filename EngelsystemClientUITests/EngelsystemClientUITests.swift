@@ -22,6 +22,11 @@ final class EngelsystemClientUITests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
+    /// Debug-only `-reset-instances` deletes saved instances; the UserDefaults argument overrides the remembered
+    /// last-selected section with an unrecognized value so the app lands on the main list, whatever an earlier
+    /// test opened last.
+    private static let freshStartArguments = ["-reset-instances", "-mainViewLastSelectedSection", "none"]
+
     @MainActor
     func testExample() throws {
         // UI tests must launch the application that they test.
@@ -36,6 +41,7 @@ final class EngelsystemClientUITests: XCTestCase {
     @MainActor
     func testDemoModeNavigationFlow() throws {
         let app = XCUIApplication()
+        app.launchArguments += Self.freshStartArguments
         app.launch()
 
         // LaunchScreenView (icon/app name/version) shows for a fixed, short duration
@@ -246,6 +252,7 @@ final class EngelsystemClientUITests: XCTestCase {
             }
             return false
         }
+        app.launchArguments += Self.freshStartArguments
         app.launch()
 
         let demoButton = app.buttons["Try Demo Mode"]
@@ -317,6 +324,7 @@ final class EngelsystemClientUITests: XCTestCase {
             return false
         }
 
+        app.launchArguments += Self.freshStartArguments
         app.launch()
 
         let demoButton = app.buttons["Try Demo Mode"]
@@ -379,6 +387,7 @@ final class EngelsystemClientUITests: XCTestCase {
             return false
         }
 
+        app.launchArguments += Self.freshStartArguments
         app.launch()
 
         let demoButton = app.buttons["Try Demo Mode"]
@@ -440,6 +449,7 @@ final class EngelsystemClientUITests: XCTestCase {
     @MainActor
     func testPullToRefreshOnMainPageDoesNotBreakNavigation() throws {
         let app = XCUIApplication()
+        app.launchArguments += Self.freshStartArguments
         app.launch()
 
         let demoButton = app.buttons["Try Demo Mode"]

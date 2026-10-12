@@ -67,4 +67,26 @@ struct DemoSeedingTests {
         #expect(await DemoSeeding.seedIfRequested(arguments: flag, in: context, store: store) == false)
         #expect(try context.fetch(FetchDescriptor<Instance>()).isEmpty)
     }
+
+    @Test func resetDeletesAllInstancesOnlyWhenAsked() async throws {
+        let context = try makeContext()
+        context.insert(Instance(name: "Existing", baseURL: "https://x.test", apiKeyKeychainRef: "r"))
+        try context.save()
+        #expect(!DemoSeeding.resetIfRequested(arguments: [], in: context))
+        #expect(try context.fetch(FetchDescriptor<Instance>()).count == 1)
+
+        #expect(DemoSeeding.shouldReset(arguments: [DemoSeeding.resetArgument]))
+        #expect(DemoSeeding.resetIfRequested(arguments: [DemoSeeding.resetArgument], in: context))
+        #expect(try context.fetch(FetchDescriptor<Instance>()).isEmpty)
+    }
+
+    @Test func resetRunsBeforeSeeding() async throws {
+        let context = try makeContext()
+        context.insert(Instance(name: "Old", baseURL: "https://x.test", apiKeyKeychainRef: "r"))
+        try context.save()
+        #expect(await DemoSeeding.seedIfRequested(arguments: [DemoSeeding.resetArgument, DemoSeeding.launchArgument], in: context, store: MemoryStore()))
+        let instances = try context.fetch(FetchDescriptor<Instance>())
+        #expect(instances.count == 1)
+        #expect(instances[0].name == "Demo")
+    }
 }

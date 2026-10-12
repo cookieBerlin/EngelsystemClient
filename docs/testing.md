@@ -72,6 +72,11 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   in the dev environment) or `simctl` (no tap/touch support). Run with
   `xcodebuild test -scheme EngelsystemClient -destination 'platform=iOS
   Simulator,name=<device>' -only-testing:EngelsystemClientUITests/<Class>/<method>`.
+- **Fresh start is automatic since 2026-10-12:** every UI test that expects the "no instance configured yet" first
+  launch passes the Debug-only launch argument `-reset-instances` (`DemoSeeding.resetIfRequested`, a no-op in Release),
+  which deletes all saved instances on launch (plus `-mainViewLastSelectedSection none` to forget the last-opened section) — so the whole `EngelsystemClientUITests` class can run in one
+  `xcodebuild test` invocation without erasing the simulator in between. The paragraph below describes the old failure
+  mode; new UI tests that need a fresh start must pass the argument too.
 - **`testDemoModeNavigationFlow` (and any test that assumes a fresh
   "no instance configured yet" first launch) fails at its very first
   assertion — `"Try Demo Mode"` button not found — if the target

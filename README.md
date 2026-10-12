@@ -5,6 +5,12 @@ the volunteer-management system used by events like the Chaos Communication
 Congress. It talks to the official REST API of your Engelsystem instance —
 no server-side changes required.
 
+**Website:** <https://cookieberlin.github.io/EngelsystemClient/> — the
+[user guide](https://cookieberlin.github.io/EngelsystemClient/guide), the
+[FAQ](https://cookieberlin.github.io/EngelsystemClient/faq),
+[support](https://cookieberlin.github.io/EngelsystemClient/support) and the
+[privacy policy](https://cookieberlin.github.io/EngelsystemClient/privacy), plus the link to join the beta on TestFlight.
+
 ## Features
 
 - View your own shifts, grouped by day
