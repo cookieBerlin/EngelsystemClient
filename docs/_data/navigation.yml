@@ -1,0 +1,14 @@
+# Main navigation (docs/_layouts/default.html). `url` is relative to the site root; `external: true` opens another site.
+- title: Home
+  url: /
+- title: User Guide
+  url: /guide
+- title: FAQ
+  url: /faq
+- title: Support
+  url: /support
+- title: Privacy
+  url: /privacy
+- title: GitHub
+  url: https://github.com/cookieBerlin/EngelsystemClient
+  external: true

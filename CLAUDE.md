@@ -50,6 +50,7 @@ Keep **all** of these current as work lands:
 | `docs/app-store.md` | Identifiers, entitlements, privacy, export compliance |
 | `docs/release.md` | TestFlight/App Store release checklist |
 | `docs/privacy.md`, `docs/support.md` | Published legal pages — keep in sync with real data handling |
+| `docs/_layouts/`, `docs/_data/`, `docs/assets/` | The Pages site's own Bootstrap layout, navigation and self-hosted assets (ADR 0012) — nothing may be loaded from third-party servers |
 | `docs/guide.md`, `docs/faq.md` | Published user guide and FAQ (with images in `docs/assets/guide/`, refreshed by `Scripts/publish-guide-images.sh`) — keep in sync with user-visible behavior |
 | `docs/history.md` | Closed investigations and lessons learned |
 | `docs/roadmap.md` | Forward-looking planning and open decisions |

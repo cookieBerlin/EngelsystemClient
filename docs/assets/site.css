@@ -1,0 +1,30 @@
+/* Engelsystem Client site: small additions to Bootstrap 5.3. */
+.brand-icon { width: 1.6rem; height: 1.6rem; border-radius: .4rem; margin-right: .5rem; vertical-align: -.35rem; }
+
+/* Screenshots get a visible frame in both modes (a white app screen on a white page, or the black Watch screen on a
+   dark page, would otherwise have no edge). */
+main img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 1rem;
+  box-shadow: 0 .25rem 1rem rgba(0, 0, 0, .12);
+}
+[data-bs-theme="dark"] main img { border-color: var(--bs-secondary-color); box-shadow: 0 .25rem 1rem rgba(0, 0, 0, .5); }
+
+.shots img { max-height: 420px; width: auto; margin: 0 .25rem 1rem; }
+.shots img.watch { max-height: 300px; }
+
+/* Markdown pages: comfortable reading column and tables. */
+main h1 { margin-bottom: 1.25rem; }
+main h2 { margin-top: 2rem; }
+main h3 { margin-top: 1.5rem; }
+main table { width: 100%; margin-bottom: 1rem; }
+main table th, main table td { padding: .4rem .6rem; border-bottom: 1px solid var(--bs-border-color); }
+main blockquote {
+  padding: .75rem 1rem;
+  border-left: .25rem solid var(--bs-primary);
+  background: var(--bs-tertiary-bg);
+  border-radius: .25rem;
+}
+main pre, main code { font-size: .9em; }

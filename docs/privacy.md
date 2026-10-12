@@ -83,6 +83,13 @@ How that server's operator handles your data is governed by their own
 policies, not this one; if you have questions about a specific event's
 server, contact that event's organizers.
 
+## This website
+
+These pages are static and served by GitHub Pages. They use no cookies, no analytics and no external resources — all files
+(including the stylesheet and scripts) come from this site itself. If you switch between light and dark mode, your choice is
+stored only in your own browser (local storage) and is never sent anywhere. As the hosting provider, GitHub may process
+technical data such as your IP address when you visit; see GitHub's privacy statement.
+
 ## Children's privacy
 
 The app is not directed at children and does not knowingly collect

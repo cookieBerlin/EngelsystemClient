@@ -7,7 +7,7 @@ item moves here once it's broken down enough that someone could
 actually start on it; it's removed (not just checked off) once it's
 done and reflected in [`features.md`](features.md).
 
-- [ ] **G-01** (owner) Add the public TestFlight link to the Beta note at the top of `docs/guide.md` (and the FAQ if useful) once it exists.
+- [ ] **G-01** (owner) Add the public TestFlight link: in `docs/guide.md` (Beta note) and on the landing page `docs/index.html` (the disabled "coming soon" button — remove `disabled` and set the `href`).
 
 _(No other open tasks. TestFlight: build 0.1.0 (2) is in internal testing and submitted for
 Beta App Review as of 2026-10-12; if Apple rejects it, the owner reports the reason here.)_

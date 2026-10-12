@@ -1,6 +1,6 @@
 # 0001. GitHub Pages (not a Wiki) for the Privacy Policy/Support pages Apple requires
 
-- **Status**: Accepted
+- **Status**: Accepted (the `jekyll-theme-minimal` choice was superseded by [ADR 0012](0012-own-bootstrap-layout-for-the-pages-site.md))
 - **Date**: 2026-10-09
 
 ## Context

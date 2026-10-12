@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if page.url != "/" %}{{ page.title }} · {% endif %}{{ site.title }}</title>
+  <meta name="description" content="{{ site.description }}">
+  <link rel="icon" type="image/png" href="{{ '/assets/icon.png' | relative_url }}">
+  <link href="{{ '/assets/bootstrap.min.css' | relative_url }}" rel="stylesheet">
+  <link href="{{ '/assets/site.css' | relative_url }}" rel="stylesheet">
+  <script>
+    // Set the theme before the page paints (no flash): the visitor's saved choice, else the system setting.
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem('theme'); } catch (e) {}
+      var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="{{ '/' | relative_url }}">
+        <img class="brand-icon" src="{{ '/assets/icon.png' | relative_url }}" alt="">{{ site.title }}
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"
+              aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="nav">
+        <span class="me-auto"></span>
+        <ul class="navbar-nav mb-2 mb-lg-0 align-items-lg-center">
+          {% for item in site.data.navigation %}
+          <li class="nav-item">
+            {% if item.external %}
+            <a class="nav-link" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+            {% else %}
+            {% assign html_url = item.url | append: '.html' %}
+            {% assign is_current = false %}
+            {% if page.url == item.url or page.url == html_url %}{% assign is_current = true %}{% endif %}
+            <a class="nav-link{% if is_current %} active{% endif %}" href="{{ item.url | relative_url }}"{% if is_current %} aria-current="page"{% endif %}>{{ item.title }}</a>
+            {% endif %}
+          </li>
+          {% endfor %}
+          <li class="nav-item ms-lg-2">
+            <button id="theme-toggle" type="button" class="btn btn-sm btn-outline-light" aria-label="Switch between light and dark mode">
+              <span id="theme-toggle-label">Dark</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="col-lg-8 mx-auto p-3 py-md-5">
+    <main>
+      {{ content }}
+    </main>
+    <footer class="text-body-secondary pt-4 mt-5 border-top">
+      {{ site.title }} is an unofficial app and not affiliated with the Engelsystem project.
+      <a href="https://github.com/cookieBerlin/EngelsystemClient" target="_blank" rel="noopener noreferrer">Source code</a> (GPL-2.0)
+      &middot; <a href="{{ '/privacy' | relative_url }}">Privacy</a>
+      &middot; <a href="{{ '/support' | relative_url }}">Support</a>
+    </footer>
+  </div>
+
+  <script src="{{ '/assets/bootstrap.bundle.min.js' | relative_url }}"></script>
+  <script src="{{ '/assets/site.js' | relative_url }}"></script>
+</body>
+</html>

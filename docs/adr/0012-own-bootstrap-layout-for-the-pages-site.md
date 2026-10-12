@@ -1,0 +1,34 @@
+# 0012. Own self-hosted Bootstrap 5 layout for the GitHub Pages site
+
+- **Status**: Accepted
+- **Date**: 2026-10-12
+
+## Context
+
+The Pages site (privacy, support, and since 2026-10-12 a user guide and FAQ) used the built-in `jekyll-theme-minimal`.
+The owner wanted a more inviting look in the spirit of engelsystem.de — which is plain Bootstrap 5 (dark navbar, centered
+content column, blue buttons) — plus a manual light/dark switch and framed screenshots. GitHub Pages' built-in themes are not
+Bootstrap, and a remote theme would add an external dependency. The owner also requires that **all files are kept locally in
+the repository** for privacy: the site must not load anything from third-party servers.
+
+## Decision
+
+- A **custom Jekyll layout** (`docs/_layouts/default.html`) with Bootstrap 5.3.3, no theme and no remote theme; every page uses
+  it via `defaults` in `_config.yml`. The navigation lives in `docs/_data/navigation.yml`.
+- **Everything is self-hosted in the repo** under `docs/assets/`: `bootstrap.min.css`, `bootstrap.bundle.min.js` (MIT, license
+  file next to them), the app icon, the guide screenshots, `site.css` and `site.js`. Fonts are the system font stack. No CDN,
+  no web fonts, no analytics.
+- **Light/dark**: follows the system setting; a **toggle button** in the navbar switches it and stores the choice in the
+  visitor's `localStorage` only. A small inline script sets the theme before first paint to avoid a flash.
+- **External links open in a new window** (`target="_blank" rel="noopener noreferrer"`): set in the layout/landing page and by
+  `site.js` for every external link in the Markdown pages.
+- **Screenshots** get a border (and a shadow) in both modes, because a white app screen on a white page — or the black Watch
+  screen on a dark page — has no visible edge.
+- The look is inspired by, not copied from, engelsystem.de: own name and app icon, an "unofficial app" footer.
+
+## Consequences
+
+- One layout to maintain; new pages only need Markdown. Bootstrap updates are a manual file replacement.
+- The site makes no third-party requests, so the privacy policy can state that (see its "Website" section).
+- Jekyll cannot be run locally here; the layout was checked with a Liquid/Markdown emulation and then on the live site.
+- Supersedes the theme choice in [ADR 0001](0001-github-pages-over-wiki-for-legal-pages.md) (the Pages-over-Wiki decision stands).

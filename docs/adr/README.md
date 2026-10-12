@@ -40,3 +40,4 @@ point at it, so the history of *why things changed* stays readable.
 | [0009](0009-full-line-coverage-gate.md) | 100 % line coverage gate for non-excluded code | Accepted |
 | [0010](0010-swiftui-views-excluded-logic-extracted.md) | SwiftUI view bodies are excluded from the coverage gate; their logic is extracted and tested | Accepted |
 | [0011](0011-native-tooling-for-app-store-screenshots.md) | Native tooling and Debug-only launch arguments for App Store screenshots | Accepted |
+| [0012](0012-own-bootstrap-layout-for-the-pages-site.md) | Own self-hosted Bootstrap 5 layout for the GitHub Pages site | Accepted |
