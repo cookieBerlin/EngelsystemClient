@@ -27,9 +27,9 @@ Congress.
 More in the [FAQ](faq.md).
 
 **The app can't connect to my Engelsystem server.**
-Double-check the server URL and your API key (found in your
-Engelsystem account settings on that server). Your account needs the
-`API` or `Bureaucrat` group on that server for the app to use its API.
+Double-check the server URL and your API key (on your Engelsystem
+server open `/settings/api` and press "Show API key"). The app uses
+the Engelsystem REST API v0-beta.
 
 **Shifts/Profile show empty, but News works.**
 Some older Engelsystem servers don't support the `self` shortcut for

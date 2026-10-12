@@ -30,9 +30,9 @@ network requests. You can leave Demo Mode on, or switch it off and add a real se
 
 ## Connect your Engelsystem server
 
-1. In a browser, open your event's Engelsystem website, sign in and open your **user settings**. Copy your **API key**
-   (the exact wording depends on the server's version). Your account needs the **API** or **Bureaucrat** group on that
-   server; if you do not see an API key, ask the Engelsystem administrators.
+1. In a browser, sign in on your event's Engelsystem website and open `/settings/api` (for example
+   `https://engel.example.org/settings/api`). Press **Show API key** and copy the key. The app currently uses Engelsystem's
+   REST API **v0-beta**.
 2. In the app, on the first screen (or **Settings → Add Instance**), enter a **Name** (anything you like), the **Server**
    address (for example `https://engel.example.org`) and your **API key**.
 3. Tap **Test Connection**. When it says the connection is verified, tap **Save**.

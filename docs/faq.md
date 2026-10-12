@@ -17,16 +17,22 @@ keeps it up to date. You can send feedback with screenshots from inside TestFlig
 
 Yes. Tap **Try Demo Mode** on the first screen. It uses built-in sample data and needs no server and no API key.
 
+### Which Engelsystem API does the app use?
+
+The app uses Engelsystem's REST API **v0-beta** (`/api/v0-beta` on your server). That API is still marked as beta by the
+Engelsystem project, so details can change with the server's version — newer servers may offer more (for example private
+messages), and the app adapts: areas a server does not support are simply not shown.
+
 ### Where do I find my API key?
 
-On your event's Engelsystem website, open your user settings while signed in. The API key is shown there (the exact label
-depends on the server's version). Your account also needs the **API** or **Bureaucrat** group on that server; if the key is
-missing, ask the event's Engelsystem administrators.
+Sign in on your event's Engelsystem website and open the page `/settings/api` (for example
+`https://engel.example.org/settings/api`). Press the **Show API key** button and copy the key into the app. Treat it like a
+password; if it ever leaks, reset it on the same page.
 
 ### The app cannot connect to my server.
 
 Check the server address (including `https://`) and the API key, then use **Test Connection** again. If it still fails, the
-message under the button tells you the reason: a rejected key (wrong or expired), a missing group ("No API access"), an
+message under the button tells you the reason: a rejected key (wrong or expired), a server that refuses API access ("No API access"), an
 unreachable server, or an invalid address.
 
 ### Shifts or Profile are empty, but News works.
