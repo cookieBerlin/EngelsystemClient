@@ -92,9 +92,13 @@ Design (details in the backlog, items K-01 – K-07):
   instance can list locations; a shift's location is plain text when there is no cached location; the location detail
   screen just shows what is cached (no refresh error).
 - **Connection check**: "Test Connection" also probes a real data endpoint; a 403 is reported as a warning "the server denied
-  access (403)" in neutral wording (no group names) — Save stays possible (owner decision) — instead of "Connection verified".
+  access (403)" in neutral wording (no group names) — Save stays possible (owner decision) — instead of "Connection verified"; the text says the account lacks the `api` privilege and must be added to one of the groups that have it (e.g. "API" or "Bureaucrat").
 - **Reminders independent of News**: shift reminders are planned whenever the *shift* sync succeeded, regardless of News,
   Profile or Locations failing.
+- **Temporary by design**: every workaround is tagged `COMPAT(#<PR>)`, listed in a register in `docs/architecture.md` and
+  removed again by backlog task R-01 once the PRs are closed — afterwards a missing endpoint or a 403 is a real error
+  again and the app may assume the servers support everything. The 403 warning names the missing privilege and says the
+  account must be added to one of the groups that have it (e.g. "API" or "Bureaucrat"); it never mentions pull requests.
 - **Website**: a "Server compatibility" section lists the open PRs (#1709, #1710, #1711), their status and what is unavailable without them (K-08); it is removed or rewritten once they are merged.
 - Decision record: ADR 0013 (device-local capabilities, optional fields).
 
