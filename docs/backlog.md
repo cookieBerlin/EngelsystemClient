@@ -19,8 +19,6 @@ done and reflected in [`features.md`](features.md).
 Each item is its own commit; update all cross-references (incl.
 `docs/_config.yml` excludes and the memory notes) in the same commit.
 
-- [ ] **D-04** Create `docs/requirements.md` from `CLAUDE.md`'s scope
-      sections (Phase 1 / Phase 2 rules).
 - [ ] **D-05** Create `docs/testing.md` from `CLAUDE.md`'s Testing
       section.
 - [ ] **D-06** Rename `ENTITLEMENTS.md` → `docs/app-store.md`; add
