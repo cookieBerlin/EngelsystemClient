@@ -32,6 +32,11 @@ public enum APIError: Error, Equatable {
 }
 
 public extension APIError {
+    /// COMPAT(#1709): shown for a 403 — without that PR every API request needs the server's
+    /// `api` privilege. Never mentions pull requests; removed/reworded by backlog R-02.
+    static let missingPrivilegeMessage =
+        "This account is not allowed to use the API on this server (403). Ask the server administrators to add it to a group that has the “api” privilege, for example “API” or “Bureaucrat”."
+
     /// User-facing English message for this error, shared by every feature that
     /// surfaces `APIError` to the UI (Instance Setup, Shifts, News, Profile).
     var userMessage: String {
@@ -39,7 +44,7 @@ public extension APIError {
         case .unauthorized:
             return "API key is invalid or has expired."
         case .forbidden:
-            return "No API access — the user needs the “API” or “Bureaucrat” group on this instance."
+            return Self.missingPrivilegeMessage
         case .notFound:
             return "This resource could not be found (404)."
         case .invalidBaseURL:

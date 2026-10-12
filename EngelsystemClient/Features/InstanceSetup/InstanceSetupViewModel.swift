@@ -20,6 +20,9 @@ final class InstanceSetupViewModel {
 
     var isTesting = false
     var errorMessage: String?
+    /// COMPAT(#1709): set by `testConnection` when the server denies this account API access (403).
+    /// A warning only — saving stays possible.
+    var accessWarning: String?
 
     /// Set once `testConnection()` succeeds against the currently entered
     /// server/key; reset by `invalidateTest()` whenever `baseURL`/`apiKey` change, so
@@ -63,6 +66,7 @@ final class InstanceSetupViewModel {
     /// is pressed.
     func testConnection() async {
         errorMessage = nil
+        accessWarning = nil
         isTesting = true
         defer { isTesting = false }
 
@@ -76,6 +80,7 @@ final class InstanceSetupViewModel {
             if selfReferenceWorks {
                 userIDText = ""
             }
+            accessWarning = await apiClient.accessDeniedWarning(credential)
             connectionTested = true
         } catch {
             connectionTested = false

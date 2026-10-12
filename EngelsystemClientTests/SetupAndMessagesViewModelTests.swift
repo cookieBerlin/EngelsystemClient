@@ -91,6 +91,24 @@ extension StubbedNetworkTests {
             #expect(viewModel.errorMessage != nil)
         }
 
+        /// COMPAT(#1709): a 403 on the data probe is a warning; the connection still counts as tested.
+        @Test @MainActor func aDeniedDataProbeWarnsButStillAllowsSaving() async throws {
+            try StubURLProtocol.routeDemoInfo("GET /api/v0-beta/info")
+            StubURLProtocol.route("GET /api/v0-beta/users/self", status: 403)
+            let viewModel = InstanceSetupViewModel()
+            viewModel.name = "Server"
+            viewModel.baseURL = "https://stub.test"
+            viewModel.apiKey = "k"
+            await viewModel.testConnection()
+            #expect(viewModel.connectionTested)
+            #expect(viewModel.canSubmit)
+            #expect(viewModel.accessWarning == APIError.missingPrivilegeMessage)
+
+            try StubURLProtocol.routeDemoOwnProfile("GET /api/v0-beta/users/self")
+            await viewModel.testConnection()
+            #expect(viewModel.accessWarning == nil)
+        }
+
         @Test @MainActor func editingCanTestOnlyWithAServerURLAndNotWhileTesting() {
             let instance = Instance(name: "I", baseURL: "https://stub.test", apiKeyKeychainRef: "r")
             let viewModel = EditInstanceViewModel(instance: instance)

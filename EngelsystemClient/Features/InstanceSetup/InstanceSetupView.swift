@@ -64,6 +64,14 @@ struct InstanceSetupView: View {
                     }
                 }
 
+                // COMPAT(#1709): the server answered 403 to a data request — warn, but allow saving.
+                if viewModel.connectionTested, let accessWarning = viewModel.accessWarning {
+                    Section {
+                        Label(accessWarning, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+
                 if let errorMessage = viewModel.errorMessage {
                     Section {
                         Text(errorMessage)

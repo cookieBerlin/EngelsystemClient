@@ -36,6 +36,11 @@ public final class StubURLProtocol: URLProtocol, @unchecked Sendable {
         route(key, status: status, body: Data("{\"data\":".utf8) + encoded + Data("}".utf8))
     }
 
+    /// Routes `key` to the demo event info / the demo user's own profile, so app test targets
+    /// (which cannot see the internal `DemoData`) can stub a *valid* `/info` or `/users/self`.
+    public static func routeDemoInfo(_ key: String) throws { try route(key, data: DemoData.info) }
+    public static func routeDemoOwnProfile(_ key: String) throws { try route(key, data: DemoData.ownProfile) }
+
     public static var recorded: [URLRequest] {
         lock.lock(); defer { lock.unlock() }
         return requests

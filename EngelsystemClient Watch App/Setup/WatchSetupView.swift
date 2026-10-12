@@ -44,6 +44,15 @@ struct WatchSetupView: View {
                 }
             }
 
+            // COMPAT(#1709): the server answered 403 to a data request — warn, but allow saving.
+            if viewModel.connectionTested, let accessWarning = viewModel.accessWarning {
+                Section {
+                    Text(accessWarning)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
+            }
+
             if let errorMessage = viewModel.errorMessage {
                 Section {
                     Text(errorMessage)

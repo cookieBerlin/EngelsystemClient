@@ -49,6 +49,25 @@ extension StubbedNetworkTests {
             #expect(try await client.fetchShiftTypes(credential).count == DemoData.shiftTypes.count)
         }
 
+        /// COMPAT(#1709): "Test Connection" warns when data requests are denied, but never otherwise.
+        @Test func accessProbeWarnsOnlyOnForbidden() async throws {
+            StubURLProtocol.route("GET /users/self", status: 403)
+            #expect(await client.accessDeniedWarning(credential) == APIError.missingPrivilegeMessage)
+            StubURLProtocol.route("GET /users/self", status: 500)
+            #expect(await client.accessDeniedWarning(credential) == nil)
+            try StubURLProtocol.route("GET /users/self", data: DemoData.ownProfile)
+            #expect(await client.accessDeniedWarning(credential) == nil)
+            let demo = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
+            #expect(await client.accessDeniedWarning(demo) == nil)
+        }
+
+        @Test func theForbiddenMessageNamesThePrivilegeAndGroupsButNoPullRequest() {
+            let message = APIError.forbidden.userMessage
+            #expect(message == APIError.missingPrivilegeMessage)
+            #expect(message.contains("API") && message.contains("Bureaucrat") && message.contains("privilege"))
+            #expect(!message.lowercased().contains("pull request"))
+        }
+
         /// COMPAT(#1710): a server without PR #1710 omits `comments_count` — the list must still decode.
         @Test func newsWithoutCommentsCountStillDecodesAndCachesZero() async throws {
             let json = """

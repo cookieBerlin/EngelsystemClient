@@ -217,6 +217,27 @@ public final class APIClient {
         return true
     }
 
+    /// COMPAT(#1709): probes a real data endpoint (`GET /users/self`) during "Test Connection".
+    /// `/info` needs no privilege, so a connection can be "verified" although every data request
+    /// is answered with 403. Returns the warning text for a definitive 403, `nil` for everything
+    /// else (success or unrelated errors must not produce a misleading warning). The caller
+    /// still allows saving — the administrators may grant access later.
+    public func accessDeniedWarning(_ credential: EventCredential) async -> String? {
+        if credential.isDemo {
+            return nil
+        }
+        do {
+            _ = try await withCredential("GET /users/self (access probe)", credential) {
+                try await UserAPI.usersIdGet(id: UserReference.me.parameter).data
+            }
+            return nil
+        } catch APIError.forbidden {
+            return APIError.missingPrivilegeMessage
+        } catch {
+            return nil
+        }
+    }
+
     public func fetchOwnProfile(for user: UserReference, _ credential: EventCredential) async throws -> UsersIdGet200ResponseData {
         if credential.isDemo {
             await DemoData.simulateLatency()

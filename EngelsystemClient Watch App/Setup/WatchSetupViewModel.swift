@@ -23,6 +23,9 @@ final class WatchSetupViewModel {
 
     var isTesting = false
     var errorMessage: String?
+    /// COMPAT(#1709): set by `testConnection` when the server denies this account API access (403).
+    /// A warning only — saving stays possible.
+    var accessWarning: String?
 
     /// See the iOS `InstanceSetupViewModel` counterpart for the full rationale — gates
     /// the Save button and whether the User ID field is shown at all.
@@ -56,6 +59,7 @@ final class WatchSetupViewModel {
     /// `InstanceSetupViewModel.testConnection()` counterpart for the full rationale.
     func testConnection() async {
         errorMessage = nil
+        accessWarning = nil
         isTesting = true
         defer { isTesting = false }
 
@@ -69,6 +73,7 @@ final class WatchSetupViewModel {
             if selfReferenceWorks {
                 userIDText = ""
             }
+            accessWarning = await apiClient.accessDeniedWarning(credential)
             connectionTested = true
         } catch {
             connectionTested = false

@@ -27,6 +27,9 @@ final class WatchEditInstanceViewModel {
     }
     var isTesting = false
     var errorMessage: String?
+    /// COMPAT(#1709): set by `testConnection` when the server denies this account API access (403).
+    /// A warning only — saving stays possible.
+    var accessWarning: String?
 
     /// See the iOS `EditInstanceViewModel` counterpart for the full rationale — gates
     /// Save (`canSubmit`) and drives the "Test Connection" button's own display; reset
@@ -77,6 +80,7 @@ final class WatchEditInstanceViewModel {
     /// the store.
     func testConnection(for instance: Instance) async {
         errorMessage = nil
+        accessWarning = nil
         isTesting = true
         defer { isTesting = false }
 
@@ -93,6 +97,7 @@ final class WatchEditInstanceViewModel {
             if selfReferenceWorks {
                 userIDText = ""
             }
+            accessWarning = await apiClient.accessDeniedWarning(credential)
             connectionTested = true
         } catch {
             connectionTested = false

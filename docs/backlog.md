@@ -19,12 +19,6 @@ missing comments/locations endpoint or a 403 is a real error again. **R-01** (th
 blocked — #1708 is merged and servers without it are not supported — and should be done **first**.
 Permanent improvements (not tagged): K-06 (reminders independent of News).
 
-- [ ] **K-05** Connection check (**temporary workaround, tag `COMPAT(#1709)`**): `APIClient` probes a data endpoint during
-      "Test Connection" (setup and edit, iOS and Watch). A 403 shows a **warning that still allows Save** (owner decision
-      2026-10-12: the admin may grant access later) and names the cause: the account lacks the server's `api` privilege, so it
-      must be added to one of the groups that has it (for example "API" or "Bureaucrat") by the server administrators — **no
-      mention of pull requests in the message**. The `self` probe and the numeric user-ID fallback are gone by then (R-01); the data probe replaces it. `APIError.forbidden`
-      gets the same privilege/group wording (replacing today's text); tests.
 - [ ] **K-06** Reminders: in `AppSyncCoordinator` plan shift reminders whenever every instance's *shift* sync succeeded (new
       `shiftsSucceeded`), independent of News/Profile/Locations/Messages failures; news announcements stay independent too;
       tests.
