@@ -1,7 +1,4 @@
 import Foundation
-#if canImport(WatchConnectivity)
-import WatchConnectivity
-#endif
 
 /// Sends a lightweight "shifts changed, please resync" nudge from iOS to a paired Watch —
 /// 2026-09-23, user-requested "keep the Watch data as fresh as possible" feature. This is
@@ -23,66 +20,43 @@ import WatchConnectivity
 /// No payload beyond a timestamp is sent: receiving this just means "something changed,
 /// resync everything active" — the same thing the Watch's own app-start sync already
 /// does, so there's no need for per-instance/per-shift detail here.
+/// The bits of `WCSession` the bridge needs, as plain Foundation types, so the decisions
+/// below compile and are tested on every platform (`swift test` runs on macOS, where
+/// `WatchConnectivity` can't even be imported). The real iOS implementation and the
+/// no-op implementation for other platforms live in `SystemWatchSession.swift`.
+protocol WatchSessionControlling {
+    var isSupported: Bool { get }
+    var isActivated: Bool { get }
+    var isPaired: Bool { get }
+    var isWatchAppInstalled: Bool { get }
+    func activate()
+    func sendShiftsChanged(at timestamp: TimeInterval) throws
+}
+
 public enum WatchConnectivityBridge {
-    /// Activates the session on iOS — call once at app launch (mirrors
-    /// `BackgroundSyncScheduler.register`'s "call from App init" pattern). A session
-    /// needs *some* delegate assigned before `activate()`, even though this feature is
-    /// send-only from iOS's side; `IOSSessionDelegate` below exists purely to satisfy
-    /// that requirement (plus the documented "reactivate on deactivate" pattern for
-    /// multi-Watch support). No-op on watchOS/macOS — the Watch side manages its own
-    /// session/delegate directly in the Watch app target, since *it* needs to actually
-    /// react to incoming data (see `WatchConnectivityReceiver`).
-    public static func activate() {
-        #if os(iOS) && canImport(WatchConnectivity)
-        guard WCSession.isSupported() else { return }
-        WCSession.default.delegate = IOSSessionDelegate.shared
-        WCSession.default.activate()
-        #endif
+    /// Activates the session — a no-op unless the session is supported (iOS with
+    /// WatchConnectivity). The public no-argument `activate()` lives in
+    /// `SystemWatchSession.swift` and passes the real session.
+    static func activate(using session: WatchSessionControlling) {
+        guard session.isSupported else { return }
+        session.activate()
     }
 
     /// Best-effort — silently does nothing if there's no paired Watch, the Watch app
     /// isn't installed, or the session isn't activated yet. Callers never need to check
     /// for success; the CloudKit-based `Instance.shiftsChangedAt` signal is the fallback
     /// that still gets the Watch caught up whenever it next syncs on its own.
-    public static func notifyShiftsChanged() {
-        #if os(iOS) && canImport(WatchConnectivity)
-        let session = WCSession.default
-        guard WCSession.isSupported(),
-              session.activationState == .activated,
-              session.isPaired,
-              session.isWatchAppInstalled
-        else {
+    static func notifyShiftsChanged(using session: WatchSessionControlling, now: Date) {
+        guard session.isSupported else { return }
+        guard session.isActivated, session.isPaired, session.isWatchAppInstalled else {
             DebugLog.log("WatchConnectivityBridge: not paired/installed/activated — skipping nudge")
             return
         }
         do {
-            try session.updateApplicationContext(["shiftsChangedAt": Date().timeIntervalSinceReferenceDate])
+            try session.sendShiftsChanged(at: now.timeIntervalSinceReferenceDate)
             DebugLog.log("WatchConnectivityBridge: sent shifts-changed nudge")
         } catch {
             DebugLog.log("WatchConnectivityBridge: failed to send nudge: \(error)", level: .error)
         }
-        #endif
     }
 }
-
-#if os(iOS) && canImport(WatchConnectivity)
-/// Minimal delegate purely to satisfy `WCSession`'s activation requirement — this
-/// feature doesn't need iOS to react to anything incoming. `sessionDidDeactivate`
-/// re-activates per Apple's documented pattern for switching between multiple paired
-/// Watches.
-private final class IOSSessionDelegate: NSObject, WCSessionDelegate {
-    static let shared = IOSSessionDelegate()
-
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        if let error {
-            DebugLog.log("WatchConnectivityBridge: activation failed: \(error)", level: .error)
-        } else {
-            DebugLog.log("WatchConnectivityBridge: activated (state: \(activationState.rawValue), paired: \(session.isPaired), watchAppInstalled: \(session.isWatchAppInstalled))")
-        }
-    }
-    func sessionDidBecomeInactive(_ session: WCSession) {}
-    func sessionDidDeactivate(_ session: WCSession) {
-        session.activate()
-    }
-}
-#endif

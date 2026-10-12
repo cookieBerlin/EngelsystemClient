@@ -46,3 +46,6 @@
 # entry points the system calls with a Context tests cannot construct) and the rest is SwiftUI layout; the data it shows is
 # read via NextShiftSnapshotStore, which is tested in the Kit. Owner approval (thin adapter + layout rules) 2026-10-12
 */EngelsystemComplication/*   # WidgetKit glue and SwiftUI layout
+*/Sources/EngelsystemClientKit/Services/MetricKitSubscriber.swift   # MetricKit adapter (iOS-only): MX*Payload has no public initializer; decisions live in MetricKitReporter. Owner standing approval for thin adapter layers 2026-10-12
+*/Sources/EngelsystemClientKit/Services/SystemWatchSession.swift   # WCSession adapter (iOS-only) and the no-op session for other platforms; decisions live in WatchConnectivityBridge, tested via WatchSessionControlling. Owner standing approval for thin adapter layers 2026-10-12
+*/Sources/EngelsystemClientKit/TestSupport/*   # Test infrastructure (Debug-only stubbed network shared by all test targets), not product code. Owner approval for test support 2026-10-12 (confirm if unwanted)

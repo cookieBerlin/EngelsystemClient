@@ -31,8 +31,9 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   tested view models/helpers, and XCUITest smoke tests cover that they render.
   **iOS app target reached 100 % (gate passes) on 2026-10-12** with 21 measured
   non-view files; the 21 layout files are listed in `Scripts/coverage-exclusions.txt`.
-  The app tests can't import the Kit's test helpers, so `EngelsystemClientTests/
-  StubbedNetwork.swift` is a copy of the Kit's — keep the two in sync. Thin
+  The stubbed network is shared: it lives in the Kit as `#if DEBUG`-only test
+  support (`TestSupport/StubbedNetwork.swift`, public, excluded from the gate, absent
+  from Release builds), and each test target has a tiny `StubbedNetworkTests` parent suite. Thin
   adapters here: `BackgroundTaskRegistration.swift` (BGTaskScheduler).
   **Audit of the excluded views (C-07, 2026-10-12)**: the logic they carried was
   extracted — instance scoping/switcher/day headers/conversation sorting into
@@ -43,7 +44,7 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
 - **Testing `APIClient`'s real network path** (2026-10-12): the generated
   client is redirected to canned responses via
   `EngelsystemAPIAPI.requestBuilderFactory` — see
-  `Tests/.../StubbedNetwork.swift` (a `URLProtocol` stub plus builder
+  `Sources/.../TestSupport/StubbedNetwork.swift` (a `URLProtocol` stub plus builder
   subclasses overriding `createURLSession()`). Register routes as
   `StubURLProtocol.route("GET /news", data: …)` (bodies are demo data
   encoded with the generator's own encoder). Suites using it must be
@@ -130,3 +131,12 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   it was diagnosed (a quick standalone `swift <file>.swift` reproduction
   of just the suspect logic bypasses the simulator entirely and is the
   fastest way to rule the app code in or out).
+- **`#if os(iOS)` code in the Kit** (2026-10-12): `swift test` on macOS doesn't compile it, so
+  the decisions were moved to platform-independent types tested there
+  (`WatchConnectivityBridge` over `WatchSessionControlling`, `MetricKitReporter` for summaries,
+  persistence and retention); what's left is the thin adapters `SystemWatchSession.swift` and
+  `MetricKitSubscriber.swift`, which are excluded from the gate.
+- **UI smoke tests for excluded views** (`EngelsystemClientUITests`): the demo-mode flow covers
+  Shifts, News, Profile, Locations, Messages and Settings; `testNewMessagePickerExportDiagnosticsAndDebugLogOpen`
+  covers the new-message picker, the Export Diagnostics sheet and the debug log. Run them on an
+  erased simulator (see above); demo mode now lands on the main page, so tests open Shifts from the sidebar.

@@ -58,8 +58,9 @@ final class EngelsystemClientUITests: XCTestCase {
         waitUntilHittable(demoButton, in: app)
         demoButton.tap()
 
-        // Demo mode lands on Shifts by default and syncs the sample shifts.
-        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+        // Demo mode lands on the main page (the sidebar) since 2026-10-12 — the app no
+        // longer opens Shifts by default — so open Shifts from there; it syncs the sample shifts.
+        openShifts(app)
         XCTAssertTrue(app.staticTexts["Info Desk Shift"].waitForExistence(timeout: 5))
 
         // 2026-09-23, user-requested: a shift's location name links to that location's
@@ -230,6 +231,64 @@ final class EngelsystemClientUITests: XCTestCase {
     /// compact width only fires when the sidebar's content is that `List`. This test
     /// exercises exactly the reported flow: deactivate the only instance, confirm the
     /// empty state appears, and confirm tapping its button actually reaches Settings.
+    /// 2026-10-12 (backlog C-08): smoke test for screens the demo flow above doesn't reach —
+    /// the "new message" user picker, Settings' "Export Diagnostics" sheet (its empty state:
+    /// a fresh simulator has received no MetricKit reports) and the debug log. These
+    /// SwiftUI files are excluded from the coverage gate (ADR 0010), so this proves they
+    /// still render and navigate. Expects `xcrun simctl erase` beforehand, like the others.
+    @MainActor
+    func testNewMessagePickerExportDiagnosticsAndDebugLogOpen() throws {
+        let app = XCUIApplication()
+        addUIInterruptionMonitor(withDescription: "Notification permission") { alert in
+            for label in ["Allow", "Erlauben", "Don't Allow", "Nicht erlauben"] where alert.buttons[label].exists {
+                alert.buttons[label].tap()
+                return true
+            }
+            return false
+        }
+        app.launch()
+
+        let demoButton = app.buttons["Try Demo Mode"]
+        XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
+        waitUntilHittable(demoButton, in: app)
+        demoButton.tap()
+
+        // Main page (sidebar) → Messages → "New Message" → the user picker.
+        let messagesRow = app.staticTexts["Messages"]
+        XCTAssertTrue(messagesRow.waitForExistence(timeout: 15))
+        messagesRow.tap()
+        XCTAssertTrue(app.navigationBars["Messages"].waitForExistence(timeout: 5))
+        let newMessageButton = app.buttons["New Message"]
+        XCTAssertTrue(newMessageButton.waitForExistence(timeout: 5))
+        newMessageButton.tap()
+        XCTAssertTrue(app.navigationBars["New Message"].waitForExistence(timeout: 10))
+        XCTAssertTrue(containingText("Helper Angel", in: app).waitForExistence(timeout: 10))
+        app.buttons["Cancel"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Messages"].waitForExistence(timeout: 5))
+
+        // Settings → Export Diagnostics (empty state) → Debug Log.
+        goBack(app)
+        let settingsButton = app.buttons["Settings"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
+        settingsButton.tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        app.navigationBars.firstMatch.tap() // flushes the interruption monitor if needed
+
+        let exportButton = app.buttons["Export Diagnostics"]
+        for _ in 0..<12 where !exportButton.exists { app.swipeUp() }
+        XCTAssertTrue(exportButton.waitForExistence(timeout: 5))
+        exportButton.tap()
+        XCTAssertTrue(app.navigationBars["Export Diagnostics"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["No reports yet"].waitForExistence(timeout: 5))
+        app.buttons["Cancel"].firstMatch.tap()
+
+        let debugLogLink = app.buttons["View Debug Log"]
+        for _ in 0..<12 where !debugLogLink.exists { app.swipeUp() }
+        XCTAssertTrue(debugLogLink.waitForExistence(timeout: 5))
+        debugLogLink.tap()
+        XCTAssertTrue(app.navigationBars["Debug Log"].waitForExistence(timeout: 5))
+    }
+
     @MainActor
     func testAddInstanceButtonAppearsAndNavigatesWhenNoActiveInstance() throws {
         let app = XCUIApplication()
@@ -264,7 +323,7 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
         waitUntilHittable(demoButton, in: app)
         demoButton.tap()
-        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+        openShifts(app)
         app.navigationBars.firstMatch.tap() // flushes the interruption monitor if the alert has appeared by now
 
         goBack(app)
@@ -326,7 +385,7 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
         waitUntilHittable(demoButton, in: app)
         demoButton.tap()
-        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+        openShifts(app)
         app.navigationBars.firstMatch.tap() // flushes the interruption monitor if needed
 
         goBack(app)
@@ -387,7 +446,7 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
         waitUntilHittable(demoButton, in: app)
         demoButton.tap()
-        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+        openShifts(app)
 
         goBack(app)
         XCTAssertTrue(app.staticTexts["News"].waitForExistence(timeout: 5))
@@ -402,6 +461,14 @@ final class EngelsystemClientUITests: XCTestCase {
     }
 
     @MainActor
+    /// Demo mode lands on the main page (the sidebar), not Shifts (2026-10-12): open Shifts from there.
+    private func openShifts(_ app: XCUIApplication) {
+        let shiftsRow = app.staticTexts["Shifts"]
+        XCTAssertTrue(shiftsRow.waitForExistence(timeout: 10))
+        shiftsRow.tap()
+        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+    }
+
     private func goBack(_ app: XCUIApplication) {
         app.navigationBars.buttons.element(boundBy: 0).tap()
     }

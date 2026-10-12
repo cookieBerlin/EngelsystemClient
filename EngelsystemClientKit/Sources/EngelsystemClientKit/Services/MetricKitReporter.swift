@@ -1,7 +1,4 @@
 import Foundation
-#if canImport(MetricKit)
-import MetricKit
-#endif
 
 /// Subscribes to Apple's MetricKit for crash/hang/performance diagnostics during
 /// TestFlight testing (2026-10-09, user-requested) — consistent with this app's
@@ -41,17 +38,6 @@ public final class MetricKitReporter: NSObject {
 
     private override init() {
         super.init()
-    }
-
-    /// Call once at app launch.
-    public func activate() {
-        prune()
-        #if os(iOS) && canImport(MetricKit)
-        MXMetricManager.shared.add(self)
-        DebugLog.log("MetricKitReporter: subscribed to MXMetricManager")
-        #else
-        DebugLog.log("MetricKitReporter: MetricKit unavailable on this platform — not subscribing")
-        #endif
     }
 
     /// Everything persisted so far — one JSON payload per line (JSON Lines), so a new
@@ -143,31 +129,3 @@ public final class MetricKitReporter: NSObject {
         try? text.data(using: .utf8)?.write(to: Self.fileURL, options: .atomic)
     }
 }
-
-#if os(iOS) && canImport(MetricKit)
-extension MetricKitReporter: MXMetricManagerSubscriber {
-    public func didReceive(_ payloads: [MXMetricPayload]) {
-        for payload in payloads {
-            DebugLog.log("MetricKitReporter: received a metric payload")
-            if let json = String(data: payload.jsonRepresentation(), encoding: .utf8) {
-                persist(jsonLine: json)
-            }
-        }
-    }
-
-    public func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        for payload in payloads {
-            let summary = Self.summarize(
-                crashCount: payload.crashDiagnostics?.count ?? 0,
-                hangCount: payload.hangDiagnostics?.count ?? 0,
-                cpuExceptionCount: payload.cpuExceptionDiagnostics?.count ?? 0,
-                diskWriteExceptionCount: payload.diskWriteExceptionDiagnostics?.count ?? 0
-            )
-            DebugLog.log(summary, level: .warning)
-            if let json = String(data: payload.jsonRepresentation(), encoding: .utf8) {
-                persist(jsonLine: json)
-            }
-        }
-    }
-}
-#endif
