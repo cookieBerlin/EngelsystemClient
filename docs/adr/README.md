@@ -48,4 +48,4 @@ point at it, so the history of *why things changed* stays readable.
 
 ## Index
 
-_(none yet)_
+- [0001](0001-github-pages-over-wiki-for-legal-pages.md) — GitHub Pages (not a Wiki) for the Privacy Policy/Support pages

@@ -58,7 +58,10 @@ Goal: get the app into TestFlight, both Internal and External testing.
     keep working unchanged). Not yet verified live — needs the repo to
     actually go public and GitHub Pages enabled first (see
     `BACKLOG.md`).
-- **App Store Connect metadata** — not yet started: app record, Beta
+- **Repo public, Pages live, app record created** (2026-10-12): Privacy/
+  Support URLs verified (HTTP 200) at `cookieberlin.github.io/EngelsystemClient/`.
+  Git history was re-scrubbed and force-pushed first (private LAN IP removed).
+- **App Store Connect metadata** — app record exists; still open: Beta
   App Description, Feedback Email, export compliance questions.
 - **Internal Testing group** — no Beta App Review required; can start
   as soon as a build is uploaded and the app record exists.
