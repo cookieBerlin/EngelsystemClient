@@ -9,5 +9,3 @@ done and reflected in [`features.md`](features.md).
 
 _(No open tasks. TestFlight: build 0.1.0 (2) is in internal testing and submitted for
 Beta App Review as of 2026-10-12; if Apple rejects it, the owner reports the reason here.)_
-
-\n
