@@ -94,21 +94,27 @@ final class ScreenshotTests: XCTestCase {
 
     /// Waits until the sync banner is gone. The sync's last step asks for notification permission on a fresh
     /// simulator and only finishes once that prompt is answered — and the prompt only comes up after a real
-    /// interaction with the app (found with the app's debug log: the sync steps take ~2 s, then it waits ~30 s
-    /// on the permission request). `nudge` taps Settings and returns, which brings the prompt up for the
-    /// interruption monitor to allow.
+    /// interaction with the app, at a moment that depends on how busy the (new) simulator is (found with the app's
+    /// debug log: the sync steps take ~2 s, then it waits on the permission request). So `nudge` repeats: it taps
+    /// Settings and returns, and answers a visible permission alert directly via SpringBoard, until the banner is gone.
     @MainActor
-    private func waitForSyncToFinish(in app: XCUIApplication, nudge: Bool = false, timeout: TimeInterval = 180) {
+    private func waitForSyncToFinish(in app: XCUIApplication, nudge: Bool = false, timeout: TimeInterval = 300) {
         let banner = app.descendants(matching: .any)["syncProgressBanner"]
         _ = banner.waitForExistence(timeout: 3)
-        if nudge && banner.exists {
-            app.buttons["Settings"].tap()
-            _ = app.navigationBars["Settings"].waitForExistence(timeout: 20)
-            if !isPad { goBack(app) }
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let deadline = Date().addingTimeInterval(timeout)
+        while banner.exists && Date() < deadline {
+            if nudge {
+                app.buttons["Settings"].tap()
+                _ = app.navigationBars["Settings"].waitForExistence(timeout: 20)
+                if !isPad { goBack(app) }
+            }
+            for label in ["Allow", "Erlauben"] where springboard.alerts.buttons[label].exists {
+                springboard.alerts.buttons[label].tap()
+            }
+            Thread.sleep(forTimeInterval: 4)
         }
-        let gone = NSPredicate(format: "exists == false")
-        let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: gone, object: banner)], timeout: timeout)
-        XCTAssertEqual(result, .completed, "sync banner still visible")
+        XCTAssertFalse(banner.exists, "sync banner still visible")
         Thread.sleep(forTimeInterval: 1.5) // lets list animations settle
     }
 

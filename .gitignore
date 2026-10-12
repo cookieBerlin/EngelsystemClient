@@ -108,3 +108,7 @@ iOSInjectionProject/
 *.swp
 *.swo
 *~
+
+# Generated screenshots and their build products (Scripts/screenshots.sh)
+/Screenshots/
+/build/
