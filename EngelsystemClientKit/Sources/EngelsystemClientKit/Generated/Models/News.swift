@@ -29,10 +29,10 @@ public struct News: Codable, JSONEncodable, Hashable {
     public var updatedAt: Date?
     /** Direct link to the news page */
     public var url: String
-    /** Number of comments on this news item */
-    public var commentsCount: Int
+    /** Number of comments on this news item. COMPAT(#1710): not required in this copy so servers without PR #1710 still decode (upstream: required). */
+    public var commentsCount: Int?
 
-    public init(id: Int, name: String, text: String, isMeeting: Bool, isPinned: Bool, isHighlighted: Bool, createdAt: Date, updatedAt: Date?, url: String, commentsCount: Int) {
+    public init(id: Int, name: String, text: String, isMeeting: Bool, isPinned: Bool, isHighlighted: Bool, createdAt: Date, updatedAt: Date?, url: String, commentsCount: Int? = nil) {
         self.id = id
         self.name = name
         self.text = text
@@ -71,7 +71,7 @@ public struct News: Codable, JSONEncodable, Hashable {
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(url, forKey: .url)
-        try container.encode(commentsCount, forKey: .commentsCount)
+        try container.encodeIfPresent(commentsCount, forKey: .commentsCount)
     }
 }
 

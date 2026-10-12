@@ -79,7 +79,7 @@ public extension CachedNews {
             createdAt: news.createdAt,
             updatedAt: news.updatedAt,
             url: news.url,
-            commentsCount: news.commentsCount
+            commentsCount: news.commentsCount ?? 0 // COMPAT(#1710): servers without PR #1710 omit the field
         )
     }
 
@@ -94,7 +94,7 @@ public extension CachedNews {
         createdAt = news.createdAt
         updatedAt = news.updatedAt
         url = news.url
-        commentsCount = news.commentsCount
+        commentsCount = news.commentsCount ?? 0 // COMPAT(#1710)
         updateCacheTimestamp()
     }
 

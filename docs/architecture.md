@@ -127,6 +127,12 @@ project's `openapi.yml` by diffing against that branch's copy directly
 (fetched via `raw.githubusercontent.com`) rather than hand-writing the
 schema, then regenerating via `Scripts/generate-api.sh` as usual.
 
+**Local divergence, `COMPAT(#1710)` (2026-10-12):** this project's `openapi.yml` marks `comments_count` as *optional*
+(upstream: required), so a server without PR #1710 — whose `/news` items lack the field — still decodes; a missing
+value is cached as 0. Removed again by backlog R-03. Note: `Scripts/generate-api.sh` overwrites the hand-patched
+macOS-compatibility edits in `Generated/URLSessionImplementations.swift`; restore that one file afterwards with
+`git checkout`.
+
 **`/locations/{id}` added 2026-09-23** (the Locations feature — see
 `docs/features.md`), same cross-session-branch workflow:
 fetched directly from the pushed branch

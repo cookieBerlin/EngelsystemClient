@@ -49,6 +49,24 @@ extension StubbedNetworkTests {
             #expect(try await client.fetchShiftTypes(credential).count == DemoData.shiftTypes.count)
         }
 
+        /// COMPAT(#1710): a server without PR #1710 omits `comments_count` — the list must still decode.
+        @Test func newsWithoutCommentsCountStillDecodesAndCachesZero() async throws {
+            let json = """
+            {"data":[{"id":1,"name":"Hello","text":"Body","is_meeting":false,"is_pinned":false,\
+            "is_highlighted":false,"created_at":"2026-10-01T10:00:00+00:00","updated_at":null,\
+            "url":"https://example.org/news/1"}]}
+            """
+            StubURLProtocol.route("GET /news", body: Data(json.utf8))
+            let news = try await client.fetchNews(credential)
+            #expect(news.count == 1)
+            #expect(news[0].commentsCount == nil)
+            let cached = CachedNews(news: news[0], instanceID: UUID())
+            #expect(cached.commentsCount == 0)
+            cached.commentsCount = 5
+            cached.apply(news[0])
+            #expect(cached.commentsCount == 0)
+        }
+
         @Test func userScopedListsUseTheUserReferenceInThePath() async throws {
             try StubURLProtocol.route("GET /users/self/shifts", data: DemoData.shifts)
             try StubURLProtocol.route("GET /users/self/worklogs", data: DemoData.worklogs)

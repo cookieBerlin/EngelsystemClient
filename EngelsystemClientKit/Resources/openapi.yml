@@ -225,7 +225,9 @@ components:
         comments_count:
           type: integer
           example: 3
-          description: Number of comments on this news item
+          description: >-
+            Number of comments on this news item.
+            COMPAT(#1710): not required in this copy so servers without PR #1710 still decode (upstream: required).
       required:
         - id
         - name
@@ -236,7 +238,6 @@ components:
         - created_at
         - updated_at
         - url
-        - comments_count
     NewsDetail:
       allOf:
         - $ref: '#/components/schemas/News'
