@@ -63,10 +63,9 @@ Goal: get the app into TestFlight, both Internal and External testing.
   Git history was re-scrubbed and force-pushed first (private LAN IP removed).
 - **App Store Connect metadata** — app record exists; still open: Beta
   App Description, Feedback Email, export compliance questions.
-- **Internal Testing group** — no Beta App Review required; can start
-  as soon as a build is uploaded and the app record exists.
-- **External Testing** — requires Apple's Beta App Review (checks the
-  Privacy Policy URL resolves, export compliance, etc.).
+- **Internal Testing group** — done 2026-10-12 (build 0.1.0 (2)).
+- **External Testing** — submitted for Beta App Review 2026-10-12 (build 0.1.0 (2)); waiting
+  for Apple.
 
 ## Open decisions
 
