@@ -84,7 +84,7 @@ Design:
   stay untouched. Prepared per run: English (US), light appearance, status bar override
   (9:41, full battery/Wi-Fi/cellular), freshly erased app state.
 - **iPhone/iPad scenes** are a new XCUITest class `ScreenshotTests` in `EngelsystemClientUITests`
-  (own test plan `Screenshots`, never part of the normal test run): launch → "Try Demo Mode" → sidebar →
+  (run via `-only-testing:EngelsystemClientUITests/ScreenshotTests`, no extra test plan; it takes minutes, so it is not part of the normal runs): launch → "Try Demo Mode" → sidebar →
   open each screen → `capture("01-shifts")` as a kept `XCTAttachment`. iPad runs in landscape. The script
   exports the attachments from the `.xcresult` and renames them in scene order.
 - **Watch**: UI tests on the Watch simulator are slow and flaky (see `history.md`), so the Watch scene

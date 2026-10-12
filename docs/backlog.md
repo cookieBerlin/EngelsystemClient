@@ -12,9 +12,13 @@ Beta App Review as of 2026-10-12; if Apple rejects it, the owner reports the rea
 
 ## App Store screenshots (see ROADMAP.md)
 
-- [ ] **S-02** (note: the sync progress banner is visible for a few seconds after launch — wait for it to disappear before capturing; build with normal signing, `CODE_SIGNING_ALLOWED=NO` strips the iCloud entitlement and the app then crashes in `CKContainer`) `ScreenshotTests` + `capture` helper + `Screenshots` test plan (iPhone scenes).
-- [ ] **S-03** `Scripts/screenshots.sh` for iPhone: simulator prep, test run, attachment export, naming, pixel-size check, EXIF strip.
+- [ ] **S-03** `Scripts/screenshots.sh` for iPhone: simulator prep, test run, attachment export (names come from
+      `suggestedHumanReadableName` in `manifest.json`, prefix before `_0_`), pixel-size check, EXIF strip, status bar override
+      (9:41 — the test itself does not set it). A fresh simulator is slow for a while (Apple's own widget renderer
+      compiles shaders and may crash with a watchdog report — harmless); one run took ~5 minutes, so keep generous timeouts.
 - [ ] **S-04** iPad (landscape) support in the script and tests.
 - [ ] **S-05** Apple Watch screenshot via the seed argument and `simctl io`.
 - [ ] **S-06** Docs (`app-store.md`, `release.md`, `.gitignore`) and the ADR.
 - [ ] **S-07** Full run on all devices; review every image; fix scene issues.
+- [ ] **S-08** (optional, discuss) The demo data is minimal (2 shifts, 2 news, 1 conversation), so Shifts/News/Profile screenshots are
+      half empty. Enrich `DemoData` for nicer images? It changes counts asserted in many tests.

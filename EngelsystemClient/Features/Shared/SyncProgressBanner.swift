@@ -34,5 +34,7 @@ struct SyncProgressBanner: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .shadow(radius: 4)
         .padding(.top, 8)
+        // Lets the screenshot UI tests wait until a sync has finished and the banner is gone.
+        .accessibilityIdentifier("syncProgressBanner")
     }
 }
