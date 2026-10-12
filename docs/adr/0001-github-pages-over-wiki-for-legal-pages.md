@@ -40,7 +40,7 @@ Use **GitHub Pages**, source `main` branch / `/docs` folder, default
 `jekyll-theme-minimal` theme, default `<user>.github.io/<repo>/...`
 URL (no custom domain). `docs/_config.yml`'s `exclude:` list keeps the
 project's own internal documentation (`architecture.md`,
-`features.md`, `ENTITLEMENTS.md`, `history.md`,
+`features.md`, `app-store.md`, `history.md`,
 `roadmap.md`, `backlog.md`, `adr/`) out of the published site, so only
 `privacy.md`/`support.md`/`index.md` actually become public pages.
 

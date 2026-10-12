@@ -52,7 +52,7 @@ Goal: get the app into TestFlight, both Internal and External testing.
   - **Content written 2026-10-09**: `docs/privacy.md`, `docs/support.md`,
     `docs/index.md`, and `docs/_config.yml` (theme `jekyll-theme-minimal`,
     excludes the dev-facing docs — `architecture.md`/
-    `features.md`/`ENTITLEMENTS.md`/`history.md`/
+    `features.md`/`app-store.md`/`history.md`/
     `roadmap.md`/`backlog.md`/`adr/` — from being published as public
     pages, so CLAUDE.md's existing cross-references into `docs/*.md`
     keep working unchanged). Not yet verified live — needs the repo to
@@ -90,7 +90,7 @@ Target layout (mapping from today):
   `docs/testing.md` (testing section of `CLAUDE.md`), `docs/security.md`,
   `docs/release.md` (TestFlight checklist), `docs/api.md` if
   `architecture.md` gets too long.
-- `docs/ENTITLEMENTS.md` → `docs/app-store.md` (identifiers,
+- `docs/app-store.md` → `docs/app-store.md` (identifiers,
   entitlements, privacy, export compliance, TestFlight metadata).
 - `docs/features.md` → `docs/features.md`;
   `docs/history.md` → `docs/history.md` (kept).

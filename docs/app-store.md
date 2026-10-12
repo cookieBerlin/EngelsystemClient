@@ -1,6 +1,39 @@
-# Entitlements & Signing
+# App Store: identifiers, entitlements, privacy
 
 Part of the Engelsystem Client documentation set — see [`CLAUDE.md`](../CLAUDE.md) for the entry point and the rest of the doc map. For the story of how this configuration was arrived at (bundle-ID collisions, namespace churn, App ID quota, etc.), see [`history.md`](history.md).
+
+## Identifiers
+
+| Target | Bundle ID |
+|---|---|
+| iOS/iPadOS app | `net.cuccato.engelsystem.de.EngelsystemClient` |
+| Watch app | `net.cuccato.engelsystem.de.EngelsystemClient.watchkitapp` |
+| Complication extension | `net.cuccato.engelsystem.de.EngelsystemClient.watchkitapp.nextshiftcomplication` |
+
+Team ID `8A5FNU94BM` (not secret). Version `0.1.0` (build `1`) in
+`project.pbxproj` (`MARKETING_VERSION`/`CURRENT_PROJECT_VERSION`).
+The history of the namespace changes is in [`history.md`](history.md).
+
+## Privacy and legal pages
+
+- Privacy Policy: [`privacy.md`](privacy.md), Support: [`support.md`](support.md),
+  published via GitHub Pages at
+  `https://cookieberlin.github.io/EngelsystemClient/` (see
+  [ADR 0001](adr/0001-github-pages-over-wiki-for-legal-pages.md)).
+- **Keep `privacy.md` in sync with the real data handling** whenever
+  storage, networking, analytics or diagnostics change.
+- Contact for both: GitHub Issues and `EngelsystemClient@cuccato.net`.
+- License: GPL-2.0 (`LICENSE`).
+
+## Export compliance (encryption)
+
+The app only uses Apple's standard encryption (HTTPS via `URLSession`,
+Keychain, CloudKit) — no proprietary or non-standard cryptography. That
+normally qualifies for the exemption. `ITSAppUsesNonExemptEncryption` is
+**not set yet** in the build settings, so App Store Connect asks the
+export-compliance question for every build; setting it to `NO` (after
+confirming the exemption) avoids that. Open item, see
+[`release.md`](release.md).
 
 ## Current configuration (both targets: iOS app + Watch app)
 

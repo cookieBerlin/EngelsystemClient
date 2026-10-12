@@ -19,8 +19,6 @@ done and reflected in [`features.md`](features.md).
 Each item is its own commit; update all cross-references (incl.
 `docs/_config.yml` excludes and the memory notes) in the same commit.
 
-- [ ] **D-06** Rename `ENTITLEMENTS.md` → `docs/app-store.md`; add
-      identifiers, privacy and export-compliance notes.
 - [ ] **D-07** Create `docs/security.md` and `docs/release.md`.
 - [ ] **D-08** Slim `CLAUDE.md` to the rules file: language, work loop,
       commit rules (Conventional Commits, `Backlog: <ID>`), architecture

@@ -25,7 +25,7 @@ of them up to date as work lands — not just this file:
   feature-by-feature current state of `EngelsystemClientKit`, the iOS
   app, and the watchOS app. The single biggest, fastest-growing
   document — append here as features land.
-- **[`docs/ENTITLEMENTS.md`](docs/ENTITLEMENTS.md)** — current
+- **[`docs/app-store.md`](docs/app-store.md)** — current
   entitlements/signing configuration and actionable Xcode/Info.plist
   gotchas.
 - **[`docs/history.md`](docs/history.md)** — investigations, bugs, and

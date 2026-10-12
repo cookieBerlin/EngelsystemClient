@@ -260,7 +260,7 @@ exists without reading the whole diff history.
 - **Launch screen** (`Features/Launch/LaunchScreenView`, wired into
   `ContentView`, 2026-09-17): shows the app icon, name, and
   `AppVersionInfo.displayString` (version/build/git hash — see
-  [`ENTITLEMENTS.md`](ENTITLEMENTS.md)) for a fixed `ContentView.launchScreenDuration`
+  [`app-store.md`](app-store.md)) for a fixed `ContentView.launchScreenDuration`
   (1.2s) while `ContentView` renders, so there's a branding moment
   instead of jumping straight from the system launch screen into
   `InstanceSetupView`/`MainView`. The icon is read from `Info.plist`'s
@@ -1125,7 +1125,7 @@ exists without reading the whole diff history.
   created through the file-system-synchronized-group mechanism the rest
   of this project relies on — only added to *existing* targets. Reads a
   `NextShiftSnapshot` from the `group.net.cuccato.engelsystem.de.shared` App Group
-  (see [`ENTITLEMENTS.md`](ENTITLEMENTS.md)) and renders `.accessoryCircular`/
+  (see [`app-store.md`](app-store.md)) and renders `.accessoryCircular`/
   `.accessoryRectangular`/`.accessoryInline` families; never touches the
   network or Keychain itself (a separate process from the Watch app, no
   access to its Keychain item). Confirmed: builds, installs, and launches

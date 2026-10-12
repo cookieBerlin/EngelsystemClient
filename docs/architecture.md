@@ -685,7 +685,7 @@ separately controllable triggers:
   `BGTaskSchedulerPermittedIdentifiers` key lists the one task
   identifier (`net.cuccato.engelsystem.de.backgroundrefresh`) — both in
   `EngelsystemClient-Info.plist`, the existing Info.plist-fragment
-  mechanism (see [`ENTITLEMENTS.md`](ENTITLEMENTS.md)). **Not verified end-to-end this
+  mechanism (see [`app-store.md`](app-store.md)). **Not verified end-to-end this
   session** (same caveat as the Archive scheme pre-action elsewhere in
   this file): confirmed the app builds, launches, and doesn't crash with
   registration/scheduling wired in, but actually observing a real
@@ -994,7 +994,7 @@ User ID.
 ## CloudKit sync for Instance metadata
 
 Implemented once the user joined the paid Apple Developer Program (see
-[`ENTITLEMENTS.md`](ENTITLEMENTS.md) for the entitlements themselves).
+[`app-store.md`](app-store.md) for the entitlements themselves).
 Per this file's binding "Sync strategy" above: only `Instance` (name,
 server URL, `userID`) syncs between iOS and Watch — the `Cached*` models
 (shifts, news, profile, worklogs, angel type memberships) stay

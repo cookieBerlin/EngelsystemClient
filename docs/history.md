@@ -2,7 +2,7 @@
 
 Part of the Engelsystem Client documentation set — see [`CLAUDE.md`](../CLAUDE.md) for the entry point and the rest of the doc map.
 
-This file collects investigations, bugs, and decisions that are no longer load-bearing for understanding today's code — the current design lives in [`architecture.md`](architecture.md), [`ENTITLEMENTS.md`](ENTITLEMENTS.md), and [`features.md`](features.md), each of which link back here where the story matters. Kept mostly for the lessons learned (about this Mac's tooling, about which Apple APIs to trust, about workflow mistakes worth not repeating) rather than as a day-to-day reference.
+This file collects investigations, bugs, and decisions that are no longer load-bearing for understanding today's code — the current design lives in [`architecture.md`](architecture.md), [`app-store.md`](app-store.md), and [`features.md`](features.md), each of which link back here where the story matters. Kept mostly for the lessons learned (about this Mac's tooling, about which Apple APIs to trust, about workflow mistakes worth not repeating) rather than as a day-to-day reference.
 
 ## API / data-flow bugs
 
@@ -46,7 +46,7 @@ before the user applied the fix directly to their own test server.
 ## CloudKit sync for Instance metadata
 
 - **Capability registration confirmed done, 2026-09-16** (see
-  [`ENTITLEMENTS.md`](ENTITLEMENTS.md) for how this was verified from the
+  [`app-store.md`](app-store.md) for how this was verified from the
   CLI side via the regenerated provisioning profiles) — the CloudKit
   container and Keychain Sharing group are real and provisioned for both
   targets now.
@@ -110,7 +110,7 @@ before the user applied the fix directly to their own test server.
   entirely about the watchOS Simulator's performance on this machine
   under Xcode 27.0, not about the app or the CloudKit container/Keychain
   Sharing registration (which is separately confirmed working, see
-  [`ENTITLEMENTS.md`](ENTITLEMENTS.md)).
+  [`app-store.md`](app-store.md)).
 
 - **Root-caused and fixed, 2026-09-16: a manually re-entered
   `Instance.userID` (or any other Settings edit) could silently revert
@@ -286,7 +286,7 @@ identifier.
   activity instead. `NSPersistentCloudKitContainer` re-schedules on its
   own the next time there's actually new data to export, with no
   app-code involvement either way (nothing here calls `BGTaskScheduler`
-  directly, still true per [`ENTITLEMENTS.md`](ENTITLEMENTS.md)). Consistent
+  directly, still true per [`app-store.md`](app-store.md)). Consistent
   with everything else observed this session: real shift/`Instance` sync
   keeps working (confirmed both by explicit user confirmation and by
   `[NextShiftViewModel] synced N shift(s)` in the same log captures this
