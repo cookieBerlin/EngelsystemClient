@@ -15,3 +15,26 @@ done and reflected in [`features.md`](features.md).
 - [ ] **T-03** Prepare for External Testing / Beta App Review (Beta App
       Description, Feedback Email, demo-mode hint for reviewers) once
       Internal Testing is confirmed working.
+
+## Coverage ramp-up (ADR 0009)
+
+Baseline 2026-10-12 (`scripts/check-coverage.sh`, Kit own code 76 %).
+Take files in this order; remove an item once the file is at 100 %.
+
+- [ ] **C-01** `Networking/APIClient.swift` (38 %): real-network path via a
+      stubbed `URLProtocol`.
+- [ ] **C-02** `Services/APIKeyStore.swift` (0 %).
+- [ ] **C-03** Remaining Kit files below 100 %: `NewsNotifier`,
+      `KeychainSyncStore`, `PollingInterval`, `CloudSyncStatus`,
+      `WatchConnectivityBridge`, `APIError`, `LocalKeychainStore`,
+      `NotificationScheduler`, `AppSyncCoordinator`, the `Cached*` models,
+      `ModelContainerFactory`, `NotificationLeadTimeSettings`,
+      `InstanceCredentialResolver`, `LocationSyncService`, `DebugLog`,
+      `DemoData`.
+- [ ] **C-04** Propose exclusions to the owner for code tests cannot drive
+      (e.g. the MetricKit delivery callbacks, Keychain access-group
+      behavior); add them to `scripts/coverage-exclusions.txt` only after
+      approval.
+- [ ] **C-05** Bring the iOS app target under the gate (Xcode coverage run,
+      unit + UI tests), then the Watch app and the complication.
+- [ ] **C-06** Make the gate blocking (all Kit files at 100 % or excluded).

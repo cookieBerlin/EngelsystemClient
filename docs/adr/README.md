@@ -37,3 +37,4 @@ point at it, so the history of *why things changed* stays readable.
 | [0006](0006-messages-live-only-with-capability-probe.md) | Messages are live-only and gated by a runtime capability probe | Accepted |
 | [0007](0007-demo-mode-via-sentinel-url.md) | Demo mode through a sentinel base URL inside `APIClient` | Accepted |
 | [0008](0008-local-notifications-only.md) | Shift reminders as local notifications only | Accepted |
+| [0009](0009-full-line-coverage-gate.md) | 100 % line coverage gate for non-excluded code | Accepted |

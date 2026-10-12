@@ -4,6 +4,20 @@ How this project is tested and the practical gotchas of running tests on
 this machine. The rule "always add tests for new features" is binding and
 also stated in [`CLAUDE.md`](../CLAUDE.md).
 
+- **100 % line coverage gate** ([ADR 0009](adr/0009-full-line-coverage-gate.md)):
+  every source file not listed in `scripts/coverage-exclusions.txt` must
+  have 100 % line coverage. Check with `scripts/check-coverage.sh` (runs
+  the `EngelsystemClientKit` tests with coverage and lists every file below
+  the threshold; `COVERAGE_THRESHOLD` overrides it). Exclusions need a
+  justification comment **and owner approval** — never add one on your own.
+  Generated code is excluded by construction. During the ramp-up, new or
+  changed code must reach 100 % in its own commit and files at 100 % must
+  not regress; the remaining files are tracked in `docs/backlog.md`.
+  Platform-guarded code (`#if os(iOS)`) is not compiled by `swift test` on
+  macOS — it needs an Xcode-based coverage run
+  (`xcodebuild test -enableCodeCoverage YES`, then `xcrun xccov view
+  --report`) or a justified exclusion. Baseline 2026-10-12: Kit own code
+  76 %, iOS app unit tests 15.5 %, Watch app 0 %.
 - **Always add tests for new features** — logic in `EngelsystemClientKit`
   gets unit tests, non-trivial UI flows in the app targets get an XCUITest.
   Don't rely on manual simulator checks alone.

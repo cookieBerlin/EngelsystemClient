@@ -1,6 +1,6 @@
 # 0002. Adopt a structured documentation layout and working rules
 
-- **Status**: Accepted
+- **Status**: Accepted (the coverage-gate exclusion below was reversed by [ADR 0009](0009-full-line-coverage-gate.md))
 - **Date**: 2026-10-12
 
 ## Context
