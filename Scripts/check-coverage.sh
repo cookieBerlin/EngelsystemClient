@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Runs the EngelsystemClientKit tests with coverage and fails if any non-excluded source file
 # has less than 100 % line coverage (docs/testing.md, ADR 0009).
-# Usage: scripts/check-coverage.sh
+# Usage: Scripts/check-coverage.sh
 # Env:   COVERAGE_THRESHOLD (default 1.0 = 100 %)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-EXCLUSIONS_FILE="$ROOT/scripts/coverage-exclusions.txt"
+EXCLUSIONS_FILE="$ROOT/Scripts/coverage-exclusions.txt"
 THRESHOLD="${COVERAGE_THRESHOLD:-1.0}"
 
 cd "$ROOT/EngelsystemClientKit"

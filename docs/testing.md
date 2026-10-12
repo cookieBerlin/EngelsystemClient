@@ -5,8 +5,8 @@ this machine. The rule "always add tests for new features" is binding and
 also stated in [`CLAUDE.md`](../CLAUDE.md).
 
 - **100 % line coverage gate** ([ADR 0009](adr/0009-full-line-coverage-gate.md)):
-  every source file not listed in `scripts/coverage-exclusions.txt` must
-  have 100 % line coverage. Check with `scripts/check-coverage.sh` (runs
+  every source file not listed in `Scripts/coverage-exclusions.txt` must
+  have 100 % line coverage. Check with `Scripts/check-coverage.sh` (runs
   the `EngelsystemClientKit` tests with coverage and lists every file below
   the threshold; `COVERAGE_THRESHOLD` overrides it). Exclusions need a
   justification comment **and owner approval** — never add one on your own.

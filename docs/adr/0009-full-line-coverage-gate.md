@@ -14,14 +14,14 @@ iOS app target 15.5 % from unit tests alone, Watch app and complication
 
 ## Decision
 
-- **Every source file that is not listed in `scripts/coverage-exclusions.txt`
+- **Every source file that is not listed in `Scripts/coverage-exclusions.txt`
   must have 100 % line coverage.**
 - Exclusions need a justification comment in that file **and explicit owner
   approval** (date noted). Generated code (`Generated/`, ADR 0003) is
   excluded by construction. Typical other candidates are thin adapters over
   system APIs that tests cannot drive (e.g. MetricKit delivery, Keychain
   access groups); each is proposed to the owner, never added silently.
-- `scripts/check-coverage.sh` runs the `EngelsystemClientKit` tests with
+- `Scripts/check-coverage.sh` runs the `EngelsystemClientKit` tests with
   coverage and fails below the threshold. App and Watch targets are brought
   under the same gate step by step (see `docs/backlog.md`).
 - **Ratchet during the ramp-up**: the gate is the target for the whole code

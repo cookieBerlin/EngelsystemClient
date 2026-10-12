@@ -63,10 +63,10 @@ Write an ADR for decisions with real trade-offs; routine choices belong in
 ## Quality gates
 
 - **100 % line coverage** for every file not in
-  `scripts/coverage-exclusions.txt` (ADR 0009). Exclusions need a
+  `Scripts/coverage-exclusions.txt` (ADR 0009). Exclusions need a
   justification comment and owner approval — never add one yourself. New or
   changed code must reach 100 % in the same commit; check with
-  `scripts/check-coverage.sh`. Files still below 100 % are tracked in
+  `Scripts/check-coverage.sh`. Files still below 100 % are tracked in
   `docs/backlog.md`.
 - Always add tests for new features: Swift Testing (`import Testing`) in
   `EngelsystemClientKit`, XCUITest for non-trivial UI flows. Details:
@@ -102,6 +102,6 @@ Write an ADR for decisions with real trade-offs; routine choices belong in
 cd EngelsystemClientKit && swift test               # Kit unit tests (macOS)
 xcodebuild build -scheme EngelsystemClient -destination 'generic/platform=iOS Simulator'
 xcodebuild test -scheme EngelsystemClient -destination 'platform=iOS Simulator,name=<device>' -parallel-testing-enabled NO
-scripts/check-coverage.sh                            # Kit tests + 100 % coverage gate
+Scripts/check-coverage.sh                            # Kit tests + 100 % coverage gate
 Scripts/generate-api.sh                              # regenerate DTOs from openapi.yml
 ```

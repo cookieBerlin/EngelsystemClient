@@ -18,7 +18,7 @@ done and reflected in [`features.md`](features.md).
 
 ## Coverage ramp-up (ADR 0009)
 
-Baseline 2026-10-12 (`scripts/check-coverage.sh`, Kit own code 76 %).
+Baseline 2026-10-12 (`Scripts/check-coverage.sh`, Kit own code 76 %).
 Take files in this order; remove an item once the file is at 100 %.
 
 - [ ] **C-01** `Networking/APIClient.swift` (38 %): real-network path via a
@@ -33,7 +33,7 @@ Take files in this order; remove an item once the file is at 100 %.
       `DemoData`.
 - [ ] **C-04** Propose exclusions to the owner for code tests cannot drive
       (e.g. the MetricKit delivery callbacks, Keychain access-group
-      behavior); add them to `scripts/coverage-exclusions.txt` only after
+      behavior); add them to `Scripts/coverage-exclusions.txt` only after
       approval.
 - [ ] **C-05** Bring the iOS app target under the gate (Xcode coverage run,
       unit + UI tests), then the Watch app and the complication.
