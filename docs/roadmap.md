@@ -67,6 +67,36 @@ Goal: get the app into TestFlight, both Internal and External testing.
 - **External Testing** — submitted for Beta App Review 2026-10-12 (build 0.1.0 (2)); waiting
   for Apple.
 
+### Working with servers that lack the open Engelsystem PRs (planned 2026-10-12)
+
+Goal: the app stays fully usable — and never shows errors for missing features — against Engelsystem servers that do not
+have PRs #1709 (no `api` privilege for `/users/self/*`, `/news`), #1710 (`GET /news/{id}`, `comments_count`) and #1711
+(`GET /locations/{id}`, no `api` privilege for locations). Owner decisions (2026-10-12): **news comments are optional and
+simply not shown when the server lacks them; locations the same — if they cannot be retrieved they are hidden.**
+
+Problems today (see the analysis in the chat of 2026-10-12): `comments_count` is a required field of `News`, so a server
+without #1710 breaks the whole News list (decoding error); that failure also makes the app-start/background sync skip
+scheduling shift reminders; `/news/{id}` and `/locations/{id}` errors are shown as banners; "Test Connection" can report
+success although every data endpoint answers 403.
+
+Design (details in the backlog, items K-01 – K-07):
+
+- **Lenient API model**: `comments_count` becomes optional in our `openapi.yml` copy (a documented local divergence from the
+  upstream branch, re-checked after the PRs merge); a missing value counts as "no comments feature".
+- **Capabilities instead of errors**: a small *device-local* capability store (not CloudKit-synced, so no CloudKit schema
+  change) records per instance whether news comments, the locations list and location detail are available. Filled for free
+  from sync results: comments are supported when `/news` items carry `comments_count`; the locations list when `/locations`
+  succeeds; location detail when its first refresh succeeds. Anything unavailable is hidden; a 404/403 on these optional
+  endpoints is never an error banner. The existing Messages probe keeps its place (`Instance.messagesSupported`).
+- **UI**: no "N Comments" link or comments screen without support; the Locations sidebar entry only when at least one active
+  instance can list locations; a shift's location is plain text when there is no cached location; the location detail
+  screen just shows what is cached (no refresh error).
+- **Connection check**: "Test Connection" also probes a real data endpoint; a 403 is reported as "the server denied access
+  (403)" in neutral wording (no group names) and blocks Save, instead of "Connection verified".
+- **Reminders independent of News**: shift reminders are planned whenever the *shift* sync succeeded, regardless of News,
+  Profile or Locations failing.
+- Decision record: ADR 0013 (device-local capabilities, optional fields).
+
 ## Open decisions
 
 Awaiting the user's input — nothing below should be assumed/acted on

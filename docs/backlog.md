@@ -7,6 +7,35 @@ item moves here once it's broken down enough that someone could
 actually start on it; it's removed (not just checked off) once it's
 done and reflected in [`features.md`](features.md).
 
+## Compatibility with servers lacking the open Engelsystem PRs (see ROADMAP.md)
+
+Each item is its own commit; all gates, both app builds and the UI tests must stay green; tests for everything new.
+
+- [ ] **K-01** Lenient news model: make `comments_count` optional in `EngelsystemClientKit/Resources/openapi.yml` (drop it from
+      `required`), regenerate with `Scripts/generate-api.sh`, map a missing value to `nil` → `CachedNews.commentsCount` 0;
+      tests (stub network: `/news` without `comments_count` decodes and syncs). Document the local divergence from the upstream
+      branch in `docs/architecture.md` (API section) and re-check it after the PRs merge.
+- [ ] **K-02** Device-local capability store (`ServerCapabilities`: news comments, locations list, location detail; keyed by
+      instance ID, stored in `UserDefaults`/a local file, not CloudKit): API, pure interpretation logic (e.g. "comments
+      supported when any `/news` item has `comments_count`; unknown for an empty list keeps the previous value"), updated from
+      `AppSyncCoordinator` results and the screens' own fetches; tests. ADR 0013.
+- [ ] **K-03** News: show the comments link, `NewsDetailView` and comment counts only when comments are supported; a 404/403
+      from `GET /news/{id}` hides the feature silently (marks it unsupported) instead of showing an error; tests (view-model and
+      `InstanceScope`-style helpers).
+- [ ] **K-04** Locations: hide the Locations sidebar entry unless at least one active instance can list locations (like
+      Messages: `MainView.Section.visibleSidebarCases`, fallback selection); a shift's location is plain text without a cached
+      location; `LocationDetailViewModel` treats 404/403 as "no refresh available" (no error banner); the list sync's
+      404 → empty behavior stays; tests; adapt the UI tests that open Locations.
+- [ ] **K-05** Connection check: `APIClient` probes a data endpoint during "Test Connection" (setup and edit, iOS and Watch); a
+      403 gives a neutral "the server denied access (403)" message and blocks Save; keep the `self` probe (404 → numeric user ID
+      fallback); update `APIError.forbidden`'s wording to a neutral text (this pre-empts the wording part of A-01); tests.
+- [ ] **K-06** Reminders: in `AppSyncCoordinator` plan shift reminders whenever every instance's *shift* sync succeeded (new
+      `shiftsSucceeded`), independent of News/Profile/Locations/Messages failures; news announcements stay independent too;
+      tests.
+- [ ] **K-07** Docs and verification: ADR 0013, `docs/architecture.md` ("Compatibility with older servers"), `docs/features.md`,
+      FAQ ("Why do I not see comments or locations?" — the app hides what a server does not offer), `CHANGELOG.md`; run
+      `Scripts/check-all-coverage.sh`, build iOS/Watch (Debug and Release) and the UI tests (erased simulator).
+
 - [ ] **A-01** (waiting for upstream) Once the Engelsystem pull requests
       [#1708](https://github.com/engelsystem/engelsystem/pull/1708) (self in worklogs),
       [#1709](https://github.com/engelsystem/engelsystem/pull/1709) (no `api` privilege for `/users/self/*` and `/news`),
