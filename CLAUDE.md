@@ -96,153 +96,18 @@ against instances that don't support it yet too — see "if the instance
 doesn't offer the new interface, don't show the GUI" in the Messages
 writeup.
 
-## API
+## API, demo mode, tech stack, project structure
 
-- Source: `Resources/openapi.yml` (kept in the project, original from
-  `https://github.com/engelsystem/engelsystem/blob/main/resources/api/openapi.yml`)
-- OpenAPI 3.0.3, base path `/api/v0-beta`, status: beta
-- Auth: bearer token **or** `x-api-key` header (API key from the
-  Engelsystem user settings). User needs the `API` or `Bureaucrat` group
-  on the instance.
-- **Every endpoint except `/messages*` is GET-only.** `/messages` (added
-  2026-09-23, see below) is this API's first read/write resource —
-  `POST`/`PATCH`/`DELETE` alongside its `GET`s:
-  - `/users/{id}/shifts`, `/angeltypes/{id}/shifts`, `/locations/{id}/shifts`,
-    `/shifttypes/{id}/shifts`
-  - `/shifttypes`, `/locations`, `/locations/{id}` (added 2026-09-23, see below),
-    `/angeltypes`, `/angeltypes/{id}/users`
-  - `/users`, `/users/{id}`, `/users/{id}/angeltypes`
-  - `/news`, `/news/{id}` (added 2026-09-22, see below)
-  - `/users/{id}/worklogs`
-  - `/messages` (GET), `/messages/{id}` (GET, POST), `/messages/{msgId}`
-    (DELETE, PATCH) — added 2026-09-23, see below
-  - `/info` (event metadata)
-  - `/openapi`
-- `{id}` can also be the string `self` on user endpoints (own account)
-- No server-side push/webhook mechanism exists
+Moved to [`docs/architecture.md`](docs/architecture.md) (D-03, 2026-10-12):
 
-**`/news/{id}` added 2026-09-22**, sourced from a fork of the server
-project (`github.com/cookieBerlin/engelsystem`, branch
-`feat/api-news-comments`) via a cross-session message from a separate
-Claude session working on that server — **not merged to that fork's own
-main yet**, only combined into a local-only `develop` branch and
-deployed live on a private LAN dev test server at the time this was
-added. Returns a `NewsDetail` (the existing `News` shape
-plus a `comments: [NewsComment]` array, each `{id, text, user:
-Reference, created_at, updated_at}`); the existing `News`/`/news` list
-also gained a new required `comments_count` field. Applied to this
-project's `openapi.yml` by diffing against that branch's copy directly
-(fetched via `raw.githubusercontent.com`) rather than hand-writing the
-schema, then regenerating via `Scripts/generate-api.sh` as usual.
-
-**`/locations/{id}` added 2026-09-23** (the Locations feature — see
-`docs/features.md`), same cross-session-branch workflow:
-fetched directly from the pushed branch
-(`raw.githubusercontent.com/cookieBerlin/engelsystem/feat/api-locations-detail/resources/api/openapi.yml`,
-PR [engelsystem/engelsystem#1711](https://github.com/engelsystem/engelsystem/pull/1711),
-**open, not merged upstream yet**) rather than hand-writing the schema.
-Reuses the existing `Location` schema as-is (no new fields); 404 for an
-unknown id. The same cross-session update reported `/locations` and
-`/locations/{id}` no longer require the `api` privilege group, just a
-valid authenticated user (same relaxation already in place for
-`/users/self/*`/`/news`) — a server-side change only, nothing for this
-client to implement. A third branch mentioned in earlier cross-session
-messages (full read/write private messages) remains **not implemented
-client-side** — Phase 2 scope; see the reference memory saved for it.
-If picking up work against any not-yet-merged branch like this later,
-re-fetch its current `openapi.yml` the same way rather than trusting an
-older cross-session message's field descriptions verbatim, in case the
-branch has moved on since.
-
-**`/messages` added 2026-09-23** (the Messages feature — full read/write
-private messaging, see `docs/features.md`), sourced from a
-not-yet-merged server branch (`feat/api-messages`) via the same
-cross-session-branch workflow as `/news/{id}`/`/locations/{id}` above —
-fetched directly from the branch's `openapi.yml`, not hand-written, then
-regenerated. New schemas: `Message` (`id`, `text`, `sender`/`receiver`:
-`Reference`, `read`, `created_at`, `updated_at`), `Conversation`
-(`other_user`, `latest_message`, `unread_messages`), `MessageSend`
-(`text`, request body for `POST /messages/{id}`), `MessageSetRead`
-(`read`, request body for `PATCH /messages/{msgId}`). Also added
-`ApiValidationError` (a 422 response schema for the new write
-endpoints) — named with an `Api` prefix, not the more obvious
-`ValidationError`, because that exact name collides with
-openapi-generator's own internal `Validation.swift` boilerplate type;
-discovered via a genuine "invalid redeclaration" build error after the
-first regeneration attempt, not anticipated in advance.
-
-**This is the API's first read/write resource, and the client
-deliberately treats it differently from every read-only feature above**:
-- **No `Cached*`/SwiftData model, no sync service — live-only.**
-  `APIClient.fetchConversations`/`fetchConversation`/`sendMessage`/
-  `deleteMessage`/`setMessageRead` all hit the network every call, same
-  shape as `fetchNewsDetail`'s comments. Deliberate: this is the app's
-  first mutable, bidirectional data, and a local cache would need to
-  reconcile offline writes against a live server — avoiding that
-  entirely was judged simpler for a first version than solving it.
-- **Gated behind a runtime capability probe, not a "wait for the merge"
-  rule.** Since not every Engelsystem deployment will support this
-  right away, `Instance.messagesSupported: Bool` (default `false`,
-  CloudKit-synced) controls whether the whole Messages sidebar entry
-  shows up at all — "if the instance doesn't offer the new interface,
-  don't show the GUI" (explicit user requirement). Checked by
-  `APIClient.messagesSupported(_:)` as a lightweight extra step in
-  `AppSyncCoordinator.syncEverything` (a single `GET /messages`, no
-  persistence beyond the one `Bool`) — there's no dedicated Setup/Edit-
-  time probe; the periodic re-check via the coordinator is enough to
-  pick up a server that gains support later. A plain 404 is ambiguous
-  on its own (route missing vs. some other 404), so the probe inspects
-  the response *body*: a route that doesn't exist falls through to the
-  server's shared catch-all (`{"message": "Not implemented"}`), while a
-  genuine "not found" for a specific resource reads `{"message": "Not
-  Found"}` — verified against the real server implementation via a
-  cross-session message, not guessed. `APIClient.withCredential` was
-  refactored to expose a lower-level `withLockedCredential` (gate-lock/
-  credential-set/run/gate-unlock only, no `APIError`-wrapping) so this
-  probe can see the raw `ErrorResponse` and its body — every other
-  caller's behavior is unchanged.
-- **`MainView.Section.visibleSidebarCases(forActiveInstances:)`** filters
-  the Messages row out unless at least one active instance reports
-  `messagesSupported`; `MainView.resolvedSelection(_:visibleSections:)`
-  falls back to Shifts if a previously-selected Messages screen becomes
-  unavailable (e.g. the one supporting instance gets deactivated).
-- iOS-only, like Locations — no Messages screen on the Watch, per its
-  minimal scope.
-
-## Demo mode (for testing without a real server)
-
-- **Purpose:** let the app (and reviewers/testers without an Engelsystem
-  account) be tried out end-to-end without a live server or API key.
-- **Approach:** a sentinel base URL (e.g. `demo://engelsystem.local`)
-  recognized by `Instance`/`EventCredential`. When active, `APIClient`
-  returns static, realistic mock data (a `DemoData` provider inside
-  `EngelsystemClientKit`) instead of making real HTTP requests — **no**
-  mock server process, no extra networking stack, no separate code path
-  in views/view models.
-- **Entry point:** a "Try Demo" action on the `InstanceSetup` screen
-  creates a normal `Instance` with the demo sentinel URL. From then on it
-  behaves exactly like any other instance (shows up in `InstanceListView`,
-  can be switched to/removed, etc.) — no demo-specific UI anywhere else.
-- **Constraint:** demo data lives only in `EngelsystemClientKit`'s
-  networking layer (`APIClient`/`DemoData`) — never as hardcoded fallbacks
-  inside views or view models, so the demo and real code paths stay
-  identical except for where `APIClient` gets its data from.
-
-## Tech stack (final, binding)
-
-| Area | Decision |
-|---|---|
-| Deployment target | iOS 26.5, watchOS 26.5 |
-| UI | SwiftUI, `@Observable` view models |
-| iPad | `NavigationSplitView` (no plain TabView) |
-| Persistence | SwiftData, CloudKit-backed (see [`docs/architecture.md`](docs/architecture.md)) |
-| DTOs | generated via OpenAPI Generator (`swift5`, `library=urlsession`,
-  `responseAs=AsyncAwait`) from `openapi.yml` — **do not hand-write** |
-| Networking | `URLSession` + `async/await`, custom `APIClient` uses the
-  generated DTOs |
-| Auth storage | Keychain, iCloud-synced |
-| Notifications | local only (`UNUserNotificationCenter`), no APNs |
-| Organization identifier | `net.cuccato.engelsystem.de` |
+- **Tech stack (binding)** — SwiftUI/`@Observable`, SwiftData + CloudKit,
+  generated DTOs (never hand-written), `URLSession` + async/await,
+  Keychain, local-only notifications.
+- **Project/target structure** and the Watch app target rename note.
+- **API** — OpenAPI source, auth, endpoint list and the provenance of
+  not-yet-merged server branches (`/news/{id}`, `/locations/{id}`,
+  `/messages`).
+- **Demo mode** — sentinel-URL approach in `APIClient`/`DemoData`.
 
 ## Watch app scope (deliberately minimal)
 
@@ -261,73 +126,6 @@ deliberately treats it differently from every read-only feature above**:
   [`docs/features.md`](docs/features.md) for how
   it's reached and built.
 
-## Project/target structure
-
-```
-Engelsystem.xcodeproj
-├── EngelsystemClientKit/          ← SPM package (shared, iOS + watchOS)
-│   ├── Sources/EngelsystemClientKit/
-│   │   ├── DTO/                   ← generated, do not hand-edit
-│   │   ├── Generated/             ← OpenAPI Generator output
-│   │   ├── Persistence/           ← Instance, CachedShift, CachedNews, ...
-│   │   ├── Networking/            ← APIClient, APIEndpoint, APIError
-│   │   └── Services/              ← ShiftSyncService, NewsSyncService,
-│   │                                 ProfileSyncService, NotificationScheduler,
-│   │                                 InstanceSetupService, InstanceCredentialResolver,
-│   │                                 NextShiftSnapshotStore, KeychainSyncStore,
-│   │                                 LocalKeychainStore
-│   └── Resources/openapi.yml
-├── EngelsystemClient/             ← iOS/iPadOS target
-│   └── Features/
-│       ├── InstanceSetup/
-│       ├── Shifts/
-│       ├── News/
-│       ├── Profile/
-│       └── Settings/
-├── EngelsystemClient Watch App/   ← watchOS target
-│   ├── Views/NextShiftView.swift, NextShiftViewModel.swift, WatchMainView.swift
-│   ├── Setup/WatchSetupView.swift, WatchSetupViewModel.swift (fallback entry UI,
-│   │                                also reused as the "Add Instance" sheet)
-│   └── Settings/WatchSettingsView.swift, WatchUpdateAPIKeyViewModel.swift,
-│                                 WatchEditInstanceViewModel.swift
-└── EngelsystemComplication/       ← watchOS Widget Extension (embedded in the
-                                      Watch app target above), the complication
-```
-
-`Package.swift` note: `platforms` must come directly after `name`, before
-`products`/`dependencies`/`targets`, otherwise it's a compiler error.
-
-**2026-09-23, renamed: the Watch app's folder/target/product names were
-doubled** (`EngelsystemClient Watch App Watch App`, plus matching
-`...Watch App Watch AppTests`/`...UITests`) — an artifact of how Xcode
-originally created the target (the product's own display name,
-`INFOPLIST_KEY_CFBundleDisplayName`, was already correctly
-"EngelsystemClient Watch App" the whole time, so this never showed up
-to an actual user; it was purely an internal Xcode/project-file
-naming glitch). Fixed via the `xcodeproj` Ruby gem (same tool this
-project already uses for structural `project.pbxproj` changes — see
-"Complication" in
-[`docs/features.md`](docs/features.md)) rather
-than hand-editing the pbxproj text: renamed
-the three targets' `name`/`productName`, the three
-`PBXFileSystemSynchronizedRootGroup` paths, the `Products` group's
-`.app`/`.xctest` file references, `CODE_SIGN_ENTITLEMENTS`/`TEST_HOST`/
-`TEST_TARGET_NAME` build settings, and the `PBXContainerItemProxy.
-remoteInfo` fields (cosmetic Xcode-UI hints, easy to miss — grep for
-the old name again afterward if you ever touch this area, rather than
-trusting the gem's higher-level rename helpers alone caught everything).
-Also renamed the actual directories/files on disk (`git mv`, preserving
-history) — the entitlements file, the two doubled-scheme `.xcscheme`
-files (the Watch app's own, and `EngelsystemComplication.xcscheme`,
-which references the Watch app target as its host), and three Swift
-files whose *filenames* were doubled too
-(`EngelsystemClient_Watch_App_Watch_App{Tests,UITests,UITestsLaunchTests}.swift`).
-**The generated Swift module name changed as a side effect** (Xcode
-derives it from `PRODUCT_NAME`, which was `$(TARGET_NAME)`): the Watch
-unit test target's `@testable import EngelsystemClient_Watch_App_Watch_App`
-had to become `@testable import EngelsystemClient_Watch_App` — easy to
-miss since nothing else about that line looks related to the rename at
-a glance.
 
 ## Implementation order
 
