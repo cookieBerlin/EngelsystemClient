@@ -201,6 +201,59 @@ exists without reading the whole diff history.
     same `CustomStringConvertible` conformance, so it prints `"self"`/
     the numeric ID, not `"{id}"`) instead of the static template.
     Verified via the full Kit test suite (67/67) after the change.
+- **`MetricKitReporter`** (`Services/MetricKitReporter.swift`,
+  2026-10-09, user-requested crash/diagnostics reporting via
+  Apple's MetricKit — see `docs/ROADMAP.md`'s "Resolved decisions" for
+  the data-handling model that was decided first): subscribes to
+  `MXMetricManager` for crash/hang/CPU-exception/disk-write-exception
+  diagnostics and performance metrics. Consistent with this app's
+  "no analytics, no third-party tracking" stance — everything MetricKit
+  delivers stays on-device; nothing is transmitted anywhere
+  automatically. **Decided model: local + manual export** — a short
+  human-readable summary of each delivery goes through the existing
+  `DebugLog` (e.g. `"MetricKitReporter: received 1 crash diagnostic(s)"`),
+  and the full raw payload (via each payload's own `jsonRepresentation()`)
+  is additionally persisted as JSON Lines to a Caches-directory file, so
+  a tester can explicitly export/share it (e.g. to attach to a bug
+  report email) rather than it only being visible inside the app.
+  - **iOS-only** (`#if os(iOS)`), like Locations/Messages — no
+    diagnostics UI on the Watch. The `MXMetricManagerSubscriber`
+    conformance itself is also behind `canImport(MetricKit)`, which is
+    `false` for this package's `swift test` platform (plain macOS —
+    MetricKit isn't available there at all); the rest of the type
+    (persist/export/clear, the pure summarizing logic) still compiles
+    and is testable there regardless.
+  - **Real-platform API-shape bug caught only by the full Xcode build,
+    not `swift test`**: `MXMetricPayload`/`MXDiagnosticPayload
+    .jsonRepresentation()` return a non-optional `Data` on the real iOS
+    SDK — the first version wrote `if let data = payload
+    .jsonRepresentation()`, assuming `Data?`, which only failed to
+    compile once built for a real iOS destination (the macOS-only Kit
+    build had compiled the whole `MXMetricManagerSubscriber` extension
+    out entirely via `canImport(MetricKit)`, so `swift test` gave false
+    confidence). Fixed by dropping the `if let` around the `Data` itself,
+    keeping it only around the `String(data:encoding:)` conversion.
+    Reinforces this project's existing "verify with a full Xcode build,
+    not just `swift test`, for anything platform-specific" practice.
+  - Registered once at app launch (`EngelsystemClientApp.init()`, via
+    `MetricKitReporter.shared.activate()`), same pattern as
+    `WatchConnectivityBridge.activate()` right above it.
+  - **Settings integration**: a new "Export Diagnostics" row in the
+    existing "Diagnostics" section (next to "View Debug Log") —
+    a `ShareLink` when `MetricKitReporter.shared.exportText()` has
+    something to share, otherwise a disabled-looking label (no payloads
+    received yet). The footer text was extended to explain what this
+    shares and that nothing is sent anywhere automatically.
+  - **Tests** (`MetricKitReporterTests`, `@Suite(.serialized)` since
+    they share the one real singleton and on-disk file, same reasoning
+    as `DebugLogTests`): persist/export/clear round-trip, the pure
+    `summarize(crashCount:hangCount:cpuExceptionCount:
+    diskWriteExceptionCount:)` logic (every-kind-present, all-zero, and
+    exactly-one-kind cases), and that `activate()` doesn't crash on a
+    platform without MetricKit (the `#else` no-op branch — the real
+    iOS subscription path can't be verified outside a real
+    device/simulator run, since `MXDiagnosticPayload` has no public
+    initializer for a test to construct one).
 
 ### iOS/iPadOS app
 

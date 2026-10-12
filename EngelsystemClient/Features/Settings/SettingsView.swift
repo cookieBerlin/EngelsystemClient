@@ -205,10 +205,18 @@ struct SettingsView: View {
                 NavigationLink("View Debug Log") {
                     DebugLogView()
                 }
+                if let diagnosticsText = MetricKitReporter.shared.exportText() {
+                    ShareLink(item: diagnosticsText, preview: SharePreview("MetricKit Diagnostics")) {
+                        Label("Export Diagnostics", systemImage: "square.and.arrow.up")
+                    }
+                } else {
+                    Label("Export Diagnostics", systemImage: "square.and.arrow.up")
+                        .foregroundStyle(.secondary)
+                }
             } header: {
                 Text("Diagnostics")
             } footer: {
-                Text("Records internal sync and notification activity for troubleshooting. Never includes API keys or other secrets. Off by default; turning it off doesn't erase what's already logged — use \"Clear\" in the log view for that.")
+                Text("Records internal sync and notification activity for troubleshooting. Never includes API keys or other secrets. Off by default; turning it off doesn't erase what's already logged — use \"Clear\" in the log view for that. \"Export Diagnostics\" shares crash/hang/performance data collected on-device by Apple's MetricKit — nothing is sent anywhere automatically.")
             }
 
             Section {

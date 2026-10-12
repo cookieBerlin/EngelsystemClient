@@ -40,6 +40,9 @@ struct EngelsystemClientApp: App {
         // 2026-09-23, "keep the Watch fresh" feature — see WatchConnectivityBridge and
         // docs/ARCHITECTURE.md's "Sync strategy".
         WatchConnectivityBridge.activate()
+        // 2026-10-09, user-requested crash/diagnostics reporting via MetricKit — see
+        // MetricKitReporter and docs/IMPLEMENTED_FEATURES.md.
+        MetricKitReporter.shared.activate()
     }
 
     var body: some Scene {
