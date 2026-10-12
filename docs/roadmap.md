@@ -97,7 +97,7 @@ Design (details in the backlog, items K-01 – K-07):
   Profile or Locations failing.
 - **Temporary by design**: every workaround is tagged `COMPAT(#<PR>)`, listed in a register in `docs/architecture.md` and
   removed again by backlog task R-01 once the PRs are closed — afterwards a missing endpoint or a 403 is a real error
-  again and the app may assume the servers support everything. The 403 warning names the missing privilege and says the
+  again and the app may assume the servers support everything. R-01 also removes the numeric user-ID / `self` workaround (`Instance.userID`, `selfReferenceWorks`, the User ID fields, the probe) once servers without #1708 no longer matter. The 403 warning names the missing privilege and says the
   account must be added to one of the groups that have it (e.g. "API" or "Bureaucrat"); it never mentions pull requests.
 - **Website**: a "Server compatibility" section lists the open PRs (#1709, #1710, #1711), their status and what is unavailable without them (K-08); it is removed or rewritten once they are merged.
 - Decision record: ADR 0013 (device-local capabilities, optional fields).

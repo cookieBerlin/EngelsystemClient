@@ -62,10 +62,18 @@ Permanent improvements (not tagged): K-06 (reminders independent of News).
       comments, `GET /news/{id}`, the Locations area and `GET /locations/{id}` are always shown, and a failure shows a normal
       error banner again; (4) "Test Connection": a 403 on the data probe is a hard error again and blocks Save; (5) remove the
       `API`/`Bureaucrat` group wording from the setup hint, `APIError.forbidden` and its test, and `docs/architecture.md`;
-      (6) change the "not yet merged" provenance notes (`/news/{id}`, `/locations/{id}`, `self` worklogs) to "merged"; decide
-      with the owner whether the numeric user-ID fallback (`selfReferenceWorks`) can go too (it only matters for servers older
-      than #1708); (7) remove the "Server compatibility" section from the website (K-08) and the FAQ pointer, and the register
-      in `docs/architecture.md`; (8) the Messages capability probe stays (the messages API is not part of this set); (9) run
+      (6) change the "not yet merged" provenance notes (`/news/{id}`, `/locations/{id}`, `self` worklogs) to "merged"; (7) **remove the
+      user-ID / `self` workaround** — only once the servers the app is meant for are known to include #1708 (owner confirms):
+      `Instance.userID` and `Instance.selfReferenceWorks` (CloudKit-synced; removing stored properties is a lightweight
+      SwiftData migration and the old fields simply stay unused in the CloudKit schema — verify on a device with existing
+      data before shipping), `Instance.userReference`/`UserReference.id(…)` (always `self`), `APIClient.selfUserReferenceWorks` and
+      its pure interpretation helper, the "User ID" fields and the `selfReferenceWorks` handling in the iOS setup/edit screens
+      and the Watch setup/edit/settings views and view models, the `userID` parameters of `InstanceSetupService`
+      (`createInstance`, `updateInstance`, including "force-clear userID when self works"), the `userID` mentions in
+      `ShiftsViewModel`/`ProfileViewModel`/`NextShiftViewModel` logging and `APIEndpoint`, the related tests, `docs/architecture.md`
+      (instance model, setup flow, the `self`/user-ID investigation notes → move to `docs/history.md`), the FAQ entry "Shifts or
+      Profile are empty, but News works", and the guide's step about the User ID field; (8) remove the "Server compatibility"
+      section from the website (K-08) and the FAQ pointer, and the register in `docs/architecture.md`; (9) the Messages capability probe stays (the messages API is not part of this set); (10) run
       all gates, both builds and the UI tests.
 
 _(No other open tasks. TestFlight: build 0.1.0 (2) is in internal testing and submitted for
