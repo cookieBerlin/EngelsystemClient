@@ -95,6 +95,7 @@ Design (details in the backlog, items K-01 – K-07):
   (403)" in neutral wording (no group names) and blocks Save, instead of "Connection verified".
 - **Reminders independent of News**: shift reminders are planned whenever the *shift* sync succeeded, regardless of News,
   Profile or Locations failing.
+- **Website**: a "Server compatibility" section lists the open PRs (#1709, #1710, #1711), their status and what is unavailable without them (K-08); it is removed or rewritten once they are merged.
 - Decision record: ADR 0013 (device-local capabilities, optional fields).
 
 ## Open decisions

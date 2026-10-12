@@ -36,6 +36,14 @@ Each item is its own commit; all gates, both app builds and the UI tests must st
       FAQ ("Why do I not see comments or locations?" — the app hides what a server does not offer), `CHANGELOG.md`; run
       `Scripts/check-all-coverage.sh`, build iOS/Watch (Debug and Release) and the UI tests (erased simulator).
 
+- [ ] **K-08** Website: add a "Server compatibility" section to `docs/guide.md` (short pointer in `docs/faq.md` and, if useful, on
+      the landing page) that says which Engelsystem pull requests the app relies on, their status, and what is unavailable
+      without them: [#1709](https://github.com/engelsystem/engelsystem/pull/1709) (open) — without it the account needs the
+      server's API privilege/group for every request, otherwise "No API access"; [#1710](https://github.com/engelsystem/engelsystem/pull/1710)
+      (open) — without it no news comments and no comment counts; [#1711](https://github.com/engelsystem/engelsystem/pull/1711)
+      (open) — without it no per-location refresh (cached location details stay visible); private messages — need a server
+      with the messages API (not part of Engelsystem yet). Already merged and therefore not listed as a gap: #1708 (`self` in
+      worklogs), #1712. The app hides every feature a server lacks (K-01 – K-04). Keep the statuses current.
 - [ ] **A-01** (waiting for upstream) Once the Engelsystem pull requests
       [#1708](https://github.com/engelsystem/engelsystem/pull/1708) (self in worklogs),
       [#1709](https://github.com/engelsystem/engelsystem/pull/1709) (no `api` privilege for `/users/self/*` and `/news`),
@@ -47,8 +55,8 @@ Each item is its own commit; all gates, both app builds and the UI tests must st
       message and its test, and from `docs/architecture.md` (API section and the 403 handling); change the "not yet merged"
       provenance notes for `/news/{id}`, `/locations/{id}` and `self` worklogs in `docs/architecture.md`/`docs/features.md`
       to "merged"; then check whether the numeric user-ID fallback (`selfReferenceWorks`) is still needed.
-      **The published website already assumes this state** (no group requirement is mentioned), so only the internal
-      docs and the app lag behind until then.
+      **The website (K-08) lists the open PRs and what is missing without them** — when they are all merged, remove
+      or rewrite that section too (and drop the group wording everywhere).
 
 _(No other open tasks. TestFlight: build 0.1.0 (2) is in internal testing and submitted for
 Beta App Review as of 2026-10-12; if Apple rejects it, the owner reports the reason here.)_
