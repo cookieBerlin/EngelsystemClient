@@ -9,8 +9,9 @@ done and reflected in [`features.md`](features.md).
 
 ## TestFlight release
 
-- [ ] **T-01** Upload a first build (Xcode Archive → App Store Connect); see
-      `release.md`. Export compliance is pre-answered in the Info.plist.
+- [ ] **T-01** Upload the first build: archive 0.1.0 (2) is built and verified (app, Watch app and
+      complication all 0.1.0 (2)); open it in the Xcode Organizer → Distribute App → App Store
+      Connect → Upload (see `release.md`). Export compliance is pre-answered in the Info.plist.
 - [ ] **T-02** Set up Internal Testing group and upload a build.
 - [ ] **T-03** Prepare for External Testing / Beta App Review (Beta App
       Description, Feedback Email, demo-mode hint for reviewers) once

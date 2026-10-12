@@ -17,6 +17,12 @@ Run top to bottom for every build. Identifiers and metadata:
 
 ## Archive and upload
 
+The signed-in Apple account lives in Xcode's GUI session: `xcodebuild -exportArchive`
+from a terminal fails with "No Accounts", so **distribute from the Xcode Organizer**
+(Window → Organizer → Archives → Distribute App → App Store Connect → Upload). A CLI
+archive is fine for validating that the project builds and embeds the Watch app and
+complication — see "Build number" in [`app-store.md`](app-store.md) for the number gotcha.
+
 1. Scheme `EngelsystemClient`, destination *Any iOS Device*.
 2. Product → Archive → Organizer → Distribute App → App Store Connect →
    Upload. The Watch app and complication are embedded.

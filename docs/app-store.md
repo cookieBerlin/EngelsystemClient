@@ -133,18 +133,16 @@ both added via the `xcodeproj` Ruby gem, not by hand-editing
   `CURRENT_PROJECT_VERSION` across every target in the project
   consistently (confirmed hands-on: 1 → 2 across all 14 build configs in
   one invocation, iOS + Watch + both test targets + Complication).
-  **Scheme pre-actions/post-actions only run when archiving through
-  Xcode's own UI (Product → Archive) — `xcodebuild archive` from the
-  command line does not execute them at all.** This project's testing
-  this session has been almost entirely `xcodebuild` CLI, so this
-  specific behavior could not be (and was not) verified end-to-end the
-  same way as everything else — verify manually via Xcode's Organizer
-  the first time this matters for a real archive. `agvtool` also prints
-  `Cannot find "NO"`/`Cannot find "YES"` noise while doing this (it
-  appears to misinterpret some unrelated `GENERATE_INFOPLIST_FILE`
-  build-setting values elsewhere in the project as candidate Info.plist
-  paths) — harmless, the actual version bump still lands correctly
-  despite the noise.
+  **Verified 2026-10-12 (first real archive): `xcodebuild archive` from the command
+  line *does* run the pre-action too**, but the bump then lands *during* the build —
+  the app target had already read build number 1 while the complication's
+  `Info.plist` picked up the freshly written literal `2`, so the archive was
+  inconsistent (app 1 / complication 2) and would fail App Store validation. For a
+  CLI archive pass the number explicitly (`xcodebuild archive … CURRENT_PROJECT_VERSION=<n>`
+  where `<n>` is the current number + 1) so every bundle agrees, then commit the bumped
+  `project.pbxproj`/`EngelsystemComplication/Info.plist`. In Xcode's UI (Product →
+  Archive) the pre-action runs before the build and is consistent. `agvtool` also prints
+  `Cannot find "NO"`/`Cannot find "YES"` noise while doing this — harmless.
 - **App Group** `group.net.cuccato.engelsystem.de.shared` (Watch app + `EngelsystemComplication`
   extension only, not iOS): shares the next-shift snapshot with the complication
   process (see "Watch app scope" in [`CLAUDE.md`](../CLAUDE.md) and "Complication" in
