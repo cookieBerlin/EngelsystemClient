@@ -18,6 +18,9 @@ import EngelsystemClientKit
 final class LocationDetailViewModel {
     var isLoading = false
     var errorMessage: String?
+    /// COMPAT(#1711): set when the server has no `GET /locations/{id}` (404/403) — the screen
+    /// then just keeps showing the cached location, with no error banner.
+    var refreshUnavailable = false
 
     private let syncService: LocationSyncService
     private let credentialResolver: InstanceCredentialResolver
@@ -29,6 +32,7 @@ final class LocationDetailViewModel {
 
     func refresh(location: CachedLocation, instance: Instance, in modelContext: ModelContext) async {
         errorMessage = nil
+        refreshUnavailable = false
         isLoading = true
         defer { isLoading = false }
 
@@ -41,6 +45,11 @@ final class LocationDetailViewModel {
             // `.task`/`.refreshable` cancelled because the view disappeared isn't a
             // real failure and shouldn't show an error banner.
             if error is CancellationError { return }
+            if let apiError = error as? APIError, [APIError.notFound, .forbidden].contains(apiError) {
+                DebugLog.log("[LocationDetailViewModel] server has no location detail (\(apiError)) — keeping the cached data", level: .warning)
+                refreshUnavailable = true
+                return
+            }
             DebugLog.log("[LocationDetailViewModel] refresh failed: \(error)", level: .error)
             errorMessage = SyncErrorMapper.message(for: error)
         }

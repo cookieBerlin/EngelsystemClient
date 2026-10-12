@@ -193,7 +193,8 @@ private struct ShiftRow: View {
             Text(shift.formattedTimeRange())
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            if let location {
+            // COMPAT(#1711): without readable locations the name stays plain text.
+            if let location, ServerCapabilities.shared.isAvailable(.locationsList, for: shift.instanceID) {
                 NavigationLink {
                     LocationDetailView(location: location, instance: instance)
                 } label: {

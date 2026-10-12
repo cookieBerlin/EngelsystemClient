@@ -171,6 +171,25 @@ extension StubbedNetworkTests {
             #expect(cached.name != "Stale")
         }
 
+        /// COMPAT(#1711): a 404 from `GET /locations/{id}` keeps the cached data and shows no error.
+        @Test @MainActor func locationDetailRefreshWithoutServerSupportIsSilent() async throws {
+            let context = try makeContext()
+            let instance = try seed(baseURL: Instance.demoBaseURL, in: context)
+            defer { cleanUp(instance) }
+            let cached = CachedLocation(serverID: 999, instanceID: instance.id, name: "Cached", locationDescription: "", url: "u")
+            context.insert(cached)
+            let viewModel = LocationDetailViewModel()
+            await viewModel.refresh(location: cached, instance: instance, in: context)
+            #expect(viewModel.errorMessage == nil)
+            #expect(viewModel.refreshUnavailable)
+            #expect(cached.name == "Cached")
+
+            let known = CachedLocation(serverID: 1, instanceID: instance.id, name: "Stale", locationDescription: "", url: "u")
+            context.insert(known)
+            await viewModel.refresh(location: known, instance: instance, in: context)
+            #expect(!viewModel.refreshUnavailable)
+        }
+
         @Test @MainActor func locationDetailRefreshReportsFailuresButIgnoresCancellation() async throws {
             let context = try makeContext()
             let missing = try seed(baseURL: Instance.demoBaseURL, in: context, withKey: false)

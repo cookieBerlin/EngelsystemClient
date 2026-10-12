@@ -514,6 +514,22 @@ struct MainViewMessagesVisibilityTests {
         #expect(visible.contains(.messages))
     }
 
+    /// COMPAT(#1711): the Locations row needs at least one active instance whose server lets the account read locations.
+    @Test @MainActor func locationsRowFollowsTheLocationsListCapability() {
+        let capabilities = ServerCapabilities(defaults: UserDefaults(suiteName: "MainViewLocations-\(UUID().uuidString)")!)
+        let a = makeInstance(name: "A", messagesSupported: false)
+        let b = makeInstance(name: "B", messagesSupported: false)
+        #expect(MainView.Section.visibleSidebarCases(forActiveInstances: [a, b], capabilities: capabilities).contains(.locations))
+
+        capabilities.record(.locationsList, supported: false, for: a.id)
+        #expect(MainView.Section.visibleSidebarCases(forActiveInstances: [a, b], capabilities: capabilities).contains(.locations))
+        #expect(!MainView.Section.visibleSidebarCases(forActiveInstances: [a], capabilities: capabilities).contains(.locations))
+
+        capabilities.record(.locationsList, supported: false, for: b.id)
+        #expect(!MainView.Section.visibleSidebarCases(forActiveInstances: [a, b], capabilities: capabilities).contains(.locations))
+        #expect(MainView.Section.visibleSidebarCases(forActiveInstances: [], capabilities: capabilities).contains(.locations))
+    }
+
     @Test func everyOtherDataSectionAlwaysStaysVisibleRegardlessOfMessagesSupport() {
         let visible = MainView.Section.visibleSidebarCases(forActiveInstances: [])
         #expect(visible.contains(.shifts))

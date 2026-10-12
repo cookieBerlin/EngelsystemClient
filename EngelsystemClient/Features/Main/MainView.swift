@@ -82,8 +82,21 @@ struct MainView: View {
         /// instances are active — `.messages` only shows up once at least one active
         /// instance's server actually supports it (2026-09-23, Messages feature:
         /// "if the instance doesn't offer the new interface, don't show the GUI").
-        static func visibleSidebarCases(forActiveInstances activeInstances: [Instance]) -> [Section] {
-            sidebarCases.filter { $0 != .messages || activeInstances.contains(where: \.messagesSupported) }
+        static func visibleSidebarCases(
+            forActiveInstances activeInstances: [Instance],
+            capabilities: ServerCapabilities = .shared
+        ) -> [Section] {
+            // COMPAT(#1711): `.locations` additionally needs at least one active instance whose
+            // server lets this account read the locations list (no instances: nothing to hide).
+            let locationsVisible = activeInstances.isEmpty
+                || capabilities.isAvailable(.locationsList, forAnyOf: activeInstances.map(\.id))
+            return sidebarCases.filter { section in
+                switch section {
+                case .messages: return activeInstances.contains(where: \.messagesSupported)
+                case .locations: return locationsVisible
+                default: return true
+                }
+            }
         }
 
         var id: String { rawValue }
