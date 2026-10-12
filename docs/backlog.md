@@ -55,7 +55,8 @@ Permanent improvements (not tagged): K-06 (reminders independent of News).
       (open) — without it no per-location refresh (cached location details stay visible); private messages — need a server
       with the messages API (not part of Engelsystem yet). Already merged and therefore not listed as a gap: #1708 (`self` in
       worklogs), #1712. The app hides every feature a server lacks (K-01 – K-04). Keep the statuses current.
-- [ ] **R-01** (not blocked — do first) **Remove the user-ID / `self` workaround** (Engelsystem PR #1708, merged; servers without it
+- [ ] **R-01** (not blocked
+- [ ]  — do first) **Remove the user-ID / `self` workaround** (Engelsystem PR #1708, merged; servers without it
       are not supported, owner decision 2026-10-12; no CloudKit schema backward compatibility is needed either): drop
       `Instance.userID` and `Instance.selfReferenceWorks`, `Instance.userReference`/`UserReference.id(…)` (always `self`),
       `APIClient.selfUserReferenceWorks` and its pure interpretation helper, the "User ID" fields and the

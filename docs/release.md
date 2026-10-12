@@ -12,8 +12,10 @@ Run top to bottom for every build. Identifiers and metadata:
    app test targets.
 3. Bump `CURRENT_PROJECT_VERSION` for every upload; bump
    `MARKETING_VERSION` for a new release (both in the Xcode project).
-4. Update [`CHANGELOG.md`](../CHANGELOG.md) (once it exists, D-09) and
-   check [`privacy.md`](privacy.md) still matches the shipped data handling.
+4. Check [`privacy.md`](privacy.md) still matches the shipped data handling.
+5. **Changelog:** in the commit that bumps the version, rename `## [Unreleased]` in
+   [`CHANGELOG.md`](../CHANGELOG.md) to `## [<MARKETING_VERSION>] - <date>` (note the build number),
+   add a fresh empty `## [Unreleased]` above it and update the compare links at the bottom.
 
 ## Archive and upload
 
@@ -49,8 +51,14 @@ whenever the UI or the demo data changes visibly.
 
 ## After release
 
-- Tag the commit (`v<MARKETING_VERSION>`), move the finished entries from
-  [`roadmap.md`](roadmap.md)/[`backlog.md`](backlog.md) into
+- **Tag** the exact commit the uploaded archive was built from (not a later docs commit) with an
+  annotated tag `v<MARKETING_VERSION>`, e.g. `git tag -a v0.1.0 <commit> -m "Version 0.1.0 (build 2)"`.
+  Every upload that ships to testers or the store gets a tag; a further build of the same marketing
+  version uses `v<MARKETING_VERSION>-<build>` (e.g. `v0.1.0-3`). Push tags together with the next
+  block of commits (or when asked): `git push origin <tag>`.
+- Make sure the changelog entry for that version exists (step 5 above) **before** archiving, so the
+  tagged commit already contains it.
+- Move the finished entries from [`roadmap.md`](roadmap.md)/[`backlog.md`](backlog.md) into
   [`features.md`](features.md).
 
 ## Draft texts for TestFlight Test Information

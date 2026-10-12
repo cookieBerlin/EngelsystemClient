@@ -6,7 +6,9 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-First TestFlight build (version 0.1.0).
+## [0.1.0] - 2026-10-12
+
+First TestFlight build (version 0.1.0, build 2).
 
 ### Added
 - Shifts: your own shifts grouped by day, with local reminders before they start.
@@ -25,3 +27,6 @@ First TestFlight build (version 0.1.0).
   explaining what they contain; they are kept on the device for at most
   30 days / 1 MB, and nothing is sent automatically.
 - Privacy Policy and Support pages published via GitHub Pages.
+
+[Unreleased]: https://github.com/cookieBerlin/EngelsystemClient/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/cookieBerlin/EngelsystemClient/releases/tag/v0.1.0

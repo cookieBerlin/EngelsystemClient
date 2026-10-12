@@ -78,6 +78,14 @@ Write an ADR for decisions with real trade-offs; routine choices belong in
   `swift test` (macOS compiles platform-guarded code out).
 - No force unwraps in new code without a reason.
 
+## Releases
+
+Whenever a build is uploaded (TestFlight or App Store): the version commit also turns
+`[Unreleased]` in `CHANGELOG.md` into a dated `[<version>]` section, and the exact archived
+commit gets an annotated tag `v<version>` (`v<version>-<build>` for another build of the same
+version). Follow `docs/release.md`; remind the owner if a release is about to be skipped over
+these steps.
+
 ## Architecture rules
 
 - Shared logic lives in `EngelsystemClientKit`; views and view models in
