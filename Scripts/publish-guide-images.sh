@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Copies the generated screenshots (Scripts/screenshots.sh) into docs/assets/guide/ as small PNGs for the published
+# guide (docs/guide.md). Run Scripts/screenshots.sh first. The copies are committed, the full-size originals are not.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+OUT="docs/assets/guide"
+mkdir -p "$OUT"
+
+copy() { # source target-name width
+  [[ -f "$1" ]] || { echo "error: missing $1 — run Scripts/screenshots.sh first" >&2; exit 1; }
+  cp "$1" "$OUT/$2.png"
+  sips --resampleWidth "$3" "$OUT/$2.png" > /dev/null
+  echo "  $OUT/$2.png"
+}
+
+copy Screenshots/iphone/en/01-shifts.png shifts 330
+copy Screenshots/iphone/en/02-news.png news 330
+copy Screenshots/iphone/en/03-profile.png profile 330
+copy Screenshots/iphone/en/04-locations.png locations 330
+copy Screenshots/iphone/en/05-messages.png messages 330
+copy Screenshots/iphone/en/06-settings.png settings 330
+copy Screenshots/watch/en/01-next-shift.png watch-next-shift 220
+copy Screenshots/watch/en/02-settings.png watch-settings 220

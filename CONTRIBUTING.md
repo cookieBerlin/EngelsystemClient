@@ -25,7 +25,8 @@
 2. Full Xcode build of the iOS app **and** the Watch app succeeds.
 3. User-facing text is English and ready for localization.
 4. Documentation updated (see the map in [`CLAUDE.md`](CLAUDE.md));
-   [`docs/privacy.md`](docs/privacy.md) updated if data handling changed.
+   [`docs/privacy.md`](docs/privacy.md) updated if data handling changed, and
+   [`docs/guide.md`](docs/guide.md)/[`docs/faq.md`](docs/faq.md) if user-visible behavior changed.
 5. New decisions with real trade-offs recorded as an ADR in
    [`docs/adr/`](docs/adr/README.md).
 6. [`CHANGELOG.md`](CHANGELOG.md) updated under `[Unreleased]` for

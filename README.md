@@ -61,7 +61,7 @@ xcodebuild test -scheme EngelsystemClient \
 | [docs/roadmap.md](docs/roadmap.md), [docs/backlog.md](docs/backlog.md) | Planning and next tasks |
 | [docs/adr/](docs/adr/README.md) | Architecture Decision Records |
 | [docs/history.md](docs/history.md) | Closed investigations and lessons learned |
-| [Privacy Policy](https://cookieberlin.github.io/EngelsystemClient/privacy) · [Support](https://cookieberlin.github.io/EngelsystemClient/support) | Published pages |
+| [User Guide](https://cookieberlin.github.io/EngelsystemClient/guide) · [FAQ](https://cookieberlin.github.io/EngelsystemClient/faq) · [Privacy Policy](https://cookieberlin.github.io/EngelsystemClient/privacy) · [Support](https://cookieberlin.github.io/EngelsystemClient/support) | Published pages |
 
 ## License
 

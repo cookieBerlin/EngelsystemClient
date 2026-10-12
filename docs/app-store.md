@@ -175,6 +175,9 @@ Sizes checked against App Store Connect's "Screenshot specifications" on 2026-10
   opening the screen) and add the name to `SCENES` in the script. Scene content comes from `DemoData`.
 - **Watch**: no UI test; the Debug build is launched with `-seed-demo-instance -skipNotificationPrompt YES` and captured with
   `simctl io screenshot`. Both launch arguments do nothing in Release builds.
+- **Guide images**: `Scripts/publish-guide-images.sh` copies small versions of these screenshots into `docs/assets/guide/` for the
+  published [user guide](guide.md); rerun it (after `Scripts/screenshots.sh`) whenever the UI or the demo data changes visibly and
+  commit the result.
 - **Known cosmetics**: the Watch shows the real time; the iPad shows its windowing chrome (app name in the status bar, a
   window handle in the lower right corner); some screens show "Last Synced: …".
 - **Gotchas**: build with normal simulator signing (never `CODE_SIGNING_ALLOWED=NO`); the first sync's notification prompt only

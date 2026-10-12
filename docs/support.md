@@ -11,6 +11,8 @@ Congress.
 
 ## Getting help
 
+- **New to the app?** Read the [User Guide](guide.md); common questions are answered in the [FAQ](faq.md).
+
 - **Bug reports and feature requests**: open an issue on GitHub —
   [github.com/cookieBerlin/EngelsystemClient/issues](https://github.com/cookieBerlin/EngelsystemClient/issues).
   Please include: what you expected, what happened instead, your iOS
@@ -21,6 +23,8 @@ Congress.
 - **Email**: [EngelsystemClient@cuccato.net](mailto:EngelsystemClient@cuccato.net)
 
 ## Common questions
+
+More in the [FAQ](faq.md).
 
 **The app can't connect to my Engelsystem server.**
 Double-check the server URL and your API key (found in your
