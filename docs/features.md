@@ -227,7 +227,11 @@ exists without reading the whole diff history.
     "Export Diagnostics" opens `ExportDiagnosticsView` (size, what the
     reports contain, "nothing is sent on its own", retention) with the
     `ShareLink` inside it — `ShareLink` can't be triggered
-    programmatically, so it moved into the sheet.
+    programmatically, so it moved into the sheet. The row is always
+    tappable; with nothing delivered yet the sheet explains when iOS
+    delivers reports (about daily; crashes at the next launch) instead of
+    a silently greyed-out button. MetricKit delivers nothing in the
+    Simulator; on a device use Xcode's Debug → Simulate MetricKit Payloads.
   - **iOS-only** (`#if os(iOS)`), like Locations/Messages — no
     diagnostics UI on the Watch. The `MXMetricManagerSubscriber`
     conformance itself is also behind `canImport(MetricKit)`, which is

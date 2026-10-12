@@ -18,7 +18,7 @@ import EngelsystemClientKit
 /// `sheet(item:)` needs an `Identifiable` payload; a bare `String` isn't one.
 private struct DiagnosticsExport: Identifiable {
     let id = UUID()
-    let text: String
+    let text: String?
 }
 
 struct SettingsView: View {
@@ -212,15 +212,10 @@ struct SettingsView: View {
                 NavigationLink("View Debug Log") {
                     DebugLogView()
                 }
-                if let diagnosticsText = MetricKitReporter.shared.exportText() {
-                    Button {
-                        diagnosticsToExport = DiagnosticsExport(text: diagnosticsText)
-                    } label: {
-                        Label("Export Diagnostics", systemImage: "square.and.arrow.up")
-                    }
-                } else {
+                Button {
+                    diagnosticsToExport = DiagnosticsExport(text: MetricKitReporter.shared.exportText())
+                } label: {
                     Label("Export Diagnostics", systemImage: "square.and.arrow.up")
-                        .foregroundStyle(.secondary)
                 }
             } header: {
                 Text("Diagnostics")
