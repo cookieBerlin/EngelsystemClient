@@ -19,28 +19,7 @@ here.
 ## Format
 
 One file per decision, numbered sequentially:
-`NNNN-short-kebab-case-title.md`. Each uses this template:
-
-```markdown
-# NNNN. Title
-
-- **Status**: Proposed | Accepted | Superseded by NNNN
-- **Date**: YYYY-MM-DD
-
-## Context
-
-What problem or question forced this decision. The constraints in play.
-
-## Decision
-
-What was decided, stated plainly.
-
-## Consequences
-
-What this makes easier, what it makes harder, and any trade-offs
-knowingly accepted. Link onward (`docs/IMPLEMENTED_FEATURES.md`, other
-ADRs) rather than duplicating detail that lives there.
-```
+`NNNN-short-kebab-case-title.md`. Copy [`template.md`](template.md).
 
 A superseded ADR is **not** deleted or edited to reflect the new
 decision — add a new ADR, and change the old one's `Status` line to
@@ -48,5 +27,7 @@ point at it, so the history of *why things changed* stays readable.
 
 ## Index
 
-- [0001](0001-github-pages-over-wiki-for-legal-pages.md) — GitHub Pages (not a Wiki) for the Privacy Policy/Support pages
-- [0002](0002-adopt-structured-documentation-layout.md) — Adopt a structured documentation layout and working rules
+| ADR | Title | Status |
+|-----|-------|--------|
+| [0001](0001-github-pages-over-wiki-for-legal-pages.md) | GitHub Pages (not a Wiki) for the Privacy Policy/Support pages | Accepted |
+| [0002](0002-adopt-structured-documentation-layout.md) | Adopt a structured documentation layout and working rules | Accepted |

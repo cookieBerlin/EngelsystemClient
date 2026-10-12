@@ -19,8 +19,6 @@ done and reflected in [`IMPLEMENTED_FEATURES.md`](IMPLEMENTED_FEATURES.md).
 Each item is its own commit; update all cross-references (incl.
 `docs/_config.yml` excludes and the memory notes) in the same commit.
 
-- [ ] **D-01** Add `docs/adr/template.md`; turn `docs/adr/README.md`'s
-      index into a status table.
 - [ ] **D-02** `git mv` docs to lowercase names (`architecture`,
       `features`, `history`, `roadmap`, `backlog`) and fix links,
       `_config.yml` excludes, `CLAUDE.md` map.
