@@ -27,13 +27,13 @@ iOS app target 15.5 % from unit tests alone, Watch app and complication
   in a separately tested file and the adapter itself is a few lines with a
   justification comment. Anything that is not such an adapter still needs
   explicit approval.
-- `Scripts/check-coverage.sh` runs the `EngelsystemClientKit` tests with
-  coverage and fails below the threshold. App and Watch targets are brought
-  under the same gate step by step (see `docs/backlog.md`).
-- **Ratchet during the ramp-up**: the gate is the target for the whole code
-  base, but existing files below 100 % are tracked as backlog items instead
-  of blocking unrelated commits. New or changed code must reach 100 % in the
-  same commit, and a file that reaches 100 % must not drop below again.
+- `Scripts/check-coverage.sh` (Kit), `Scripts/check-app-coverage.sh` (iOS and
+  Watch app, from an Xcode coverage run) and `Scripts/check-all-coverage.sh`
+  (all three) fail below the threshold.
+- **Ramp-up finished 2026-10-12**: `EngelsystemClientKit`, the iOS app and the
+  Watch app all pass (`Scripts/check-all-coverage.sh`). From now on the gate is
+  blocking: no commit may leave any target below 100 % (new or changed code
+  needs its tests in the same commit).
 
 ## Consequences
 

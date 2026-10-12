@@ -6,22 +6,21 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
 
 - **100 % line coverage gate** ([ADR 0009](adr/0009-full-line-coverage-gate.md)):
   every source file not listed in `Scripts/coverage-exclusions.txt` must
-  have 100 % line coverage. Check with `Scripts/check-coverage.sh` (runs
-  the `EngelsystemClientKit` tests with coverage and lists every file below
-  the threshold; `COVERAGE_THRESHOLD` overrides it). Exclusions need a
+  have 100 % line coverage. Check with `Scripts/check-all-coverage.sh` (all
+  three targets; `Scripts/check-coverage.sh` is the fast Kit-only check and
+  lists every file below the threshold; `COVERAGE_THRESHOLD` overrides it). Exclusions need a
   justification comment **and owner approval** — never add one on your own.
   Standing exception: thin adapter layers over system APIs (SecItem,
   CKContainer, …) may always be excluded, as long as the logic is tested
   through a seam (ADR 0009).
-  Generated code is excluded by construction. During the ramp-up, new or
-  changed code must reach 100 % in its own commit and files at 100 % must
-  not regress; the remaining files are tracked in `docs/backlog.md`.
+  Generated code is excluded by construction. The ramp-up is finished (2026-10-12): the gate is blocking, no commit
+  may leave a target below 100 %.
   Platform-guarded code (`#if os(iOS)`) is not compiled by `swift test` on
   macOS — it needs an Xcode-based coverage run
   (`xcodebuild test -enableCodeCoverage YES`, then `xcrun xccov view
   --report`) or a justified exclusion. Baseline 2026-10-12: Kit own code
-  76 %, iOS app unit tests 15.5 %, Watch app 0 %. **Kit reached 100 %
-  (gate passes) the same day**; iOS app and Watch app are still to do.
+  76 %, iOS app unit tests 15.5 %, Watch app 0 %. **All three targets
+  reached 100 % (gates pass) the same day.**
   Seams used to get there: injectable closures/protocols for CloudKit
   (`SystemCloudKitAccount`), the Keychain (`KeychainClient`) and the
   notification center (`NotificationCenterScheduling`), each with a thin,

@@ -16,21 +16,19 @@ done and reflected in [`features.md`](features.md).
       Description, Feedback Email, demo-mode hint for reviewers) once
       Internal Testing is confirmed working.
 
-## Coverage ramp-up (ADR 0009)
+## Coverage follow-ups (ADR 0009/0010)
 
-Baseline 2026-10-12 (`Scripts/check-coverage.sh`): Kit own code 76 %; **Kit now
-at 100 %, gate green** (C-01 to C-03 done).
-Take files in this order; remove an item once the file is at 100 %.
+The ramp-up is finished: all three gates pass (2026-10-12). Open follow-ups:
 
-- [ ] **C-04** Exclusions so far (all owner-approved): `SystemCloudKitAccount`,
-      `ModelContainerFactory`, `SystemKeychainClient`,
-      `SystemNotificationCenter`. Standing approval covers further thin
-      adapters; the MetricKit delivery callbacks and `WatchConnectivityBridge`'s
-      iOS branches are not compiled by `swift test` on macOS and need the
-      Xcode coverage run (C-05) or an exclusion.
-- [ ] **C-05** iOS app target is at 100 % (gate green, 2026-10-12). Still to do:
-      the Watch app and the complication, then an audit of the 21 excluded
-      SwiftUI files for logic that should be extracted and tested
-      (notably `SettingsView`, `MainView`, `InstanceSetupView`), and XCUITest
-      smoke tests for screens that have none yet.
-- [ ] **C-06** Make the gate blocking (all Kit files at 100 % or excluded).
+- [ ] **C-07** Audit the excluded SwiftUI files for logic that should be extracted
+      and tested (notably `SettingsView` at ~1150 lines, `MainView`,
+      `InstanceSetupView`, `WatchSettingsView`).
+- [ ] **C-08** XCUITest smoke tests for screens that have none yet (Messages,
+      Locations, Settings > Export Diagnostics), so the excluded views are at
+      least proven to render and navigate.
+- [ ] **C-09** Code behind `#if os(iOS)` in the Kit (the MetricKit delivery callbacks,
+      `WatchConnectivityBridge`'s iOS branches) is not compiled by `swift test` on
+      macOS; measure it through an Xcode coverage run or propose an exclusion.
+- [ ] **C-10** `EngelsystemClientTests/StubbedNetwork.swift` is a copy of the Kit's
+      test helper (and the Watch tests use an offline URL instead); consider a
+      shared test-support package.

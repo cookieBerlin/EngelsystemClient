@@ -21,7 +21,7 @@
 
 1. Tests added for new logic (Swift Testing in `EngelsystemClientKit`,
    XCUITest for non-trivial UI flows); `swift test` green; new or changed
-   code at **100 % line coverage** (`Scripts/check-coverage.sh`, ADR 0009).
+   code at **100 % line coverage** (`Scripts/check-all-coverage.sh`, ADR 0009/0010).
 2. Full Xcode build of the iOS app **and** the Watch app succeeds.
 3. User-facing text is English and ready for localization.
 4. Documentation updated (see the map in [`CLAUDE.md`](CLAUDE.md));

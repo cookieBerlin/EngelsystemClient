@@ -62,12 +62,13 @@ Write an ADR for decisions with real trade-offs; routine choices belong in
 
 ## Quality gates
 
-- **100 % line coverage** for every file not in
-  `Scripts/coverage-exclusions.txt` (ADR 0009). Exclusions need a
-  justification comment and owner approval — never add one yourself. New or
-  changed code must reach 100 % in the same commit; check with
-  `Scripts/check-coverage.sh`. Files still below 100 % are tracked in
-  `docs/backlog.md`.
+- **100 % line coverage is blocking** for every file not in
+  `Scripts/coverage-exclusions.txt` (ADR 0009, 0010): no commit may leave the
+  Kit, the iOS app or the Watch app below it. Run `Scripts/check-all-coverage.sh`
+  (or `Scripts/check-coverage.sh` for the Kit alone) before committing.
+  Exclusions: thin adapter layers over system APIs and pure SwiftUI layout files
+  are standing-approved; anything else needs a justification comment **and**
+  owner approval — never add one yourself.
 - Always add tests for new features: Swift Testing (`import Testing`) in
   `EngelsystemClientKit`, XCUITest for non-trivial UI flows. Details:
   `docs/testing.md`.
@@ -102,6 +103,7 @@ Write an ADR for decisions with real trade-offs; routine choices belong in
 cd EngelsystemClientKit && swift test               # Kit unit tests (macOS)
 xcodebuild build -scheme EngelsystemClient -destination 'generic/platform=iOS Simulator'
 xcodebuild test -scheme EngelsystemClient -destination 'platform=iOS Simulator,name=<device>' -parallel-testing-enabled NO
-Scripts/check-coverage.sh                            # Kit tests + 100 % coverage gate
+Scripts/check-all-coverage.sh                        # all three 100 % coverage gates (Kit, iOS app, Watch app)
+Scripts/check-coverage.sh                            # Kit tests + coverage gate only (fast)
 Scripts/generate-api.sh                              # regenerate DTOs from openapi.yml
 ```
