@@ -29,11 +29,10 @@ The history of the namespace changes is in [`history.md`](history.md).
 
 The app only uses Apple's standard encryption (HTTPS via `URLSession`,
 Keychain, CloudKit) — no proprietary or non-standard cryptography. That
-normally qualifies for the exemption. `ITSAppUsesNonExemptEncryption` is
-**not set yet** in the build settings, so App Store Connect asks the
-export-compliance question for every build; setting it to `NO` (after
-confirming the exemption) avoids that. Open item, see
-[`release.md`](release.md).
+normally qualifies for the exemption. `ITSAppUsesNonExemptEncryption =
+NO` is therefore set in `EngelsystemClient-Info.plist` (2026-10-12), so App
+Store Connect does not ask the export-compliance question for every
+build. Revisit this if the app ever adds its own cryptography.
 
 ## Current configuration (both targets: iOS app + Watch app)
 

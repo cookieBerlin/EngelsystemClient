@@ -21,8 +21,8 @@ Run top to bottom for every build. Identifiers and metadata:
 2. Product → Archive → Organizer → Distribute App → App Store Connect →
    Upload. The Watch app and complication are embedded.
 3. Export compliance: only standard HTTPS/Keychain/CloudKit encryption →
-   exempt. Open item: set `ITSAppUsesNonExemptEncryption = NO` in the
-   build settings so the question is not asked per build.
+   exempt; `ITSAppUsesNonExemptEncryption = NO` is set in
+   `EngelsystemClient-Info.plist`, so no per-build question.
 
 ## TestFlight
 
