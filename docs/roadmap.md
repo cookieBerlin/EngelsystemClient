@@ -68,44 +68,6 @@ Goal: get the app into TestFlight, both Internal and External testing.
 - **External Testing** — requires Apple's Beta App Review (checks the
   Privacy Policy URL resolves, export compliance, etc.).
 
-### Documentation restructure (planned 2026-10-12)
-
-Goal: adopt the owner's preferred documentation structure and working
-rules. Decisions (owner,
-2026-10-12): scope = structure **plus** working rules (Conventional
-Commits, backlog IDs, work loop, CONTRIBUTING, CHANGELOG), but **not**
-the 100 % coverage gate / lint scripts; important earlier decisions get
-converted to ADRs retroactively; `docs/` file names become lowercase.
-See [ADR 0002](adr/0002-adopt-structured-documentation-layout.md) and
-the task list in [`backlog.md`](backlog.md).
-
-Target layout (mapping from today):
-
-- `CLAUDE.md` → slim rules file (~100 lines): language, work loop, commit
-  rules, architecture rules, security, commands. API summary, Demo mode,
-  tech stack, project structure and testing practices move out.
-- `docs/architecture.md` → `docs/architecture.md`, absorbing the tech
-  stack, target structure, API summary and Demo mode from `CLAUDE.md`.
-- New `docs/requirements.md` (scope/Phase 1 vs Phase 2 from `CLAUDE.md`),
-  `docs/testing.md` (testing section of `CLAUDE.md`), `docs/security.md`,
-  `docs/release.md` (TestFlight checklist), `docs/api.md` if
-  `architecture.md` gets too long.
-- `docs/app-store.md` → `docs/app-store.md` (identifiers,
-  entitlements, privacy, export compliance, TestFlight metadata).
-- `docs/features.md` → `docs/features.md`;
-  `docs/history.md` → `docs/history.md` (kept).
-- New root files: `CONTRIBUTING.md`, `CHANGELOG.md` (Keep a Changelog).
-  No `LICENSES.md` for now (no bundled third-party code beyond generated
-  DTOs).
-- ADRs: add `template.md`, Index as status table, retroactive ADRs for
-  the big pre-2026-10 decisions (SwiftData+CloudKit, Watch standalone +
-  WatchConnectivity as nudge only, Messages live-only + capability
-  probe, Demo mode via sentinel URL, generated DTOs, local-only
-  notifications).
-- **GitHub Pages caveat**: `docs/_config.yml`'s `exclude:` list names the
-  files by their current spelling, so every rename must update it or the
-  internal docs would get published.
-
 ## Open decisions
 
 Awaiting the user's input — nothing below should be assumed/acted on
