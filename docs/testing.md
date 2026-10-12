@@ -26,6 +26,10 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   (`SystemCloudKitAccount`), the Keychain (`KeychainClient`) and the
   notification center (`NotificationCenterScheduling`), each with a thin,
   excluded `System…` adapter.
+  **App targets** (ADR 0010): non-view files (view models, services,
+  helpers) must reach 100 % too (`Scripts/check-app-coverage.sh`); pure SwiftUI
+  layout files are excluded with a justification, their logic extracted into
+  tested view models/helpers, and XCUITest smoke tests cover that they render.
 - **Testing `APIClient`'s real network path** (2026-10-12): the generated
   client is redirected to canned responses via
   `EngelsystemAPIAPI.requestBuilderFactory` — see
