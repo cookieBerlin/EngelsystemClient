@@ -12,8 +12,7 @@ Beta App Review as of 2026-10-12; if Apple rejects it, the owner reports the rea
 
 ## App Store screenshots (see ROADMAP.md)
 
-- [ ] **S-01** `-seed-demo-instance` DEBUG launch argument (tested decision type, thin adapter).
-- [ ] **S-02** `ScreenshotTests` + `capture` helper + `Screenshots` test plan (iPhone scenes).
+- [ ] **S-02** (note: the sync progress banner is visible for a few seconds after launch — wait for it to disappear before capturing; build with normal signing, `CODE_SIGNING_ALLOWED=NO` strips the iCloud entitlement and the app then crashes in `CKContainer`) `ScreenshotTests` + `capture` helper + `Screenshots` test plan (iPhone scenes).
 - [ ] **S-03** `Scripts/screenshots.sh` for iPhone: simulator prep, test run, attachment export, naming, pixel-size check, EXIF strip.
 - [ ] **S-04** iPad (landscape) support in the script and tests.
 - [ ] **S-05** Apple Watch screenshot via the seed argument and `simctl io`.

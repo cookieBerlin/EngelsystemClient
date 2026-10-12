@@ -49,6 +49,14 @@ struct EngelsystemClientApp: App {
         WindowGroup {
             ContentView()
                 .refreshesOnRemoteCloudKitChange(modelContext: sharedModelContainer.mainContext)
+                // Debug-only (a no-op in Release): lets Scripts/screenshots.sh start in a populated app.
+                .task {
+                    await DemoSeeding.seedIfRequested(
+                        arguments: ProcessInfo.processInfo.arguments,
+                        in: sharedModelContainer.mainContext,
+                        store: LocalKeychainStore()
+                    )
+                }
         }
         .modelContainer(sharedModelContainer)
     }

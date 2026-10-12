@@ -1,0 +1,36 @@
+import Foundation
+import SwiftData
+
+/// Debug-only launch argument that inserts a Demo Mode instance on startup (2026-10-12), so the
+/// automatic App Store screenshot run (`Scripts/screenshots.sh`) and the Watch screenshot can start
+/// in a populated app without driving the setup screen. In Release builds `shouldSeed` is always
+/// `false`, so the argument does nothing in anything shipped.
+public enum DemoSeeding {
+    public static let launchArgument = "-seed-demo-instance"
+
+    /// Seeds only when the argument was passed (Debug builds) and no instance exists yet.
+    public static func shouldSeed(arguments: [String], existingInstanceCount: Int) -> Bool {
+        #if DEBUG
+        arguments.contains(launchArgument) && existingInstanceCount == 0
+        #else
+        false
+        #endif
+    }
+
+    /// Inserts a "Demo" instance (its API key goes to `store`) when `shouldSeed` says so.
+    /// Returns whether an instance was inserted.
+    @MainActor
+    @discardableResult
+    public static func seedIfRequested(arguments: [String], in modelContext: ModelContext, store: APIKeyStore) async -> Bool {
+        // A failed count is treated as 0 (compactMap drops the nil) — written without `?? 0`
+        // so there is no never-taken autoclosure region to cover.
+        let existing = [try? modelContext.fetchCount(FetchDescriptor<Instance>())].compactMap { $0 }.reduce(0, +)
+        guard shouldSeed(arguments: arguments, existingInstanceCount: existing) else { return false }
+        guard let instance = try? await InstanceSetupService().createInstance(
+            name: "Demo", baseURL: Instance.demoBaseURL, apiKey: "demo", store: store
+        ) else { return false }
+        modelContext.insert(instance)
+        try? modelContext.save()
+        return true
+    }
+}

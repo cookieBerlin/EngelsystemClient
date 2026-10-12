@@ -140,3 +140,7 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   Shifts, News, Profile, Locations, Messages and Settings; `testNewMessagePickerExportDiagnosticsAndDebugLogOpen`
   covers the new-message picker, the Export Diagnostics sheet and the debug log. Run them on an
   erased simulator (see above); demo mode now lands on the main page, so tests open Shifts from the sidebar.
+- **Launch argument `-seed-demo-instance`** (Debug builds only; `DemoSeeding` in the Kit, wired in both
+  apps' `WindowGroup`): inserts a Demo Mode instance when none exists. Used by the screenshot script. **Do
+  not build the app with `CODE_SIGNING_ALLOWED=NO` to run it** — that strips the iCloud entitlement and the
+  app traps in `CKContainer(identifier:)` at launch (seen 2026-10-12); build with the simulator's normal signing.
