@@ -31,7 +31,7 @@ Take files in this order; remove an item once the file is at 100 %.
       `DemoData`.
 - [ ] **C-04** Owner approval needed for exclusions of code tests cannot
       drive. `SystemCloudKitAccount.swift` is approved and excluded
-      (2026-10-12). Further candidates (e.g. the MetricKit delivery callbacks, Keychain access-group
+      (2026-10-12). Pending proposal: `SystemKeychainClient.swift` (SecItem adapter, tests lack keychain entitlements; logic is tested via a fake). Further candidates (e.g. the MetricKit delivery callbacks, Keychain access-group
       behavior); add them to `Scripts/coverage-exclusions.txt` only after
       approval.
 - [ ] **C-05** Bring the iOS app target under the gate (Xcode coverage run,
