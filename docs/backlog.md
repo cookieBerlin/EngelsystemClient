@@ -19,10 +19,6 @@ missing comments/locations endpoint or a 403 is a real error again. **R-01** (th
 blocked — #1708 is merged and servers without it are not supported — and should be done **first**.
 Permanent improvements (not tagged): K-06 (reminders independent of News).
 
-- [ ] **K-02** Device-local capability store (`ServerCapabilities`: news comments, locations list, location detail; keyed by
-      instance ID, stored in `UserDefaults`/a local file, not CloudKit): API, pure interpretation logic (e.g. "comments
-      supported when any `/news` item has `comments_count`; unknown for an empty list keeps the previous value"), updated from
-      `AppSyncCoordinator` results and the screens' own fetches; tests. ADR 0013.
 - [ ] **K-03** News: show the comments link, `NewsDetailView` and comment counts only when comments are supported; a 404/403
       from `GET /news/{id}` hides the feature silently (marks it unsupported) instead of showing an error; tests (view-model and
       `InstanceScope`-style helpers).

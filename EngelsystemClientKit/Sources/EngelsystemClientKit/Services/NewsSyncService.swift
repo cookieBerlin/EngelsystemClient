@@ -17,14 +17,17 @@ public struct NewsSyncResult {
 @MainActor
 public struct NewsSyncService {
     private let apiClient: APIClient
+    private let capabilities: ServerCapabilities
 
-    public init(apiClient: APIClient = .shared) {
+    public init(apiClient: APIClient = .shared, capabilities: ServerCapabilities? = nil) {
         self.apiClient = apiClient
+        self.capabilities = capabilities ?? .shared
     }
 
     @discardableResult
     public func sync(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> NewsSyncResult {
         let news = try await apiClient.fetchNews(credential)
+        capabilities.record(.newsComments, supported: ServerCapabilities.newsCommentsSupported(by: news), for: instance.id)
         return try upsert(news, instanceID: instance.id, in: modelContext)
     }
 

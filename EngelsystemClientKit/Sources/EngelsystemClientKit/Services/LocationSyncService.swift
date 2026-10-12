@@ -7,14 +7,25 @@ import SwiftData
 @MainActor
 public struct LocationSyncService {
     private let apiClient: APIClient
+    private let capabilities: ServerCapabilities
 
-    public init(apiClient: APIClient = .shared) {
+    public init(apiClient: APIClient = .shared, capabilities: ServerCapabilities? = nil) {
         self.apiClient = apiClient
+        self.capabilities = capabilities ?? .shared
     }
 
     @discardableResult
     public func sync(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> [CachedLocation] {
-        let locations = try await apiClient.fetchLocations(credential)
+        let locations: [Location]
+        do {
+            locations = try await apiClient.fetchLocations(credential)
+        } catch APIError.forbidden {
+            // COMPAT(#1711): without that PR only the `api` group may read locations — not an
+            // error for the app, the Locations area is simply hidden for this instance.
+            capabilities.record(.locationsList, supported: false, for: instance.id)
+            return []
+        }
+        capabilities.record(.locationsList, supported: true, for: instance.id)
         return try upsert(locations, instanceID: instance.id, in: modelContext)
     }
 
@@ -44,7 +55,15 @@ public struct LocationSyncService {
     /// ever reached from an already-cached row), same upsert shape as the list sync.
     @discardableResult
     public func refreshOne(serverID: Int, instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> CachedLocation {
-        let location = try await apiClient.fetchLocation(id: serverID, credential)
+        let location: Location
+        do {
+            location = try await apiClient.fetchLocation(id: serverID, credential)
+        } catch let error as APIError where error == .notFound || error == .forbidden {
+            // COMPAT(#1711): servers without `GET /locations/{id}` answer 404/403.
+            capabilities.record(.locationDetail, supported: false, for: instance.id)
+            throw error
+        }
+        capabilities.record(.locationDetail, supported: true, for: instance.id)
         let uid = CachedLocation.uid(instanceID: instance.id, serverID: location.id)
         var descriptor = FetchDescriptor<CachedLocation>(predicate: #Predicate { $0.uid == uid })
         descriptor.fetchLimit = 1
