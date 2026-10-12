@@ -20,22 +20,20 @@ struct LocationsView: View {
     @Query private var allLocations: [CachedLocation]
 
     private var displayMode: MultiInstanceDisplayMode {
-        guard instances.count > 1 else { return .merged }
-        return MultiInstanceDisplayMode(rawValue: displayModeRaw) ?? .merged
+        InstanceScope.displayMode(raw: displayModeRaw, instanceCount: instances.count)
     }
 
-    private var instanceIDs: Set<UUID> { Set(instances.map(\.id)) }
-    private var activeInstanceLocations: [CachedLocation] { allLocations.filter { instanceIDs.contains($0.instanceID) } }
+    private var activeInstanceLocations: [CachedLocation] { InstanceScope.filter(allLocations, to: instances, instanceID: \.instanceID) }
 
     private var switcherInstance: Instance? {
-        instances.first(where: { $0.id == selectedInstanceID }) ?? instances.first
+        InstanceScope.switcherInstance(in: instances, selected: selectedInstanceID)
     }
 
     /// The `Instance` a given cached location actually came from — needed to resolve
     /// the right credential for `LocationDetailView`'s own live refresh, since
     /// `CachedLocation` itself only carries a plain `instanceID`, not a live reference.
     private func instance(for location: CachedLocation) -> Instance? {
-        instances.first(where: { $0.id == location.instanceID })
+        InstanceScope.instance(withID: location.instanceID, in: instances)
     }
 
     var body: some View {

@@ -26,21 +26,19 @@ struct ProfileView: View {
     @Query private var allAngelTypeMemberships: [CachedAngelTypeMembership]
 
     private var displayMode: MultiInstanceDisplayMode {
-        guard instances.count > 1 else { return .merged }
-        return MultiInstanceDisplayMode(rawValue: displayModeRaw) ?? .merged
+        InstanceScope.displayMode(raw: displayModeRaw, instanceCount: instances.count)
     }
 
-    private var instanceIDs: Set<UUID> { Set(instances.map(\.id)) }
-    private var users: [CachedUser] { allUsers.filter { instanceIDs.contains($0.instanceID) } }
-    private var worklogs: [CachedWorklog] { allWorklogs.filter { instanceIDs.contains($0.instanceID) } }
-    private var angelTypeMemberships: [CachedAngelTypeMembership] { allAngelTypeMemberships.filter { instanceIDs.contains($0.instanceID) } }
+    private var users: [CachedUser] { InstanceScope.filter(allUsers, to: instances, instanceID: \.instanceID) }
+    private var worklogs: [CachedWorklog] { InstanceScope.filter(allWorklogs, to: instances, instanceID: \.instanceID) }
+    private var angelTypeMemberships: [CachedAngelTypeMembership] { InstanceScope.filter(allAngelTypeMemberships, to: instances, instanceID: \.instanceID) }
 
     private var switcherInstance: Instance? {
-        instances.first(where: { $0.id == selectedInstanceID }) ?? instances.first
+        InstanceScope.switcherInstance(in: instances, selected: selectedInstanceID)
     }
 
     private func instanceName(for instanceID: UUID) -> String? {
-        instances.first(where: { $0.id == instanceID })?.name
+        InstanceScope.instanceName(withID: instanceID, in: instances)
     }
 
     var body: some View {

@@ -34,6 +34,12 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   The app tests can't import the Kit's test helpers, so `EngelsystemClientTests/
   StubbedNetwork.swift` is a copy of the Kit's — keep the two in sync. Thin
   adapters here: `BackgroundTaskRegistration.swift` (BGTaskScheduler).
+  **Audit of the excluded views (C-07, 2026-10-12)**: the logic they carried was
+  extracted — instance scoping/switcher/day headers/conversation sorting into
+  `InstanceScope`, lead times, activation and cascade delete into the Kit
+  (`InstanceMaintenance.swift`, shared with the Watch), the composer rules into
+  `ConversationDetailViewModel`, the start-sync policy into `MainSyncStatus`. What
+  remains in the view files is layout, bindings and one-line forwarding.
 - **Testing `APIClient`'s real network path** (2026-10-12): the generated
   client is redirected to canned responses via
   `EngelsystemAPIAPI.requestBuilderFactory` — see

@@ -20,23 +20,21 @@ struct NewsView: View {
     @Query private var allNewsItems: [CachedNews]
 
     private var displayMode: MultiInstanceDisplayMode {
-        guard instances.count > 1 else { return .merged }
-        return MultiInstanceDisplayMode(rawValue: displayModeRaw) ?? .merged
+        InstanceScope.displayMode(raw: displayModeRaw, instanceCount: instances.count)
     }
 
-    private var instanceIDs: Set<UUID> { Set(instances.map(\.id)) }
-    private var activeInstanceNewsItems: [CachedNews] { allNewsItems.filter { instanceIDs.contains($0.instanceID) } }
+    private var activeInstanceNewsItems: [CachedNews] { InstanceScope.filter(allNewsItems, to: instances, instanceID: \.instanceID) }
     private var newsItems: [CachedNews] { activeInstanceNewsItems.filter(meetingFilter.matches) }
 
     private var switcherInstance: Instance? {
-        instances.first(where: { $0.id == selectedInstanceID }) ?? instances.first
+        InstanceScope.switcherInstance(in: instances, selected: selectedInstanceID)
     }
 
     /// The `Instance` a given cached item actually came from — needed to resolve the
     /// right credential for fetching that item's comments (`NewsDetailView`), since
     /// `CachedNews` itself only carries a plain `instanceID`, not a live reference.
     private func instance(for item: CachedNews) -> Instance? {
-        instances.first(where: { $0.id == item.instanceID })
+        InstanceScope.instance(withID: item.instanceID, in: instances)
     }
 
     var body: some View {

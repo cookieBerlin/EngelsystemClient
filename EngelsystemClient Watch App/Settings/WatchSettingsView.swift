@@ -31,8 +31,7 @@ struct WatchSettingsView: View {
     /// resolves the "watch" row specifically — this list is deliberately independent
     /// from the iOS one (2026-09-22, user-requested).
     private var leadTimesMinutes: [Int] {
-        (leadTimeSettingsRows.first(where: { $0.platform == NotificationLeadTimeSettings.currentPlatform })?.leadTimesMinutes
-            ?? NotificationLeadTimeSettings.defaultLeadTimesMinutes).sorted()
+        NotificationLeadTimeSettings.leadTimes(for: NotificationLeadTimeSettings.currentPlatform, in: leadTimeSettingsRows)
     }
 
     private var leadTimesAvailableToAdd: [Int] {
@@ -40,18 +39,11 @@ struct WatchSettingsView: View {
     }
 
     private func addLeadTime(_ minutes: Int) {
-        let settings = NotificationLeadTimeSettings.resolve(in: modelContext)
-        guard !settings.leadTimesMinutes.contains(minutes) else { return }
-        settings.leadTimesMinutes.append(minutes)
-        settings.touch()
-        try? modelContext.save()
+        NotificationLeadTimeSettings.addLeadTime(minutes, for: NotificationLeadTimeSettings.currentPlatform, in: modelContext)
     }
 
     private func removeLeadTime(_ minutes: Int) {
-        let settings = NotificationLeadTimeSettings.resolve(in: modelContext)
-        settings.leadTimesMinutes.removeAll { $0 == minutes }
-        settings.touch()
-        try? modelContext.save()
+        NotificationLeadTimeSettings.removeLeadTime(minutes, for: NotificationLeadTimeSettings.currentPlatform, in: modelContext)
     }
 
     var body: some View {
@@ -173,24 +165,13 @@ struct WatchSettingsView: View {
     }
 
     private func setActive(_ instance: Instance, isActive: Bool) {
-        instance.isActive = isActive
-        instance.touch()
-        try? modelContext.save()
+        instance.setActive(isActive, in: modelContext)
     }
 
     private func delete(_ instance: Instance) {
-        try? KeychainSyncStore().deleteAPIKey(for: instance.apiKeyKeychainRef)
-        try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef)
-
-        // Manual cascade delete: `Instance` (CloudKit-backed) and `CachedShift`
-        // (local-only, the only Cached* type the Watch schema includes) live in
-        // separate `ModelConfiguration`s now, so SwiftData's relationship-based
-        // cascade delete no longer applies across them — see Instance.swift.
-        let instanceID = instance.id
-        try? modelContext.delete(model: CachedShift.self, where: #Predicate { $0.instanceID == instanceID })
-
-        modelContext.delete(instance)
-        try? modelContext.save()
+        InstanceRemoval.delete(
+            instance, in: modelContext, keyStores: [KeychainSyncStore(), LocalKeychainStore()], scope: .shiftsOnly
+        )
     }
 }
 

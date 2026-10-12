@@ -52,7 +52,7 @@ struct ConversationDetailView: View {
                         .font(.title2)
                 }
                 .accessibilityLabel("Send")
-                .disabled(draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending)
+                .disabled(!ConversationDetailViewModel.canSend(draft: draftText, isSending: viewModel.isSending))
             }
             .padding()
         }
@@ -64,8 +64,7 @@ struct ConversationDetailView: View {
         let text = draftText
         draftText = ""
         Task {
-            let succeeded = await viewModel.send(text: text, otherUserID: otherUser.id, instance: instance)
-            if !succeeded { draftText = text }
+            draftText = await viewModel.sendDraft(text, otherUserID: otherUser.id, instance: instance)
         }
     }
 }

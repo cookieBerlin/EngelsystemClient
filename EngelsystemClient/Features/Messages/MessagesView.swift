@@ -24,23 +24,19 @@ struct MessagesView: View {
     private var displayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
 
     private var displayMode: MultiInstanceDisplayMode {
-        guard instances.count > 1 else { return .merged }
-        return MultiInstanceDisplayMode(rawValue: displayModeRaw) ?? .merged
+        InstanceScope.displayMode(raw: displayModeRaw, instanceCount: instances.count)
     }
 
     private var switcherInstance: Instance? {
-        instances.first(where: { $0.id == selectedInstanceID }) ?? instances.first
+        InstanceScope.switcherInstance(in: instances, selected: selectedInstanceID)
     }
 
     private func conversations(for instance: Instance) -> [Conversation] {
-        (viewModel.conversationsByInstanceID[instance.id] ?? [])
-            .sorted { $0.latestMessage.createdAt > $1.latestMessage.createdAt }
+        InstanceScope.conversations(for: instance, in: viewModel.conversationsByInstanceID)
     }
 
     private var allConversations: [(instance: Instance, conversation: Conversation)] {
-        instances.flatMap { instance in
-            conversations(for: instance).map { (instance: instance, conversation: $0) }
-        }.sorted { $0.conversation.latestMessage.createdAt > $1.conversation.latestMessage.createdAt }
+        InstanceScope.allConversations(instances: instances, byInstanceID: viewModel.conversationsByInstanceID)
     }
 
     var body: some View {

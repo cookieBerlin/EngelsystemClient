@@ -18,6 +18,12 @@ final class MainSyncStatus {
     var statusText = ""
     var didFail = false
 
+    /// The app-start sync runs only when the per-device toggle is on; both it and the main
+    /// page's pull-to-refresh need at least one active instance to sync.
+    nonisolated static func shouldRunStartSync(syncOnAppStartEnabled: Bool, activeInstanceCount: Int) -> Bool {
+        syncOnAppStartEnabled && activeInstanceCount > 0
+    }
+
     var fraction: Double {
         total > 0 ? Double(completed) / Double(total) : 0
     }

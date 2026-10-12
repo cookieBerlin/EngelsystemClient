@@ -47,7 +47,7 @@ struct SettingsView: View {
 
     private var multiInstanceDisplayMode: Binding<MultiInstanceDisplayMode> {
         Binding(
-            get: { MultiInstanceDisplayMode(rawValue: multiInstanceDisplayModeRaw) ?? .merged },
+            get: { MultiInstanceDisplayMode.stored(raw: multiInstanceDisplayModeRaw) },
             set: { multiInstanceDisplayModeRaw = $0.rawValue }
         )
     }
@@ -61,8 +61,7 @@ struct SettingsView: View {
     /// model, there's no reason to require physical access to the tiny Watch screen
     /// to edit its own reminder list.
     private func leadTimesMinutes(for platform: String) -> [Int] {
-        (leadTimeSettingsRows.first(where: { $0.platform == platform })?.leadTimesMinutes
-            ?? NotificationLeadTimeSettings.defaultLeadTimesMinutes).sorted()
+        NotificationLeadTimeSettings.leadTimes(for: platform, in: leadTimeSettingsRows)
     }
 
     private func leadTimesAvailableToAdd(for platform: String) -> [Int] {
@@ -70,18 +69,11 @@ struct SettingsView: View {
     }
 
     private func addLeadTime(_ minutes: Int, for platform: String) {
-        let settings = NotificationLeadTimeSettings.resolve(for: platform, in: modelContext)
-        guard !settings.leadTimesMinutes.contains(minutes) else { return }
-        settings.leadTimesMinutes.append(minutes)
-        settings.touch()
-        try? modelContext.save()
+        NotificationLeadTimeSettings.addLeadTime(minutes, for: platform, in: modelContext)
     }
 
     private func removeLeadTime(_ minutes: Int, for platform: String) {
-        let settings = NotificationLeadTimeSettings.resolve(for: platform, in: modelContext)
-        settings.leadTimesMinutes.removeAll { $0 == minutes }
-        settings.touch()
-        try? modelContext.save()
+        NotificationLeadTimeSettings.removeLeadTime(minutes, for: platform, in: modelContext)
     }
 
     /// Plain per-device `@AppStorage`, iOS-only — **not** synced to the Apple Watch
@@ -292,31 +284,13 @@ struct SettingsView: View {
     }
 
     private func setActive(_ instance: Instance, isActive: Bool) {
-        instance.isActive = isActive
-        instance.touch()
-        try? modelContext.save()
+        instance.setActive(isActive, in: modelContext)
     }
 
     private func delete(_ instance: Instance) {
-        // Store affiliation (iCloud vs. local) isn't persisted, so we clean up
-        // both stores — deleting a nonexistent entry is a no-op.
-        try? KeychainSyncStore().deleteAPIKey(for: instance.apiKeyKeychainRef)
-        try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef)
-
-        // Manual cascade delete: `Instance` (CloudKit-backed) and the `Cached*` models
-        // (local-only) live in separate `ModelConfiguration`s now, so SwiftData's
-        // relationship-based cascade delete no longer applies across them — see
-        // Instance.swift.
-        let instanceID = instance.id
-        try? modelContext.delete(model: CachedShift.self, where: #Predicate { $0.instanceID == instanceID })
-        try? modelContext.delete(model: CachedNews.self, where: #Predicate { $0.instanceID == instanceID })
-        try? modelContext.delete(model: CachedUser.self, where: #Predicate { $0.instanceID == instanceID })
-        try? modelContext.delete(model: CachedWorklog.self, where: #Predicate { $0.instanceID == instanceID })
-        try? modelContext.delete(model: CachedAngelTypeMembership.self, where: #Predicate { $0.instanceID == instanceID })
-        try? modelContext.delete(model: CachedLocation.self, where: #Predicate { $0.instanceID == instanceID })
-
-        modelContext.delete(instance)
-        try? modelContext.save()
+        InstanceRemoval.delete(
+            instance, in: modelContext, keyStores: [KeychainSyncStore(), LocalKeychainStore()], scope: .all
+        )
     }
 }
 

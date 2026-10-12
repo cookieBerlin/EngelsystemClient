@@ -27,23 +27,21 @@ struct ShiftsView: View {
     /// A single active instance renders the same regardless of the display-mode
     /// setting, so it's always treated as `.merged` (no pointless picker/sections).
     private var displayMode: MultiInstanceDisplayMode {
-        guard instances.count > 1 else { return .merged }
-        return MultiInstanceDisplayMode(rawValue: displayModeRaw) ?? .merged
+        InstanceScope.displayMode(raw: displayModeRaw, instanceCount: instances.count)
     }
 
-    private var instanceIDs: Set<UUID> { Set(instances.map(\.id)) }
-    private var shifts: [CachedShift] { allShifts.filter { instanceIDs.contains($0.instanceID) } }
+    private var shifts: [CachedShift] { InstanceScope.filter(allShifts, to: instances, instanceID: \.instanceID) }
 
     private var switcherInstance: Instance? {
-        instances.first(where: { $0.id == selectedInstanceID }) ?? instances.first
+        InstanceScope.switcherInstance(in: instances, selected: selectedInstanceID)
     }
 
     private func instanceName(for shift: CachedShift) -> String? {
-        instances.first(where: { $0.id == shift.instanceID })?.name
+        InstanceScope.instanceName(withID: shift.instanceID, in: instances)
     }
 
     private func instance(for shift: CachedShift) -> Instance? {
-        instances.first(where: { $0.id == shift.instanceID })
+        InstanceScope.instance(withID: shift.instanceID, in: instances)
     }
 
     /// The location a shift's `locationID` refers to — `nil` when Locations hasn't
@@ -51,7 +49,7 @@ struct ShiftsView: View {
     /// user-requested "link the location name to its description"). `ShiftRow` falls
     /// back to a plain, non-linked label in that case rather than linking to nothing.
     private func location(for shift: CachedShift) -> CachedLocation? {
-        allLocations.first { $0.instanceID == shift.instanceID && $0.serverID == shift.locationID }
+        InstanceScope.location(for: shift, in: allLocations)
     }
 
     var body: some View {
@@ -160,9 +158,7 @@ struct ShiftsView: View {
     }
 
     private func dateHeaderText(_ day: Date) -> String {
-        if Calendar.current.isDateInToday(day) { return "Today" }
-        if Calendar.current.isDateInTomorrow(day) { return "Tomorrow" }
-        return day.formatted(.dateTime.weekday(.wide).month(.wide).day())
+        InstanceScope.dayHeaderText(day)
     }
 
     private var emptyState: some View {

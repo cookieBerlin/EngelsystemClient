@@ -167,6 +167,24 @@ extension StubbedNetworkTests {
             #expect(viewModel.messages.count == 1)
         }
 
+        @Test func sendingNeedsANonBlankDraftAndNothingInFlight() {
+            #expect(ConversationDetailViewModel.canSend(draft: "hi", isSending: false))
+            #expect(!ConversationDetailViewModel.canSend(draft: "  \n", isSending: false))
+            #expect(!ConversationDetailViewModel.canSend(draft: "hi", isSending: true))
+        }
+
+        @Test @MainActor func aSentDraftClearsTheComposerAndAFailedOneComesBack() async throws {
+            let instance = try stubInstance()
+            defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+            let sent = try await demoMessage()
+            try StubURLProtocol.route("POST \(prefix)/messages/5", status: 201, data: sent)
+            let viewModel = ConversationDetailViewModel()
+            #expect(await viewModel.sendDraft("hello", otherUserID: 5, instance: instance) == "")
+
+            StubURLProtocol.route("POST \(prefix)/messages/6", status: 500)
+            #expect(await viewModel.sendDraft("again", otherUserID: 6, instance: instance) == "again")
+        }
+
         @Test @MainActor func failedSendAndDeleteShowErrors() async throws {
             let instance = try stubInstance()
             defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }

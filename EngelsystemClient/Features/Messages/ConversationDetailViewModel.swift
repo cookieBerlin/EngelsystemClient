@@ -59,6 +59,18 @@ final class ConversationDetailViewModel {
         }
     }
 
+    /// The send button is enabled only for a non-blank draft while nothing is being sent.
+    nonisolated static func canSend(draft: String, isSending: Bool) -> Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
+    }
+
+    /// Sends the composer's draft and returns the text the composer should show afterwards:
+    /// empty after a successful send, the original draft again if sending failed.
+    func sendDraft(_ draft: String, otherUserID: Int, instance: Instance) async -> String {
+        let succeeded = await send(text: draft, otherUserID: otherUserID, instance: instance)
+        return succeeded ? "" : draft
+    }
+
     @discardableResult
     func send(text: String, otherUserID: Int, instance: Instance) async -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)

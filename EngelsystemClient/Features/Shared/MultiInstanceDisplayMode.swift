@@ -25,4 +25,9 @@ enum MultiInstanceDisplayMode: String, CaseIterable, Identifiable {
     }
 
     static let userDefaultsKey = "multiInstanceDisplayMode"
+
+    /// The stored raw value as a mode; anything unrecognized falls back to `.merged`.
+    static func stored(raw: String) -> MultiInstanceDisplayMode {
+        MultiInstanceDisplayMode(rawValue: raw) ?? .merged
+    }
 }

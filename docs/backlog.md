@@ -20,9 +20,6 @@ done and reflected in [`features.md`](features.md).
 
 The ramp-up is finished: all three gates pass (2026-10-12). Open follow-ups:
 
-- [ ] **C-07** Audit the excluded SwiftUI files for logic that should be extracted
-      and tested (notably `SettingsView` at ~1150 lines, `MainView`,
-      `InstanceSetupView`, `WatchSettingsView`).
 - [ ] **C-08** XCUITest smoke tests for screens that have none yet (Messages,
       Locations, Settings > Export Diagnostics), so the excluded views are at
       least proven to render and navigate.

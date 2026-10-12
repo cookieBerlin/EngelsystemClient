@@ -233,7 +233,10 @@ struct MainView: View {
     /// in Settings (`DeviceSyncPreferences`, per-device, not CloudKit-synced — this is
     /// a "do it on *this* device" convenience, unlike the polling interval itself).
     private func runAppStartSyncIfNeeded() async {
-        guard DeviceSyncPreferences.syncOnAppStartEnabled() else { return }
+        guard MainSyncStatus.shouldRunStartSync(
+            syncOnAppStartEnabled: DeviceSyncPreferences.syncOnAppStartEnabled(),
+            activeInstanceCount: activeInstances.count
+        ) else { return }
         await runFullSync()
     }
 
