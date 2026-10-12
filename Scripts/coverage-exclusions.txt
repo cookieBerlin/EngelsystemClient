@@ -4,3 +4,4 @@
 
 */Sources/EngelsystemClientKit/Generated/*   # OpenAPI Generator output, never hand-edited (ADR 0003); regenerated from openapi.yml. Excluded by construction
 */Sources/EngelsystemClientKit/Services/SystemCloudKitAccount.swift   # CKContainer adapter: test processes lack CloudKit entitlements; logic is tested through the injected closure in ICloudAvailability. Owner approval 2026-10-12
+*/Sources/EngelsystemClientKit/Persistence/ModelContainerFactory.swift   # Production container wiring: the CloudKit-backed branch needs a real iCloud container (tests force local-only/in-memory, and every other test builds its container through this file), and the catch is a fatalError. Owner approval 2026-10-12
