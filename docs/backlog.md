@@ -23,7 +23,6 @@ Take files in this order; remove an item once the file is at 100 %.
 
 - [ ] **C-01** `Networking/APIClient.swift` (38 %): real-network path via a
       stubbed `URLProtocol`.
-- [ ] **C-02** `Services/APIKeyStore.swift` (0 %).
 - [ ] **C-03** Remaining Kit files below 100 %: `NewsNotifier`,
       `KeychainSyncStore`, `PollingInterval`, `CloudSyncStatus`,
       `WatchConnectivityBridge`, `APIError`, `LocalKeychainStore`,
@@ -31,7 +30,11 @@ Take files in this order; remove an item once the file is at 100 %.
       `ModelContainerFactory`, `NotificationLeadTimeSettings`,
       `InstanceCredentialResolver`, `LocationSyncService`, `DebugLog`,
       `DemoData`.
-- [ ] **C-04** Propose exclusions to the owner for code tests cannot drive
+- [ ] **C-04** Owner approval needed for exclusions of code tests cannot
+      drive. Pending proposal: `Services/SystemCloudKitAccount.swift`
+      (3-line `CKContainer` adapter; test processes lack CloudKit
+      entitlements, logic is tested through an injected closure). Further
+      candidates
       (e.g. the MetricKit delivery callbacks, Keychain access-group
       behavior); add them to `Scripts/coverage-exclusions.txt` only after
       approval.

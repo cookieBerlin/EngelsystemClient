@@ -68,7 +68,10 @@ public enum ModelContainerFactory {
             : .private(cloudKitContainerIdentifier)
         DebugLog.log("[ModelContainerFactory] Instance is \(forceLocalOnly ? "local-only (forced, test-only)" : "CloudKit-backed")")
         if !forceLocalOnly {
-            ICloudAvailability.logCloudKitAccountStatus(containerIdentifier: cloudKitContainerIdentifier)
+            ICloudAvailability.logCloudKitAccountStatus(
+                containerIdentifier: cloudKitContainerIdentifier,
+                accountStatus: SystemCloudKitAccount.accountStatus(containerIdentifier:)
+            )
         }
 
         let cloudConfiguration = ModelConfiguration(

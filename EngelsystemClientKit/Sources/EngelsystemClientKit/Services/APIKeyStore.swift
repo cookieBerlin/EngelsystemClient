@@ -33,14 +33,29 @@ public enum ICloudAvailability {
     /// reported `isAvailable = false` (and so fell back to local-only, unsynced) despite
     /// the correct iCloud account being signed in and iCloud Drive enabled on the
     /// paired iPhone.
-    public static func logCloudKitAccountStatus(containerIdentifier: String) {
+    /// Returns the logging `Task` so tests can await it; `accountStatus` is the seam that
+    /// keeps the real `CKContainer` (which needs CloudKit entitlements a test process
+    /// doesn't have) out of unit tests.
+    @discardableResult
+    public static func logCloudKitAccountStatus(
+        containerIdentifier: String,
+        accountStatus: @escaping @Sendable (String) async throws -> CKAccountStatus
+    ) -> Task<Void, Never> {
         Task {
             do {
-                let status = try await CKContainer(identifier: containerIdentifier).accountStatus()
-                DebugLog.log("[ICloudAvailability] ubiquityIdentityToken != nil = \(isAvailable), CKContainer.accountStatus = \(status)")
+                let status = try await accountStatus(containerIdentifier)
+                DebugLog.log(statusMessage(isAvailable: isAvailable, status: status))
             } catch {
-                DebugLog.log("[ICloudAvailability] ubiquityIdentityToken != nil = \(isAvailable), CKContainer.accountStatus threw: \(error)", level: .error)
+                DebugLog.log(failureMessage(isAvailable: isAvailable, error: error), level: .error)
             }
         }
+    }
+
+    static func statusMessage(isAvailable: Bool, status: CKAccountStatus) -> String {
+        "[ICloudAvailability] ubiquityIdentityToken != nil = \(isAvailable), CKContainer.accountStatus = \(status)"
+    }
+
+    static func failureMessage(isAvailable: Bool, error: Error) -> String {
+        "[ICloudAvailability] ubiquityIdentityToken != nil = \(isAvailable), CKContainer.accountStatus threw: \(error)"
     }
 }
