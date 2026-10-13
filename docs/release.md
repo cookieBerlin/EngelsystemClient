@@ -57,6 +57,9 @@ whenever the UI or the demo data changes visibly.
   typing a one-liner:
   `{ echo "Version 0.1.0 (build 2)"; echo; awk '/^## \[0.1.0\]/{f=1;next} /^## \[/{f=0} f' CHANGELOG.md; } > /tmp/tag-msg && git tag -a v0.1.0 <commit> -F /tmp/tag-msg`
   (use the scratchpad instead of `/tmp` in agent sessions; check with `git show v0.1.0`).
+- **GitHub Release:** after pushing the tag, create a Release from it so the notes show under
+  "Releases": `gh release create v0.1.0 --title "Version 0.1.0" --notes-file <changelog section>`
+  (the same text as the tag message, without its first line).
   Every upload that ships to testers or the store gets a tag; a further build of the same marketing
   version uses `v<MARKETING_VERSION>-<build>` (e.g. `v0.1.0-3`). Push tags together with the next
   block of commits (or when asked): `git push origin <tag>`.

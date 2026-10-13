@@ -83,7 +83,7 @@ Write an ADR for decisions with real trade-offs; routine choices belong in
 Whenever a build is uploaded (TestFlight or App Store): the version commit also turns
 `[Unreleased]` in `CHANGELOG.md` into a dated `[<version>]` section, and the exact archived
 commit gets an annotated tag `v<version>` (`v<version>-<build>` for another build of the same
-version); the tag message contains that version's changelog section so GitHub displays it. Follow `docs/release.md`; remind the owner if a release is about to be skipped over
+version); the tag message contains that version's changelog section so GitHub displays it, and a GitHub Release with the same notes is created from the tag. Follow `docs/release.md`; remind the owner if a release is about to be skipped over
 these steps.
 
 ## Architecture rules

@@ -32,7 +32,7 @@
 6. [`CHANGELOG.md`](CHANGELOG.md) updated under `[Unreleased]` for
    user-visible changes.
 7. **Releases:** every TestFlight/App Store upload has a dated `CHANGELOG.md` section and an
-   annotated `v<version>` git tag on the archived commit (see [`docs/release.md`](docs/release.md)).
+   annotated `v<version>` git tag (message = changelog section) on the archived commit, plus a GitHub Release (see [`docs/release.md`](docs/release.md)).
 8. No new third-party dependency without an ADR; its license must be
    compatible with GPL-2.0.
 
