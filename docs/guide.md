@@ -70,7 +70,8 @@ total hours.
 
 ![Locations](assets/guide/locations.png){: width="240"}
 
-All rooms and places of the event with their descriptions. Tap one for details such as a DECT number.
+All rooms and places of the event with their descriptions. Tap one for details such as a DECT number and a link to the map. The map page is shown right inside the location screen (loaded fresh each time, nothing is kept) with an **Open Map in Browser**
+button; in **Settings › Locations › Map Links** you can switch to a plain link.
 
 ### Messages
 

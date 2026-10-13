@@ -6,7 +6,12 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Settings › Locations › Map Links: a location's map page is shown inside the location screen
+  (loaded fresh every time, nothing is kept) with an “Open Map in Browser” button; the setting can be switched to a plain link.
+
 ### Removed
+- The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's
   “my own account” support for work logs are no longer supported.
 

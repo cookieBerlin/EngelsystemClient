@@ -63,6 +63,12 @@ profile, or any other data you access through the app.
   performance figures — not your API key, shifts, or messages). The
   app keeps these reports on your device for at most 30 days and at
   most 1 MB.
+- **Map links**: with the default setting **Settings › Locations › Map Links = "Link and Embedded Map"**, the app loads the
+  map page of a location inside the location screen, from the address your server's organizers entered for it. That request
+  goes to whoever runs that map page, which may see your IP address like any website you visit. It happens only when you open
+  such a location, the app sends no data of yours along (no API key, no account data), and nothing from the page (cookies,
+  cache) is kept afterwards. Links inside the map page stay in that view and do not open other apps. If you switch the setting to "Link Only", the
+  app loads nothing from the map address; tapping "Show Map" opens it in your browser.
 - **Demo Mode**: uses entirely synthetic, pre-built sample data. No
   network requests are made at all while using Demo Mode.
 

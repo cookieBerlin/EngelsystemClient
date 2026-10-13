@@ -27,6 +27,8 @@ struct SettingsView: View {
     private var notifyOnNewNews: Bool = true
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var multiInstanceDisplayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
+    @AppStorage(MapLinkMode.userDefaultsKey)
+    private var mapLinkModeRaw: String = MapLinkMode.embedded.rawValue
     @AppStorage(DeviceSyncPreferences.syncOnAppStartUserDefaultsKey)
     private var syncOnAppStart: Bool = true
     @AppStorage(DeviceSyncPreferences.pollingIntervalUserDefaultsKey)
@@ -113,6 +115,18 @@ struct SettingsView: View {
                 }
             } footer: {
                 Text("How Shifts, News, and Profile display data when more than one instance is active at the same time.")
+            }
+
+            Section {
+                Picker("Map Links", selection: $mapLinkModeRaw) {
+                    ForEach(MapLinkMode.allCases) { mode in
+                        Text(mode.title).tag(mode.rawValue)
+                    }
+                }
+            } header: {
+                Text("Locations")
+            } footer: {
+                Text("“Link and Embedded Map” shows the map page inside a location's screen; “Link Only” just offers the link. The page is loaded from the address the server provides, every time the screen opens, and nothing is kept afterwards. This setting is per device.")
             }
 
             Section {

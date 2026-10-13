@@ -107,7 +107,12 @@ Design (details in the backlog, items K-01 – K-07):
 ## Open decisions
 
 Awaiting the user's input — nothing below should be assumed/acted on
-until answered. _(none currently open)_
+until answered.
+
+- **Website buttons on News and Shifts** (raised 2026-10-13): the "Open on Website" button was removed from locations; whether
+  the equivalent links on News and Shifts stay is to be discussed with the owner.
+- **Tappable DECT numbers** (raised 2026-10-13): whether a tap on a location's DECT number should start a call, for example
+  through a SIP client with the number. To be discussed after the News/Shifts buttons.
 
 ## Resolved decisions
 

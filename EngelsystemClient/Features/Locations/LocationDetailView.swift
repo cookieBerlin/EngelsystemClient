@@ -13,6 +13,9 @@ struct LocationDetailView: View {
 
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = LocationDetailViewModel()
+    @AppStorage(MapLinkMode.userDefaultsKey) private var mapLinkModeRaw: String = MapLinkMode.embedded.rawValue
+
+    private var mapLinkMode: MapLinkMode { MapLinkMode.stored(raw: mapLinkModeRaw) }
 
     var body: some View {
         Form {
@@ -29,8 +32,17 @@ struct LocationDetailView: View {
 
             if let mapUrl = location.mapUrl, let url = URL(string: mapUrl) {
                 Section {
+                    if mapLinkMode == .embedded, let embeddable = MapLinkMode.embeddableURL(mapUrl) {
+                        EmbeddedMapView(url: embeddable)
+                            .frame(height: 320)
+                            .listRowInsets(EdgeInsets())
+                    }
                     Link(destination: url) {
-                        Label("Show Map", systemImage: "map")
+                        if mapLinkMode == .embedded {
+                            Label("Open Map in Browser", systemImage: "safari")
+                        } else {
+                            Label("Show Map", systemImage: "map")
+                        }
                     }
                 }
             }
@@ -40,14 +52,6 @@ struct LocationDetailView: View {
                     LabeledContent("DECT", value: contactDect)
                 } footer: {
                     Text("Internal short number — reachable from any DECT phone on site.")
-                }
-            }
-
-            if let url = URL(string: location.url) {
-                Section {
-                    Link(destination: url) {
-                        Label("Open on Website", systemImage: "safari")
-                    }
                 }
             }
         }

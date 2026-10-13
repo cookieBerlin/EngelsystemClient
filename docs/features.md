@@ -669,8 +669,15 @@ exists without reading the whole diff history.
   list, `GET /locations` — see below), so the link from a shift needs
   the full list already cached to resolve at all.
   `LocationDetailView` shows the description, an optional map link
-  (`map_url`), an optional DECT contact number, and a link to the
-  location's page on the website.
+  (`map_url`) and an optional DECT contact number. The former "Open on
+  Website" link was removed 2026-10-13 (the app deliberately shows no
+  angel-type counts or shifts of a location). **Map Links setting**
+  (`MapLinkMode`, per-device `@AppStorage`, Settings › Locations): `embedded`
+  (default) or `linkOnly`; `embedded` also renders the map page in an
+  `EmbeddedMapView` (`WKWebView`, non-persistent store, http/https only, no
+  browser bar, loaded anew every time; navigations use WebKit's no-app-link policy so universal links never leave the app) above an "Open Map in Browser" button (opens the default browser; the
+  plain link is labelled "Show Map" in link-only mode) — see ADR
+  0014. iOS only.
 
   **`LocationDetailView` also gets its own live pull-to-refresh**, via
   the newly added `GET /locations/{id}` (`APIClient.fetchLocation(id:_:)`,

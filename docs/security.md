@@ -22,6 +22,8 @@ logging. Hard constraints are mirrored in [`CLAUDE.md`](../CLAUDE.md).
   server-trust handling; do not add trust exceptions for invalid
   certificates.
 - Demo mode (`demo://` sentinel URL) makes no network requests.
+- The optional embedded map (ADR 0014) loads only `http`/`https` addresses into a `WKWebView` with a non-persistent data store and
+  gets no app data; App Transport Security still applies, so plain `http` map pages fail to load.
 
 ## Data on device and in iCloud
 
