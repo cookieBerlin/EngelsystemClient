@@ -22,6 +22,8 @@ versioning: [Semantic Versioning](https://semver.org/).
   “my own account” support for work logs are no longer supported.
 
 ### Changed
+- The main screen is grouped: Communication (News, Messages), Event (Shifts, Locations) and Account (Profile). An area that
+  is no longer available sends you back to the main screen instead of to Shifts.
 - Settings are reorganised into pages: Instances (with Multiple Active Instances), Notifications, Sync (now also showing the
   iCloud status and the last background sync), Phone Numbers, Privacy (map links and deleting map data), Diagnostics and
   About (version and links to the guide, support, privacy policy and source code). The main Settings page shows a short

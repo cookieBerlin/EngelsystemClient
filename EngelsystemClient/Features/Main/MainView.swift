@@ -41,7 +41,8 @@ struct MainView: View {
         let storedRawValue = UserDefaults.standard.string(forKey: Self.lastSelectedSectionKey)
         _selection = State(initialValue: Self.initialSelection(
             fromStoredRawValue: storedRawValue,
-            hasActiveInstances: instances.contains(where: \.isActive)
+            hasActiveInstances: instances.contains(where: \.isActive),
+            visibleSections: Section.visibleSidebarCases(forActiveInstances: instances.filter(\.isActive))
         ))
     }
 
@@ -54,9 +55,15 @@ struct MainView: View {
     /// Also yields no selection when no instance is active (2026-10-12, user-requested):
     /// without data to show, the sidebar (with its empty state) is always the landing
     /// page, whatever was open last.
-    static func initialSelection(fromStoredRawValue rawValue: String?, hasActiveInstances: Bool) -> Section? {
+    ///
+    /// A stored section that is not available any more (Messages or Locations on a server that
+    /// does not offer them) also yields no selection — the main page, never another section
+    /// (2026-10-13, user-requested).
+    static func initialSelection(
+        fromStoredRawValue rawValue: String?, hasActiveInstances: Bool, visibleSections: [Section]
+    ) -> Section? {
         guard hasActiveInstances else { return nil }
-        return rawValue.flatMap(Section.init(rawValue:))
+        return resolvedSelection(rawValue.flatMap(Section.init(rawValue:)), visibleSections: visibleSections)
     }
 
     /// Whether a given selection should actually be persisted as "the last selected
@@ -76,7 +83,47 @@ struct MainView: View {
         /// `visibleSidebarCases(forActiveInstances:)` below) — a previously-selected
         /// `.messages` is still a legitimate value to have persisted, it just may not
         /// currently be visible (handled by `resolvedSelection(_:visibleSections:)`).
-        static let sidebarCases: [Section] = [.shifts, .news, .profile, .locations, .messages]
+        static let sidebarCases: [Section] = [.news, .messages, .shifts, .locations, .profile]
+
+        /// The sidebar's groups (2026-10-13, user-requested): News and Messages under
+        /// "Communication", Shifts and Locations under "Event", Profile under "Account".
+        enum SidebarGroup: CaseIterable, Identifiable {
+            case communication, event, account
+
+            var id: Self { self }
+
+            var title: String {
+                switch self {
+                case .communication: return "Communication"
+                case .event: return "Event"
+                case .account: return "Account"
+                }
+            }
+
+            var sections: [Section] {
+                switch self {
+                case .communication: return [.news, .messages]
+                case .event: return [.shifts, .locations]
+                case .account: return [.profile]
+                }
+            }
+        }
+
+        struct SidebarGroupContent: Identifiable, Equatable {
+            let group: SidebarGroup
+            let sections: [Section]
+
+            var id: SidebarGroup { group }
+        }
+
+        /// The visible sections split into their groups, in sidebar order; a group without any
+        /// visible section is left out (so its heading disappears too).
+        static func groupedForSidebar(_ visible: [Section]) -> [SidebarGroupContent] {
+            SidebarGroup.allCases.compactMap { group in
+                let sections = group.sections.filter { visible.contains($0) }
+                return sections.isEmpty ? nil : SidebarGroupContent(group: group, sections: sections)
+            }
+        }
 
         /// The subset of `sidebarCases` actually rendered as rows, given which
         /// instances are active — `.messages` only shows up once at least one active
@@ -126,17 +173,15 @@ struct MainView: View {
     }
 
     /// What to actually show given the current `selection` and which sections are
-    /// currently visible — falls back to `.shifts` if the selected section has become
-    /// unavailable (e.g. `.messages` selected, then the one instance that supported it
-    /// was deactivated), rather than rendering a screen for a section no longer in the
-    /// sidebar at all. `.settings` is never subject to this fallback — it's always
-    /// reachable via the toolbar gear regardless of active instances. A `static` pure
-    /// function, not inlined into `body`, for the same testability reasoning as
-    /// `initialSelection`/`navigationTitle` above.
-    static func resolvedSelection(_ selection: Section?, visibleSections: [Section]) -> Section {
-        let candidate = selection ?? .shifts
-        if candidate == .settings { return .settings }
-        return visibleSections.contains(candidate) ? candidate : .shifts
+    /// currently visible — nil (the main page) when nothing is selected or the selected
+    /// section has become unavailable (e.g. `.messages` selected, then the one instance that
+    /// supported it was deactivated); never another section (2026-10-13, user-requested).
+    /// `.settings` is always reachable via the toolbar gear regardless of active instances.
+    /// A `static` pure function, not inlined into `body`, for the same testability reasoning
+    /// as `initialSelection`/`navigationTitle` above.
+    static func resolvedSelection(_ selection: Section?, visibleSections: [Section]) -> Section? {
+        guard let selection else { return nil }
+        return selection == .settings || visibleSections.contains(selection) ? selection : nil
     }
 
     private var activeInstances: [Instance] { instances.filter(\.isActive) }
@@ -179,8 +224,12 @@ struct MainView: View {
                         Button("Add Instance") { goToSettings() }
                     }
                 } else {
-                    ForEach(visibleSidebarSections) { section in
-                        Label(section.title, systemImage: section.systemImage).tag(section)
+                    ForEach(Section.groupedForSidebar(visibleSidebarSections)) { content in
+                        SwiftUI.Section(content.group.title) {
+                            ForEach(content.sections) { section in
+                                Label(section.title, systemImage: section.systemImage).tag(section)
+                            }
+                        }
                     }
                 }
             }
@@ -202,12 +251,8 @@ struct MainView: View {
             .refreshable { await runFullSync() }
         } detail: {
             NavigationStack {
-                if selection == nil {
-                    // Nothing chosen yet (iPad/Mac-style wide layouts; on iPhone the
-                    // sidebar list itself is the visible main page).
-                    ContentUnavailableView("Select a Section", systemImage: "sidebar.left")
-                } else {
-                    switch Self.resolvedSelection(selection, visibleSections: visibleSidebarSections) {
+                if let resolved = Self.resolvedSelection(selection, visibleSections: visibleSidebarSections) {
+                    switch resolved {
                     case .shifts:
                         ShiftsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
                     case .news:
@@ -222,8 +267,17 @@ struct MainView: View {
                     case .settings:
                         SettingsView(instances: instances)
                     }
+                } else {
+                    // Nothing chosen, or the chosen section is not available (iPad/Mac-style wide
+                    // layouts; on iPhone the sidebar list itself is the visible main page).
+                    ContentUnavailableView("Select a Section", systemImage: "sidebar.left")
                 }
             }
+        }
+        .onChange(of: visibleSidebarSections) { _, visible in
+            // A section that disappears (its server stopped offering it) sends the app back to the
+            // main page instead of leaving an empty detail screen.
+            if Self.resolvedSelection(selection, visibleSections: visible) == nil { selection = nil }
         }
         .onChange(of: selection) { _, newValue in
             guard let newValue, Self.shouldPersistAsLastSelectedSection(newValue) else { return }

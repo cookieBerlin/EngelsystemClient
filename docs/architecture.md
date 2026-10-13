@@ -202,7 +202,7 @@ deliberately treats it differently from every read-only feature above**:
 - **`MainView.Section.visibleSidebarCases(forActiveInstances:)`** filters
   the Messages row out unless at least one active instance reports
   `messagesSupported`; `MainView.resolvedSelection(_:visibleSections:)`
-  falls back to Shifts if a previously-selected Messages screen becomes
+  returns nil (the main page) if a previously-selected Messages screen becomes
   unavailable (e.g. the one supporting instance gets deactivated).
 - iOS-only, like Locations — no Messages screen on the Watch, per its
   minimal scope.

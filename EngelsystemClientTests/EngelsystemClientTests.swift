@@ -397,22 +397,30 @@ struct MainSyncStatusTests {
 /// user-requested: the app previously always started on Shifts, regardless of what
 /// was last open).
 struct MainViewLastSelectedSectionTests {
+    private let allSections = MainView.Section.sidebarCases
+
+    @Test func startsOnTheMainPageWhenTheStoredSectionIsNotAvailable() {
+        let withoutMessages: [MainView.Section] = [.news, .shifts, .locations, .profile]
+        #expect(MainView.initialSelection(fromStoredRawValue: "messages", hasActiveInstances: true, visibleSections: withoutMessages) == nil)
+        #expect(MainView.initialSelection(fromStoredRawValue: "news", hasActiveInstances: true, visibleSections: withoutMessages) == .news)
+    }
+
     @Test func startsOnTheMainPageWhenNothingWasStoredYet() {
-        #expect(MainView.initialSelection(fromStoredRawValue: nil, hasActiveInstances: true) == nil)
+        #expect(MainView.initialSelection(fromStoredRawValue: nil, hasActiveInstances: true, visibleSections: allSections) == nil)
     }
 
     @Test func startsOnTheMainPageForAnUnrecognizedStoredValue() {
-        #expect(MainView.initialSelection(fromStoredRawValue: "not-a-real-section", hasActiveInstances: true) == nil)
+        #expect(MainView.initialSelection(fromStoredRawValue: "not-a-real-section", hasActiveInstances: true, visibleSections: allSections) == nil)
     }
 
     @Test func alwaysStartsOnTheMainPageWhenNoInstanceIsActive() {
-        #expect(MainView.initialSelection(fromStoredRawValue: "news", hasActiveInstances: false) == nil)
-        #expect(MainView.initialSelection(fromStoredRawValue: "settings", hasActiveInstances: false) == nil)
+        #expect(MainView.initialSelection(fromStoredRawValue: "news", hasActiveInstances: false, visibleSections: allSections) == nil)
+        #expect(MainView.initialSelection(fromStoredRawValue: "settings", hasActiveInstances: false, visibleSections: allSections) == nil)
     }
 
     @Test func resumesOnAPreviouslyStoredDataSection() {
-        #expect(MainView.initialSelection(fromStoredRawValue: "news", hasActiveInstances: true) == .news)
-        #expect(MainView.initialSelection(fromStoredRawValue: "profile", hasActiveInstances: true) == .profile)
+        #expect(MainView.initialSelection(fromStoredRawValue: "news", hasActiveInstances: true, visibleSections: allSections) == .news)
+        #expect(MainView.initialSelection(fromStoredRawValue: "profile", hasActiveInstances: true, visibleSections: allSections) == .profile)
     }
 
     /// `.settings` is a real, storable raw value (`Section` itself doesn't know
@@ -422,7 +430,7 @@ struct MainViewLastSelectedSectionTests {
     /// would honor it if it somehow got stored anyway (e.g. by a future bug), which
     /// is why `shouldPersistAsLastSelectedSection` below matters on the write side.
     @Test func wouldResumeOnSettingsIfItWereEverActuallyStored() {
-        #expect(MainView.initialSelection(fromStoredRawValue: "settings", hasActiveInstances: true) == .settings)
+        #expect(MainView.initialSelection(fromStoredRawValue: "settings", hasActiveInstances: true, visibleSections: allSections) == .settings)
     }
 
     @Test func onlyDataSectionsShouldBePersisted() {
@@ -490,6 +498,28 @@ struct MainViewMessagesVisibilityTests {
     }
 }
 
+/// The sidebar's order and groups (2026-10-13, user-requested): Communication (News, Messages),
+/// Event (Shifts, Locations), Account (Profile).
+struct MainViewSidebarGroupsTests {
+    @Test func theSidebarOrderIsNewsMessagesShiftsLocationsProfile() {
+        #expect(MainView.Section.sidebarCases == [.news, .messages, .shifts, .locations, .profile])
+    }
+
+    @Test func visibleSectionsAreGroupedUnderTheirHeadings() {
+        let groups = MainView.Section.groupedForSidebar(MainView.Section.sidebarCases)
+        #expect(groups.map(\.group.title) == ["Communication", "Event", "Account"])
+        #expect(groups.map(\.sections) == [[.news, .messages], [.shifts, .locations], [.profile]])
+        #expect(groups.map(\.id) == MainView.Section.SidebarGroup.allCases)
+    }
+
+    @Test func aGroupWithoutVisibleSectionsDisappearsAndOthersKeepTheirOrder() {
+        let groups = MainView.Section.groupedForSidebar([.profile, .shifts, .news])
+        #expect(groups.map(\.sections) == [[.news], [.shifts], [.profile]])
+        #expect(MainView.Section.groupedForSidebar([.profile]).map(\.group) == [.account])
+        #expect(MainView.Section.groupedForSidebar([]).isEmpty)
+    }
+}
+
 /// `MainView.resolvedSelection` is what decides which screen actually renders — it
 /// must fall back gracefully if `.messages` is selected but no longer visible (e.g.
 /// the one supporting instance was deactivated after the fact).
@@ -499,13 +529,13 @@ struct MainViewResolvedSelectionTests {
         #expect(MainView.resolvedSelection(.messages, visibleSections: visible) == .messages)
     }
 
-    @Test func fallsBackToShiftsWhenTheSelectionIsNoLongerVisible() {
+    @Test func goesBackToTheMainPageWhenTheSelectionIsNoLongerVisible() {
         let visible: [MainView.Section] = [.shifts, .news]
-        #expect(MainView.resolvedSelection(.messages, visibleSections: visible) == .shifts)
+        #expect(MainView.resolvedSelection(.messages, visibleSections: visible) == nil)
     }
 
-    @Test func fallsBackToShiftsWhenNothingIsSelectedYet() {
-        #expect(MainView.resolvedSelection(nil, visibleSections: [.shifts, .news]) == .shifts)
+    @Test func showsTheMainPageWhenNothingIsSelectedYet() {
+        #expect(MainView.resolvedSelection(nil, visibleSections: [.shifts, .news]) == nil)
     }
 
     @Test func settingsIsAlwaysReachableRegardlessOfVisibility() {

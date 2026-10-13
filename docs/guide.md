@@ -42,7 +42,9 @@ you entered.
 
 ## The main screen
 
-The main screen is a list of areas. Pull down to refresh everything at once; the tiny progress banner at the top shows what is
+The main screen is a list of areas in three groups: **Communication** (News, Messages), **Event** (Shifts, Locations) and
+**Account** (Profile). Messages and Locations only appear if your server offers them. When the app starts, or an area is no
+longer available, you always land on this list. Pull down to refresh everything at once; the tiny progress banner at the top shows what is
 syncing. The gear button opens **Settings**.
 
 ### Shifts
