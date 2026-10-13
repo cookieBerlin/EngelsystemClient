@@ -223,11 +223,10 @@ which a missing endpoint or a 403 is a real error again. The app **hides what a 
 | #1711 (locations) | `GET /locations` forbidden ⇒ Locations hidden for that instance (no error); `GET /locations/{id}` 404/403 ⇒ silent no-op | `LocationSyncService`, `LocationDetailViewModel` |
 | #1711 | Locations sidebar row needs one active instance that can list locations; shift location is plain text otherwise | `MainView.Section.visibleSidebarCases`, `ShiftRow` |
 | #1709 (no `api` privilege for own data) | "Test Connection" probes `GET /users/self`; a 403 shows a neutral warning (privilege + groups, no PR mention) and still allows Save | `APIClient.accessDeniedWarning`, `APIError.missingPrivilegeMessage`, the four connection-test view models and views |
+| #1720 (messages API; requires `user_messages`, not `api`) | Messages capability probe: `GET /messages` decides `Instance.messagesSupported`; the Messages area is hidden unless an active instance supports it | `APIClient.messagesSupported`, `Instance.messagesSupported`, `AppSyncCoordinator`, `MainView` |
 | all | device-local `ServerCapabilities` store (`UserDefaults`, `@Observable`), unknown ⇒ available | `ServerCapabilities` (deleted by R-05) |
 
-Also temporary, though not tagged `COMPAT` (it predates the convention): the Messages capability probe
-(`Instance.messagesSupported`, ADR 0006) for PR [#1720](https://github.com/engelsystem/engelsystem/pull/1720) (messages API,
-requires the `user_messages` privilege instead of `api`) — removed by R-06. Not part of this register: K-06, which stays: shift reminders are planned whenever the *shift* syncs succeeded, independent of News,
+Not part of this register: K-06, which stays: shift reminders are planned whenever the *shift* syncs succeeded, independent of News,
 Profile, Locations or Messages failing.
 
 ## Demo mode (for testing without a real server)

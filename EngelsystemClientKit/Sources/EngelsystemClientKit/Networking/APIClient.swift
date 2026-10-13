@@ -316,7 +316,7 @@ public final class APIClient {
         }
     }
 
-    /// Probes whether this instance's server supports the Messages API at all —
+    /// COMPAT(#1720): probes whether this instance's server supports the Messages API at all —
     /// backs `Instance.messagesSupported`, which gates whether the whole Messages
     /// sidebar entry shows up (2026-09-23, user-requested: "if the instance doesn't
     /// offer the new interface, don't show the GUI"). Demo credential always reports

@@ -92,6 +92,7 @@ struct MainView: View {
                 || capabilities.isAvailable(.locationsList, forAnyOf: activeInstances.map(\.id))
             return sidebarCases.filter { section in
                 switch section {
+                // COMPAT(#1720): Messages only where the server offers the messages API.
                 case .messages: return activeInstances.contains(where: \.messagesSupported)
                 case .locations: return locationsVisible
                 default: return true
@@ -216,6 +217,7 @@ struct MainView: View {
                     case .locations:
                         LocationsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
                     case .messages:
+                        // COMPAT(#1720)
                         MessagesView(instances: activeInstances.filter(\.messagesSupported), syncStatus: syncStatus, onUnauthorized: goToSettings)
                     case .settings:
                         SettingsView(instances: instances)

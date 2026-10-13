@@ -186,7 +186,7 @@ public struct AppSyncCoordinator {
                 reportStep("Locations – \(instance.name)")
 
                 if let credential {
-                    // 2026-09-23, Messages feature: a lightweight capability re-check, not
+                    // COMPAT(#1720), 2026-09-23, Messages feature: a lightweight capability re-check, not
                     // a data sync — updates `Instance.messagesSupported` (which gates the
                     // whole Messages sidebar entry) so a server that gains or loses support
                     // is picked up without a dedicated Setup/Edit-time probe. Cheap: a single

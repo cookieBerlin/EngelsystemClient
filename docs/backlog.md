@@ -31,7 +31,7 @@ missing comments/locations endpoint or a 403 is a real error again.
       always available and a failure shows a normal error banner again; update the "not yet merged" provenance note for
       `/locations/{id}`; delete the #1711 row of the website section and of the register; tests; all gates, builds, UI tests.
 - [ ] **R-06** (blocked until [#1720](https://github.com/engelsystem/engelsystem/pull/1720) is merged) Remove the Messages
-      capability probe (not tagged `COMPAT`, it predates this convention): `Instance.messagesSupported`, the probe in
+      capability probe (`COMPAT(#1720)`): `Instance.messagesSupported`, the probe in
       `APIClient.messagesSupported(_:)` and its step in `AppSyncCoordinator`, and the `visibleSidebarCases` hiding of
       `.messages` — Messages is always available and a failure shows a normal error banner (a 403 means the account lacks the
       `user_messages` privilege: say so in the message). Re-fetch the upstream `openapi.yml` for `/messages*` and compare with
