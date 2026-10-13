@@ -15,6 +15,12 @@
 # decisions live in tested view models/static helpers and XCUITest smoke tests prove the screens render and navigate.
 # Owner approval for this approach 2026-10-12.
 */EngelsystemClient/Features/Settings/SettingsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Settings/NotificationsSettingsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Settings/SyncSettingsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Settings/PhoneNumbersSettingsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Settings/PrivacySettingsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Settings/DiagnosticsSettingsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Settings/AboutSettingsView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/News/NewsView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/News/NewsDetailView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/Profile/ProfileView.swift   # SwiftUI layout (ADR 0010)

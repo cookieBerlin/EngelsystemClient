@@ -2,98 +2,104 @@ import SwiftUI
 import SwiftData
 import EngelsystemClientKit
 
-/// Instance management, reached via the "Settings" section of `MainView`'s sidebar
-/// (CLAUDE.md multi-instance concept: "switching in Settings"). A plain pushed list
-/// rather than its own `NavigationSplitView`, since it's already hosted inside
-/// `MainView`'s `NavigationSplitView`/`NavigationStack`.
-///
-/// 2026-09-17 multi-active-instance redesign (CLAUDE.md): any number of instances can
-/// be active simultaneously, so the single "Use as Active Instance" button/label is
-/// gone. ~~Originally two sections ("Active"/"Inactive") with a swipe action per row
-/// to move an instance between them — a per-row `Toggle` was explicitly rejected at
-/// the time.~~ **Superseded 2026-09-22, at the user's explicit request**: back to a
-/// single flat list with a per-row `Toggle` bound directly to `instance.isActive`, no
-/// sections. People change their minds about UI decisions; this isn't a mistake being
-/// corrected, just a later preference overriding an earlier one.
-/// `sheet(item:)` needs an `Identifiable` payload; a bare `String` isn't one.
-private struct DiagnosticsExport: Identifiable {
-    let id = UUID()
-    let text: String?
-}
-
+/// The Settings hub (restructured 2026-10-13, user-requested): a short list of topics, each
+/// opening its own page — Instances, Notifications, Sync, Phone Numbers, Privacy, Diagnostics
+/// and About. Reached via the "Settings" section of `MainView`'s sidebar; hosted inside
+/// `MainView`'s `NavigationSplitView`/`NavigationStack`, so it is a plain pushed list.
 struct SettingsView: View {
-    @Environment(\.modelContext) private var modelContext
-    @AppStorage(NewsNotifier.enabledUserDefaultsKey)
-    private var notifyOnNewNews: Bool = true
-    @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
-    private var multiInstanceDisplayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
-    @AppStorage(MapLinkMode.userDefaultsKey)
-    private var mapLinkModeRaw: String = MapLinkMode.embedded.rawValue
-    @State private var showsMapDataDeletion = false
-    @AppStorage(MapWebsiteDataRetention.userDefaultsKey)
-    private var mapDataAutoDeleteDays: Int = MapWebsiteDataRetention.defaultDays
-    @AppStorage(DeviceSyncPreferences.syncOnAppStartUserDefaultsKey)
-    private var syncOnAppStart: Bool = true
-    @AppStorage(DeviceSyncPreferences.pollingIntervalUserDefaultsKey)
-    private var pollingIntervalMinutes: Int = PollingInterval.manual.rawValue
-    @AppStorage(DebugLog.isEnabledUserDefaultsKey)
-    private var isDebugLoggingEnabled: Bool = false
-    @AppStorage(DebugLog.maxEntriesUserDefaultsKey)
-    private var maxDebugLogEntries: Int = DebugLog.defaultMaxEntries
-
     let instances: [Instance]
 
-    // CloudKit-synced (within iOS — see NotificationLeadTimeSettings), so this is a
-    // @Query, not @AppStorage like the settings above.
+    @AppStorage(DeviceSyncPreferences.pollingIntervalUserDefaultsKey)
+    private var pollingIntervalMinutes: Int = PollingInterval.manual.rawValue
+    @AppStorage(MapLinkMode.userDefaultsKey)
+    private var mapLinkModeRaw: String = MapLinkMode.embedded.rawValue
+    @AppStorage(DebugLog.isEnabledUserDefaultsKey)
+    private var isDebugLoggingEnabled: Bool = false
     @Query private var leadTimeSettingsRows: [NotificationLeadTimeSettings]
+
+    var body: some View {
+        List {
+            NavigationLink {
+                InstancesSettingsView(instances: instances)
+            } label: {
+                SettingsRowLabel(title: "Instances", systemImage: "server.rack",
+                                 summary: SettingsSummary.instances(active: instances.filter(\.isActive).count, total: instances.count))
+            }
+            NavigationLink {
+                NotificationsSettingsView()
+            } label: {
+                SettingsRowLabel(
+                    title: "Notifications", systemImage: "bell",
+                    summary: SettingsSummary.notifications(
+                        leadTimes: NotificationLeadTimeSettings.leadTimes(
+                            for: NotificationLeadTimeSettings.currentPlatform, in: leadTimeSettingsRows)))
+            }
+            NavigationLink {
+                SyncSettingsView()
+            } label: {
+                SettingsRowLabel(title: "Sync", systemImage: "arrow.triangle.2.circlepath",
+                                 summary: SettingsSummary.sync(pollingIntervalMinutes: pollingIntervalMinutes))
+            }
+            NavigationLink {
+                PhoneNumbersSettingsView()
+            } label: {
+                SettingsRowLabel(title: "Phone Numbers", systemImage: "phone", summary: "")
+            }
+            NavigationLink {
+                PrivacySettingsView()
+            } label: {
+                SettingsRowLabel(title: "Privacy", systemImage: "hand.raised",
+                                 summary: SettingsSummary.privacy(mapLinkRaw: mapLinkModeRaw))
+            }
+            NavigationLink {
+                DiagnosticsSettingsView()
+            } label: {
+                SettingsRowLabel(title: "Diagnostics", systemImage: "stethoscope",
+                                 summary: SettingsSummary.diagnostics(isEnabled: isDebugLoggingEnabled))
+            }
+            NavigationLink {
+                AboutSettingsView()
+            } label: {
+                SettingsRowLabel(title: "About", systemImage: "info.circle", summary: SettingsSummary.version(info: Bundle.main.infoDictionary))
+            }
+        }
+        .navigationTitle("Settings")
+    }
+}
+
+/// One row of the hub: icon, title and a short, secondary summary of the current state.
+private struct SettingsRowLabel: View {
+    let title: String
+    let systemImage: String
+    let summary: String
+
+    var body: some View {
+        HStack {
+            Label(title, systemImage: systemImage)
+            if !summary.isEmpty {
+                Spacer()
+                Text(summary).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+/// Instance management (page "Instances"). 2026-09-17 multi-active-instance redesign
+/// (CLAUDE.md): any number of instances can be active simultaneously. Superseded
+/// 2026-09-22, at the user's explicit request: a single flat list with a per-row `Toggle`
+/// bound directly to `instance.isActive`, no sections.
+struct InstancesSettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
+    private var multiInstanceDisplayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
     @State private var isPresentingSetup = false
-    @State private var diagnosticsToExport: DiagnosticsExport?
-    @State private var cloudSyncStatus: CloudSyncStatus = .checking
+
+    let instances: [Instance]
 
     private var multiInstanceDisplayMode: Binding<MultiInstanceDisplayMode> {
         Binding(
             get: { MultiInstanceDisplayMode.stored(raw: multiInstanceDisplayModeRaw) },
             set: { multiInstanceDisplayModeRaw = $0.rawValue }
-        )
-    }
-
-    /// 2026-09-22, "multiple reminders" feature: sorted ascending purely for a stable,
-    /// predictable display order (Settings' own list, not the notifications
-    /// themselves — order doesn't matter there). Parameterized by platform, not just
-    /// `currentPlatform`, since iOS's `SettingsView` shows *both* rows now
-    /// (2026-09-22, further user-requested: "also show the Watch's settings in the
-    /// iOS app") — both are equally reachable from here via the same CloudKit-synced
-    /// model, there's no reason to require physical access to the tiny Watch screen
-    /// to edit its own reminder list.
-    private func leadTimesMinutes(for platform: String) -> [Int] {
-        NotificationLeadTimeSettings.leadTimes(for: platform, in: leadTimeSettingsRows)
-    }
-
-    private func leadTimesAvailableToAdd(for platform: String) -> [Int] {
-        NotificationLeadTimeSettings.availableToAdd(currentlySelected: leadTimesMinutes(for: platform))
-    }
-
-    private func addLeadTime(_ minutes: Int, for platform: String) {
-        NotificationLeadTimeSettings.addLeadTime(minutes, for: platform, in: modelContext)
-    }
-
-    private func removeLeadTime(_ minutes: Int, for platform: String) {
-        NotificationLeadTimeSettings.removeLeadTime(minutes, for: platform, in: modelContext)
-    }
-
-    /// Plain per-device `@AppStorage`, iOS-only — **not** synced to the Apple Watch
-    /// (2026-09-22, reverted the same day it originally shipped as a CloudKit-synced
-    /// singleton: Watch background execution isn't implemented at all — see
-    /// CLAUDE.md — so `WatchSettingsView` doesn't show this setting any more either).
-    /// Changing it re-schedules this device's own background task immediately, not
-    /// just on the next launch.
-    private var pollingInterval: Binding<PollingInterval> {
-        Binding(
-            get: { PollingInterval(minutes: pollingIntervalMinutes) },
-            set: { newValue in
-                pollingIntervalMinutes = newValue.rawValue
-                BackgroundSyncScheduler.scheduleNext()
-            }
         )
     }
 
@@ -119,152 +125,8 @@ struct SettingsView: View {
             } footer: {
                 Text("How Shifts, News, and Profile display data when more than one instance is active at the same time.")
             }
-
-            Section {
-                ForEach(leadTimesMinutes(for: NotificationLeadTimeSettings.currentPlatform), id: \.self) { minutes in
-                    HStack {
-                        Text("\(minutes) min")
-                        Spacer()
-                        Button {
-                            removeLeadTime(minutes, for: NotificationLeadTimeSettings.currentPlatform)
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.red)
-                        }
-                        .accessibilityLabel("Remove \(minutes) min reminder")
-                    }
-                }
-                if !leadTimesAvailableToAdd(for: NotificationLeadTimeSettings.currentPlatform).isEmpty {
-                    Menu {
-                        ForEach(leadTimesAvailableToAdd(for: NotificationLeadTimeSettings.currentPlatform), id: \.self) { minutes in
-                            Button("\(minutes) min") { addLeadTime(minutes, for: NotificationLeadTimeSettings.currentPlatform) }
-                        }
-                    } label: {
-                        Label("Add Reminder", systemImage: "plus")
-                    }
-                }
-                Toggle("Notify on New News", isOn: $notifyOnNewNews)
-            } header: {
-                Text("Notifications")
-            } footer: {
-                Text("A local reminder is scheduled before each of your shifts starts, once per time added here. Shared with other iOS/iPadOS devices on this account. Also whether a notification is posted when a News sync finds a new announcement.")
-            }
-
-            // 2026-09-22, further user-requested: the Apple Watch's own reminder
-            // list, editable right from here too — both rows live in the same
-            // CloudKit-synced `NotificationLeadTimeSettings` model, so there's no
-            // reason editing the Watch's list should require physical access to its
-            // much smaller screen. Distinct accessibility labels ("... Watch
-            // reminder"/"Add Watch Reminder") from the section above, so the two
-            // "Add Reminder"-shaped controls stay unambiguous.
-            Section {
-                ForEach(leadTimesMinutes(for: "watch"), id: \.self) { minutes in
-                    HStack {
-                        Text("\(minutes) min")
-                        Spacer()
-                        Button {
-                            removeLeadTime(minutes, for: "watch")
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.red)
-                        }
-                        .accessibilityLabel("Remove \(minutes) min Watch reminder")
-                    }
-                }
-                if !leadTimesAvailableToAdd(for: "watch").isEmpty {
-                    Menu {
-                        ForEach(leadTimesAvailableToAdd(for: "watch"), id: \.self) { minutes in
-                            Button("\(minutes) min") { addLeadTime(minutes, for: "watch") }
-                        }
-                    } label: {
-                        Label("Add Watch Reminder", systemImage: "plus")
-                    }
-                }
-            } header: {
-                Text("Apple Watch Reminders")
-            } footer: {
-                Text("Your Apple Watch's own reminder list — independent from the one above, but editable from here too.")
-            }
-
-            Section {
-                Picker("Background Sync", selection: pollingInterval) {
-                    ForEach(PollingInterval.allCases) { interval in
-                        Text(interval.title).tag(interval)
-                    }
-                }
-                Toggle("Sync on App Start", isOn: $syncOnAppStart)
-            } header: {
-                Text("Sync")
-            } footer: {
-                Text("The operating system decides exactly when a background sync actually happens — depending on battery, usage, and system load, it can take longer than the interval you pick here. Both settings are per device, not shared with your Apple Watch.")
-            }
-
-            Section {
-                Picker("Map Links", selection: $mapLinkModeRaw) {
-                    ForEach(MapLinkMode.allCases) { mode in
-                        Text(mode.title).tag(mode.rawValue)
-                    }
-                }
-                Picker("Delete Map Data Automatically", selection: $mapDataAutoDeleteDays) {
-                    ForEach(MapWebsiteDataRetention.choices, id: \.self) { days in
-                        Text(MapWebsiteDataRetention.title(days: days)).tag(days)
-                    }
-                }
-                Button("Delete Map Website Data…", role: .destructive) { showsMapDataDeletion = true }
-                    .confirmationDialog("Delete Map Website Data", isPresented: $showsMapDataDeletion, titleVisibility: .visible) {
-                        Button("Delete", role: .destructive) {
-                            Task { await MapWebsiteData.deleteAll() }
-                        }
-                        Button("Cancel", role: .cancel) {}
-                    } message: {
-                        Text("Removes all cookies and other data the embedded map pages stored.")
-                    }
-            } header: {
-                Text("Locations")
-            } footer: {
-                Text("“Link and Embedded Map” shows the map page inside a location's screen; “Link Only” just offers the link. The page is loaded from the address the server provides, every time the screen opens. Cookies the map page stores (for example your consent) are kept on this device, apart from Safari, until they are deleted automatically (every 30 days by default, or when the app quits if you choose that) or by you here. This setting is per device.")
-            }
-
-            ForEach(PhoneNumberKind.allCases) { kind in
-                CallPreferenceSection(kind: kind)
-            }
-
-            Section {
-                Toggle("Debug Logging", isOn: $isDebugLoggingEnabled)
-                Picker("Max Log Entries", selection: $maxDebugLogEntries) {
-                    ForEach(DebugLog.availableMaxEntryCounts, id: \.self) { count in
-                        Text("\(count)").tag(count)
-                    }
-                }
-                NavigationLink("View Debug Log") {
-                    DebugLogView()
-                }
-                Button {
-                    diagnosticsToExport = DiagnosticsExport(text: MetricKitReporter.shared.exportText())
-                } label: {
-                    Label("Export Diagnostics", systemImage: "square.and.arrow.up")
-                }
-            } header: {
-                Text("Diagnostics")
-            } footer: {
-                Text("Records internal sync and notification activity for troubleshooting. Never includes API keys or other secrets. Off by default; turning it off doesn't erase what's already logged — use \"Clear\" in the log view for that. \"Export Diagnostics\" shares crash/hang/performance data collected on-device by Apple's MetricKit — nothing is sent anywhere automatically, and you see what it contains before sharing.")
-            }
-
-            Section {
-                VStack(spacing: 4) {
-                    Text(cloudSyncStatus.displayText)
-                    if let lastBackgroundSync = DeviceSyncPreferences.lastBackgroundSyncDate() {
-                        Text("Last Background Sync: \(lastBackgroundSync.formatted(.relative(presentation: .named)))")
-                    }
-                    Text(AppVersionInfo.displayString)
-                }
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-            }
-            .listRowBackground(Color.clear)
         }
-        .navigationTitle("Settings")
+        .navigationTitle("Instances")
         .toolbar {
             ToolbarItem {
                 Button {
@@ -274,17 +136,8 @@ struct SettingsView: View {
                 }
             }
         }
-        .task {
-            cloudSyncStatus = await CloudSyncStatus.current(containerIdentifier: ModelContainerFactory.cloudKitContainerIdentifier)
-        }
-        .sheet(item: $diagnosticsToExport) { export in
-            ExportDiagnosticsView(diagnosticsText: export.text)
-        }
         .sheet(isPresented: $isPresentingSetup) {
             InstanceSetupView()
-        }
-        .navigationDestination(for: Instance.self) { instance in
-            InstanceDetailView(instance: instance, onDelete: { delete(instance) })
         }
     }
 
@@ -297,8 +150,14 @@ struct SettingsView: View {
     @ViewBuilder
     private func instanceRow(for instance: Instance) -> some View {
         ZStack {
-            NavigationLink(value: instance) { EmptyView() }
-                .opacity(0)
+            // Destination-based (not value-based): this page is itself pushed from the hub, and a
+            // value link did not push the detail page from here (found with the UI tests).
+            NavigationLink {
+                InstanceDetailView(instance: instance, onDelete: { delete(instance) })
+            } label: {
+                EmptyView()
+            }
+            .opacity(0)
             HStack {
                 InstanceRow(instance: instance)
                 Spacer()

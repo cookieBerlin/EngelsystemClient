@@ -57,7 +57,7 @@ if at least one active server supports it. Demo Mode always has it.
 
 ### What happens when I activate several events?
 
-Shifts, News and Profile show data from all active events. **Settings → Multiple Active Instances** chooses between one merged
+Shifts, News and Profile show data from all active events. **Settings → Instances → Multiple Active Instances** chooses between one merged
 list, a switcher, or one section per event. Each row shows a small badge with its event.
 
 ### Can I sign up for or swap shifts?

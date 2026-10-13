@@ -160,6 +160,7 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
         settingsButton.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        openSettingsPage("Instances", in: app)
         let demoInstanceRow = app.staticTexts["Demo"]
         XCTAssertTrue(demoInstanceRow.waitForExistence(timeout: 5))
 
@@ -186,7 +187,7 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(containingText("Demo Renamed", in: app).waitForExistence(timeout: 5))
 
         goBack(app)
-        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Instances"].waitForExistence(timeout: 5))
 
         // 2026-09-22: superseded the "Active"/"Inactive" sections + swipe-action
         // design — back to a single flat list with a per-row Toggle (accessibility
@@ -200,35 +201,40 @@ final class EngelsystemClientUITests: XCTestCase {
         activeToggle.tap()
         XCTAssertEqual(activeToggle.value as? String, "1")
 
-        // Multiple reminders (2026-09-22): defaults to a single "15 min" row,
-        // addable via an "Add Reminder" `Menu`, removable via a visible minus button
-        // per row. **Deliberately doesn't tap into the `Menu`'s own popup content**:
-        // tried it, hit it consistently closing/not registering before the item
-        // could be found (XCUITest's automatic "check for interrupting elements"
-        // step before every subsequent interaction is the leading suspect — menus
-        // aren't a UI pattern this project's tests had exercised before). Verified
-        // instead via the fast, reliable `EngelsystemClientKitTests
-        // .notificationLeadTimeSettings...` tests (the actual add/remove model
-        // logic) plus checking the button itself exists and is tappable here. The
-        // remove path — a plain button, no popup — is still verified end-to-end.
-        XCTAssertTrue(containingText("15 min", in: app).waitForExistence(timeout: 5))
+        // Multiple reminders (2026-09-22), on the Notifications page: addable via an "Add Reminder"
+        // `Menu`, removable via a visible minus button per row. **Deliberately doesn't depend on
+        // the `Menu`'s popup**: XCUITest's interruption check made it unreliable. The test does
+        // not assume the default "15 min" row either — the reminders are stored data that earlier
+        // runs may have changed — so it removes whichever reminder is there and restores it on a
+        // best-effort basis (the add/remove model logic itself is covered by the fast Kit tests).
+        goBack(app)
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        openSettingsPage("Notifications", in: app)
         let addReminderButton = app.buttons["Add Reminder"]
         XCTAssertTrue(addReminderButton.waitForExistence(timeout: 5))
         XCTAssertTrue(addReminderButton.isHittable)
 
-        // Remove the default "15 min" reminder via its visible minus button.
-        let removeFifteenMin = app.buttons["Remove 15 min reminder"]
-        XCTAssertTrue(removeFifteenMin.waitForExistence(timeout: 5))
-        removeFifteenMin.tap()
-        XCTAssertFalse(app.buttons["Remove 15 min reminder"].waitForExistence(timeout: 2))
-
-        // Version/build/git-hash footer at the bottom of Settings (AppVersionInfo) —
-        // scroll down since it sits below the fold after all the sections above.
-        let versionFooter = containingText("Version", in: app)
-        for _ in 0..<20 where !versionFooter.exists {
-            app.swipeUp()
+        let removeButtons = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'Remove ' AND label ENDSWITH ' min reminder'"))
+        let remindersBefore = removeButtons.count
+        if remindersBefore > 0 {
+            removeButtons.firstMatch.tap()
+            let removed = NSPredicate(format: "count == %d", remindersBefore - 1)
+            let expectation = XCTNSPredicateExpectation(predicate: removed, object: removeButtons)
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation], timeout: 5), .completed)
+            // Best effort: put a reminder back so the next run starts from the same state.
+            if addReminderButton.exists {
+                addReminderButton.tap()
+                let first = app.buttons.matching(NSPredicate(format: "label ENDSWITH ' min'")).firstMatch
+                if first.waitForExistence(timeout: 2) { first.tap() }
+            }
         }
-        XCTAssertTrue(versionFooter.waitForExistence(timeout: 5))
+
+        // Version/build/git-hash on the About page (AppVersionInfo).
+        goBack(app)
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        openSettingsPage("About", in: app)
+        XCTAssertTrue(containingText("Version", in: app).waitForExistence(timeout: 5))
     }
 
     /// 2026-09-22, user-reported and fixed: with zero active instances, `MainView`'s
@@ -284,9 +290,9 @@ final class EngelsystemClientUITests: XCTestCase {
         settingsButton.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         app.navigationBars.firstMatch.tap() // flushes the interruption monitor if needed
+        openSettingsPage("Diagnostics", in: app)
 
         let exportButton = app.buttons["Export Diagnostics"]
-        for _ in 0..<12 where !exportButton.exists { app.swipeUp() }
         XCTAssertTrue(exportButton.waitForExistence(timeout: 5))
         exportButton.tap()
         XCTAssertTrue(app.navigationBars["Export Diagnostics"].waitForExistence(timeout: 5))
@@ -294,7 +300,6 @@ final class EngelsystemClientUITests: XCTestCase {
         app.buttons["Cancel"].firstMatch.tap()
 
         let debugLogLink = app.buttons["View Debug Log"]
-        for _ in 0..<12 where !debugLogLink.exists { app.swipeUp() }
         XCTAssertTrue(debugLogLink.waitForExistence(timeout: 5))
         debugLogLink.tap()
         XCTAssertTrue(app.navigationBars["Debug Log"].waitForExistence(timeout: 5))
@@ -344,6 +349,7 @@ final class EngelsystemClientUITests: XCTestCase {
         settingsButton.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         app.navigationBars.firstMatch.tap()
+        openSettingsPage("Instances", in: app)
 
         let activeToggle = app.switches["Demo Active"]
         XCTAssertTrue(activeToggle.waitForExistence(timeout: 5))
@@ -352,12 +358,14 @@ final class EngelsystemClientUITests: XCTestCase {
         app.navigationBars.firstMatch.tap()
         XCTAssertEqual(activeToggle.value as? String, "0")
 
-        goBack(app)
+        goBack(app) // Settings hub
+        goBack(app) // sidebar
 
         let addInstanceButton = app.buttons["Add Instance"]
         XCTAssertTrue(addInstanceButton.waitForExistence(timeout: 5))
         addInstanceButton.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        openSettingsPage("Instances", in: app)
 
         // Leave the instance re-activated rather than deactivated, in case a later
         // test run reuses the same simulator/app state.
@@ -485,6 +493,15 @@ final class EngelsystemClientUITests: XCTestCase {
 
     private func goBack(_ app: XCUIApplication) {
         app.navigationBars.buttons.element(boundBy: 0).tap()
+    }
+
+    /// Opens one page of the Settings hub (Instances, Notifications, Sync, Phone Numbers, Privacy,
+    /// Diagnostics, About). The rows carry a summary, so the label only *starts with* the title.
+    private func openSettingsPage(_ title: String, in app: XCUIApplication) {
+        let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+        XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5))
     }
 
     @MainActor

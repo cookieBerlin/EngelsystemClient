@@ -63,14 +63,14 @@ profile, or any other data you access through the app.
   performance figures — not your API key, shifts, or messages). The
   app keeps these reports on your device for at most 30 days and at
   most 1 MB.
-- **Map links**: with the default setting **Settings › Locations › Map Links = "Link and Embedded Map"**, the app loads the
+- **Map links**: with the default setting **Settings › Privacy › Map Links = "Link and Embedded Map"**, the app loads the
   map page of a location inside the location screen, from the address your server's organizers entered for it. That request
   goes to whoever runs that map page, which may see your IP address like any website you visit. It happens only when you open
   such a location, the app sends no data of yours along (no API key, no account data), and the page is loaded
   afresh each time. Cookies and similar data the map page stores (for example your consent) stay on your device in a store used
   only by this map view, separate from Safari, and are sent only to that map page; the app deletes them automatically every 30 days by
-  default (changeable, never, or only until the app quits, under **Settings › Locations**), and you can delete them any time under
-  **Settings › Locations › Delete Map Website Data**. Links inside the map page stay in that view and do not open other apps. If you switch the setting to "Link Only", the
+  default (changeable, never, or only until the app quits, under **Settings › Privacy**), and you can delete them any time under
+  **Settings › Privacy › Delete Map Website Data**. Links inside the map page stay in that view and do not open other apps. If you switch the setting to "Link Only", the
   app loads nothing from the map address; tapping "Show Map" opens it in your browser.
 - **Demo Mode**: uses entirely synthetic, pre-built sample data. No
   network requests are made at all while using Demo Mode.

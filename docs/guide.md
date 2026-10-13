@@ -71,7 +71,7 @@ total hours.
 ![Locations](assets/guide/locations.png){: width="240"}
 
 All rooms and places of the event with their descriptions. Tap one for details such as a DECT number and a link to the map. The map page is shown right inside the location screen (almost full screen, loaded fresh each time) with an **Open Map in Browser**
-button. The map page's cookies (for example your consent) stay on your device; the app deletes them every 30 days by default (or keeps them only until you quit the app, if you choose that); in **Settings › Locations** you can change that, delete them yourself or
+button. The map page's cookies (for example your consent) stay on your device; the app deletes them every 30 days by default (or keeps them only until you quit the app, if you choose that); in **Settings › Privacy** you can change that, delete them yourself or
 switch to a plain link.
 
 ### Messages
@@ -87,18 +87,24 @@ simply not offering it yet (it needs the open Engelsystem change
 
 ![Settings](assets/guide/settings.png){: width="240"}
 
+Settings is a short list of pages; each row shows a summary of its current state.
+
 - **Instances**: all your events. Use the switch to turn an event on or off; tap one to edit its name, server or API key, or to
-  remove it (this also removes the data cached for it).
-- **Multiple Active Instances**: when more than one event is active, choose how Shifts, News and Profile show them:
-  **Merged** (one list, labeled by event), **Switcher** (one event at a time via a control at the top) or **Sectioned**
-  (one section per event).
+  remove it (this also removes the data cached for it). **Multiple Active Instances** chooses how Shifts, News and Profile show
+  more than one active event: **Merged** (one list, labeled by event), **Switcher** (one event at a time via a control at the
+  top) or **Sectioned** (one section per event).
 - **Notifications**: the reminder times before each shift ("15 min", …). **Add Reminder** adds more, the red button removes
-  one. **Notify on New News** posts a notification when a background sync finds new announcements.
-- **Apple Watch Reminders**: the same for your Watch, independently of the iPhone list.
+  one. **Notify on New News** posts a notification when a background sync finds new announcements. **Apple Watch Reminders**
+  is the same for your Watch, independently of the iPhone list.
 - **Sync**: **Background Sync** sets how often the app may refresh in the background (iOS decides the exact moment, so it can
-  take longer than the interval); **Sync on App Start** refreshes when you open the app.
+  take longer than the interval); **Sync on App Start** refreshes when you open the app. The page also shows the iCloud status
+  and the last background sync.
+- **Phone Numbers**: which app opens internal and other numbers (see "Phone numbers" above).
+- **Privacy**: **Map Links** (a plain link or the map inside the location screen), automatic deletion of the map page's data and
+  **Delete Map Website Data**, plus a link to the privacy policy.
 - **Diagnostics**: **Debug Logging**, **View Debug Log** and **Export Diagnostics** for bug reports — see the
   [FAQ](faq.md#something-is-wrong-how-do-i-report-it).
+- **About**: version and build, and links to the guide, support, privacy policy and the source code.
 
 ## Apple Watch
 

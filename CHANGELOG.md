@@ -7,10 +7,14 @@ versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- Settings › Locations › Map Links: a location's map page is shown inside the location screen
+- Phone numbers (DECT and mobile, on a location and in your profile) can be tapped to call and copied. Numbers of up to five
+  digits count as internal; Settings › Phone Numbers chooses the app for internal and for other numbers: the system default
+  (`sip:` / `tel:`), Acrobits Softphone, Groundwire, Cloud Softphone (with an action such as preparing the number or a video
+  call), a custom link template, or copy only. Your profile now shows your DECT and mobile numbers.
+- Settings › Privacy › Map Links: a location's map page is shown inside the location screen
   (almost full screen, loaded fresh every time) with an “Open Map in Browser” button; the setting can be switched to a plain
   link. The map page's cookies, such as a consent, are kept on the device apart from Safari; They are deleted automatically every 30 days
-  (changeable, or kept only until the app quits) and Settings › Locations › Delete Map Website Data removes them at once.
+  (changeable, or kept only until the app quits) and Settings › Privacy › Delete Map Website Data removes them at once.
 
 ### Removed
 - The “Open on Website” button on the location screen.
@@ -18,6 +22,10 @@ versioning: [Semantic Versioning](https://semver.org/).
   “my own account” support for work logs are no longer supported.
 
 ### Changed
+- Settings are reorganised into pages: Instances (with Multiple Active Instances), Notifications, Sync (now also showing the
+  iCloud status and the last background sync), Phone Numbers, Privacy (map links and deleting map data), Diagnostics and
+  About (version and links to the guide, support, privacy policy and source code). The main Settings page shows a short
+  summary for each page.
 - Works with Engelsystem servers that lack some newer API features: news without comment counts still load, news comments and
   the Locations area are hidden when a server does not provide them, and shift reminders no longer depend on News or Profile
   syncing successfully.
