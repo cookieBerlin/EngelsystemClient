@@ -15,45 +15,27 @@ struct LocationDetailView: View {
     @State private var viewModel = LocationDetailViewModel()
     @AppStorage(MapLinkMode.userDefaultsKey) private var mapLinkModeRaw: String = MapLinkMode.embedded.rawValue
 
+    @State private var mapDataChecked = false
+    @AppStorage(MapWebsiteDataRetention.userDefaultsKey) private var autoDeleteDays: Int = MapWebsiteDataRetention.defaultDays
+
     private var mapLinkMode: MapLinkMode { MapLinkMode.stored(raw: mapLinkModeRaw) }
 
+    /// The embeddable map address when the embedded map is on and this location has one.
+    private var embeddedMapURL: URL? {
+        mapLinkMode == .embedded ? MapLinkMode.embeddableURL(location.mapUrl) : nil
+    }
+
     var body: some View {
-        Form {
-            if let errorMessage = viewModel.errorMessage {
-                Section {
-                    ErrorBanner(message: errorMessage)
-                }
-                .listRowInsets(EdgeInsets())
+        Group {
+            if let embeddedMapURL {
+                embeddedLayout(mapURL: embeddedMapURL)
+            } else {
+                listLayout
             }
-
-            Section {
-                Text(location.locationDescription)
-            }
-
-            if let mapUrl = location.mapUrl, let url = URL(string: mapUrl) {
-                Section {
-                    if mapLinkMode == .embedded, let embeddable = MapLinkMode.embeddableURL(mapUrl) {
-                        EmbeddedMapView(url: embeddable)
-                            .frame(height: 320)
-                            .listRowInsets(EdgeInsets())
-                    }
-                    Link(destination: url) {
-                        if mapLinkMode == .embedded {
-                            Label("Open Map in Browser", systemImage: "safari")
-                        } else {
-                            Label("Show Map", systemImage: "map")
-                        }
-                    }
-                }
-            }
-
-            if let contactDect = location.contactDect {
-                Section {
-                    LabeledContent("DECT", value: contactDect)
-                } footer: {
-                    Text("Internal short number — reachable from any DECT phone on site.")
-                }
-            }
+        }
+        .task {
+            await MapWebsiteData.deleteIfDue(days: autoDeleteDays)
+            mapDataChecked = true
         }
         .navigationTitle(location.name)
         #if os(iOS)
@@ -67,6 +49,78 @@ struct LocationDetailView: View {
         .refreshable {
             guard let instance else { return }
             await viewModel.refresh(location: location, instance: instance, in: modelContext)
+        }
+    }
+
+    /// Embedded map: the text information takes exactly the height it needs at the top and the
+    /// map takes all the remaining space down to the bottom edge. The map only starts loading
+    /// once the automatic cleanup of its website data (`MapWebsiteData.deleteIfDue`) has run.
+    private func embeddedLayout(mapURL: URL) -> some View {
+        VStack(spacing: 0) {
+            embeddedInfo
+            Divider()
+            if mapDataChecked {
+                EmbeddedMapView(url: mapURL, autoDeleteDays: autoDeleteDays)
+                    .frame(maxHeight: .infinity)
+            } else {
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var embeddedInfo: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let errorMessage = viewModel.errorMessage {
+                ErrorBanner(message: errorMessage)
+            }
+            Text(location.locationDescription)
+            if let contactDect = location.contactDect {
+                VStack(alignment: .leading, spacing: 2) {
+                    LabeledContent("DECT", value: contactDect)
+                    Text("Internal short number — reachable from any DECT phone on site.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if let url = URL(string: location.mapUrl ?? "") {
+                Link(destination: url) {
+                    Label("Open Map in Browser", systemImage: "safari")
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+    }
+
+    private var listLayout: some View {
+        Form {
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    ErrorBanner(message: errorMessage)
+                }
+                .listRowInsets(EdgeInsets())
+            }
+
+            Section {
+                Text(location.locationDescription)
+            }
+
+            if let contactDect = location.contactDect {
+                Section {
+                    LabeledContent("DECT", value: contactDect)
+                } footer: {
+                    Text("Internal short number — reachable from any DECT phone on site.")
+                }
+            }
+
+            if let mapUrl = location.mapUrl, let url = URL(string: mapUrl) {
+                Section {
+                    Link(destination: url) {
+                        Label("Show Map", systemImage: "map")
+                    }
+                }
+            }
         }
     }
 }

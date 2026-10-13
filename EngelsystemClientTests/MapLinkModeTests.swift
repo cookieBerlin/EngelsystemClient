@@ -38,4 +38,22 @@ struct MapLinkModeTests {
         #expect(MapLinkMode.navigationDecision(to: URL(string: "comgooglemaps://?q=venue")) == .cancel)
         #expect(MapLinkMode.navigationDecision(to: nil) == .cancel)
     }
+
+    @Test func automaticCleanupIsDueAfterTheChosenNumberOfDays() {
+        let now = Date(timeIntervalSince1970: 1_000_000_000)
+        let day = 86_400.0
+        #expect(!MapWebsiteDataRetention.isDue(lastCleanup: nil, days: 30, now: now))
+        #expect(!MapWebsiteDataRetention.isDue(lastCleanup: now.addingTimeInterval(-100 * day), days: 0, now: now))
+        #expect(!MapWebsiteDataRetention.isDue(lastCleanup: now.addingTimeInterval(-29 * day), days: 30, now: now))
+        #expect(MapWebsiteDataRetention.isDue(lastCleanup: now.addingTimeInterval(-30 * day), days: 30, now: now))
+        #expect(MapWebsiteDataRetention.isDue(lastCleanup: now.addingTimeInterval(-8 * day), days: 7, now: now))
+        #expect(MapWebsiteDataRetention.title(days: 0) == "Never")
+        #expect(MapWebsiteDataRetention.title(days: 30) == "Every 30 Days")
+        #expect(MapWebsiteDataRetention.title(days: MapWebsiteDataRetention.untilAppQuits) == "Until the App Quits")
+        #expect(MapWebsiteDataRetention.keepsDataOnlyInMemory(days: -1))
+        #expect(!MapWebsiteDataRetention.keepsDataOnlyInMemory(days: 30))
+        #expect(!MapWebsiteDataRetention.keepsDataOnlyInMemory(days: 0))
+        #expect(!MapWebsiteDataRetention.isDue(lastCleanup: Date.distantPast, days: -1, now: Date()))
+        #expect(MapWebsiteDataRetention.choices.contains(MapWebsiteDataRetention.defaultDays))
+    }
 }

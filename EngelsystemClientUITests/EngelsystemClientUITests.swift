@@ -15,6 +15,10 @@ final class EngelsystemClientUITests: XCTestCase {
         // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
 
+        // The simulator keeps the orientation of a previous test (the launch tests rotate it); a landscape
+        // iPhone pushes "Try Demo Mode" below the fold. Every test starts upright.
+        if UIDevice.current.userInterfaceIdiom == .phone { XCUIDevice.shared.orientation = .portrait }
+
         // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
     }
 

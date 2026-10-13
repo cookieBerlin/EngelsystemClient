@@ -70,8 +70,9 @@ total hours.
 
 ![Locations](assets/guide/locations.png){: width="240"}
 
-All rooms and places of the event with their descriptions. Tap one for details such as a DECT number and a link to the map. The map page is shown right inside the location screen (loaded fresh each time, nothing is kept) with an **Open Map in Browser**
-button; in **Settings › Locations › Map Links** you can switch to a plain link.
+All rooms and places of the event with their descriptions. Tap one for details such as a DECT number and a link to the map. The map page is shown right inside the location screen (almost full screen, loaded fresh each time) with an **Open Map in Browser**
+button. The map page's cookies (for example your consent) stay on your device; the app deletes them every 30 days by default (or keeps them only until you quit the app, if you choose that); in **Settings › Locations** you can change that, delete them yourself or
+switch to a plain link.
 
 ### Messages
 

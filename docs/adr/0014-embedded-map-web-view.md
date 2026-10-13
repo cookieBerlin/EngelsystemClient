@@ -14,9 +14,12 @@ browser chrome. The address is arbitrary web content from a third party, so rend
 - Setting `MapLinkMode` (`embedded` default, `linkOnly`), per device in `UserDefaults` like the sync settings; iOS only.
 - `embedded` uses a plain `WKWebView` (system framework, no dependency) inside `LocationDetailView`, not
   `SFSafariViewController` (which has browser chrome).
-- Restrictions: only `http`/`https` URLs are loaded or navigated to (`MapLinkMode.embeddableURL`/`allowsNavigation`); a
-  non-persistent website data store, so no cookies or cache survive and the page is fetched anew every time the screen
-  appears; the view never receives the API key or any app data; an "Open Map in Browser" button stays visible next to the embedded map.
+- Restrictions: only `http`/`https` URLs are loaded or navigated to (`MapLinkMode.embeddableURL`/`allowsNavigation`); the
+  page itself is fetched anew every time the screen appears (cache ignored), but cookies and other website data live in a
+  persistent store of the map view only (`WKWebsiteDataStore(forIdentifier:)`, apart from Safari and everything else), so a
+  provider's consent survives; the app deletes it automatically every N days (setting, default 30, 0 = never, or "Until the App Quits": one in-memory `WKWebsiteDataStore.nonPersistent()` shared for the app run and never written to disk; checked when a location with an embedded map opens, before the map loads), and Settings › Locations › Delete Map Website Data removes all of it after a yes/no confirmation
+  (first design was a non-persistent store, changed
+  2026-10-13 because the consent dialog reappeared on every visit); the view never receives the API key or any app data; an "Open Map in Browser" button stays visible next to the embedded map.
 - Allowed navigations use WebKit's "allow without trying an app link" policy (`WKNavigationActionPolicy.allow` raw value + 2,
   an undocumented value that Firefox and Brave also use; a plain `.allow` is the fallback), and `target=_blank` loads in the
   same view. Otherwise iOS hands addresses such as Google Maps to the installed app via universal links, which left the app in

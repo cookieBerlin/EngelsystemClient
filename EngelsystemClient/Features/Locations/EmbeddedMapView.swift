@@ -2,17 +2,20 @@ import SwiftUI
 import WebKit
 
 /// The map page rendered inside `LocationDetailView` (`MapLinkMode.embedded`). A thin
-/// `WKWebView` adapter: a non-persistent data store (no cookies or cache survive; the
-/// page is fetched anew every time the screen appears) and navigation decided by
+/// `WKWebView` adapter: a persistent data store of its own (`MapWebsiteData`, so e.g. a
+/// consent cookie survives; Settings can delete it; the page itself is fetched anew every
+/// time the screen appears) and navigation decided by
 /// `MapLinkMode.navigationDecision` (web addresses only; they never open other apps). See ADR 0014.
 struct EmbeddedMapView: UIViewRepresentable {
     let url: URL
+    /// The automatic-deletion setting, which also decides persistent vs. in-memory storage.
+    let autoDeleteDays: Int
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .nonPersistent()
+        configuration.websiteDataStore = MapWebsiteData.store(forAutoDeleteDays: autoDeleteDays)
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator

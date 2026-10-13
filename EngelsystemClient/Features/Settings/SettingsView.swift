@@ -29,6 +29,9 @@ struct SettingsView: View {
     private var multiInstanceDisplayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
     @AppStorage(MapLinkMode.userDefaultsKey)
     private var mapLinkModeRaw: String = MapLinkMode.embedded.rawValue
+    @State private var showsMapDataDeletion = false
+    @AppStorage(MapWebsiteDataRetention.userDefaultsKey)
+    private var mapDataAutoDeleteDays: Int = MapWebsiteDataRetention.defaultDays
     @AppStorage(DeviceSyncPreferences.syncOnAppStartUserDefaultsKey)
     private var syncOnAppStart: Bool = true
     @AppStorage(DeviceSyncPreferences.pollingIntervalUserDefaultsKey)
@@ -118,18 +121,6 @@ struct SettingsView: View {
             }
 
             Section {
-                Picker("Map Links", selection: $mapLinkModeRaw) {
-                    ForEach(MapLinkMode.allCases) { mode in
-                        Text(mode.title).tag(mode.rawValue)
-                    }
-                }
-            } header: {
-                Text("Locations")
-            } footer: {
-                Text("“Link and Embedded Map” shows the map page inside a location's screen; “Link Only” just offers the link. The page is loaded from the address the server provides, every time the screen opens, and nothing is kept afterwards. This setting is per device.")
-            }
-
-            Section {
                 ForEach(leadTimesMinutes(for: NotificationLeadTimeSettings.currentPlatform), id: \.self) { minutes in
                     HStack {
                         Text("\(minutes) min")
@@ -206,6 +197,32 @@ struct SettingsView: View {
                 Text("Sync")
             } footer: {
                 Text("The operating system decides exactly when a background sync actually happens — depending on battery, usage, and system load, it can take longer than the interval you pick here. Both settings are per device, not shared with your Apple Watch.")
+            }
+
+            Section {
+                Picker("Map Links", selection: $mapLinkModeRaw) {
+                    ForEach(MapLinkMode.allCases) { mode in
+                        Text(mode.title).tag(mode.rawValue)
+                    }
+                }
+                Picker("Delete Map Data Automatically", selection: $mapDataAutoDeleteDays) {
+                    ForEach(MapWebsiteDataRetention.choices, id: \.self) { days in
+                        Text(MapWebsiteDataRetention.title(days: days)).tag(days)
+                    }
+                }
+                Button("Delete Map Website Data…", role: .destructive) { showsMapDataDeletion = true }
+                    .confirmationDialog("Delete Map Website Data", isPresented: $showsMapDataDeletion, titleVisibility: .visible) {
+                        Button("Delete", role: .destructive) {
+                            Task { await MapWebsiteData.deleteAll() }
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("Removes all cookies and other data the embedded map pages stored.")
+                    }
+            } header: {
+                Text("Locations")
+            } footer: {
+                Text("“Link and Embedded Map” shows the map page inside a location's screen; “Link Only” just offers the link. The page is loaded from the address the server provides, every time the screen opens. Cookies the map page stores (for example your consent) are kept on this device, apart from Safari, until they are deleted automatically (every 30 days by default, or when the app quits if you choose that) or by you here. This setting is per device.")
             }
 
             Section {

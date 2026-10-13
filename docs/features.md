@@ -674,9 +674,11 @@ exists without reading the whole diff history.
   angel-type counts or shifts of a location). **Map Links setting**
   (`MapLinkMode`, per-device `@AppStorage`, Settings › Locations): `embedded`
   (default) or `linkOnly`; `embedded` also renders the map page in an
-  `EmbeddedMapView` (`WKWebView`, non-persistent store, http/https only, no
-  browser bar, loaded anew every time; navigations use WebKit's no-app-link policy so universal links never leave the app) above an "Open Map in Browser" button (opens the default browser; the
-  plain link is labelled "Show Map" in link-only mode) — see ADR
+  `EmbeddedMapView` (`WKWebView`, persistent store of its own via `MapWebsiteData`, http/https only, no
+  browser bar, page loaded anew every time; the text info takes exactly the height it needs at the top and the map fills the rest of the
+  screen; an automatic cleanup every N days (`MapWebsiteDataRetention`, default 30, 0 = never, or "Until the App Quits" = a shared in-memory store, checked before the map loads);
+  Settings › Locations › Delete Map Website Data deletes everything after a Delete/Cancel confirmation; navigations use WebKit's no-app-link policy so universal links never leave the app) above an "Open Map in Browser" button (opens the default browser; the
+  plain link is labelled "Show Map" in link-only mode); both layouts show description, DECT (with its "Internal short number" note), then the map link in this order — see ADR
   0014. iOS only.
 
   **`LocationDetailView` also gets its own live pull-to-refresh**, via

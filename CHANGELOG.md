@@ -8,7 +8,9 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ### Added
 - Settings › Locations › Map Links: a location's map page is shown inside the location screen
-  (loaded fresh every time, nothing is kept) with an “Open Map in Browser” button; the setting can be switched to a plain link.
+  (almost full screen, loaded fresh every time) with an “Open Map in Browser” button; the setting can be switched to a plain
+  link. The map page's cookies, such as a consent, are kept on the device apart from Safari; They are deleted automatically every 30 days
+  (changeable, or kept only until the app quits) and Settings › Locations › Delete Map Website Data removes them at once.
 
 ### Removed
 - The “Open on Website” button on the location screen.

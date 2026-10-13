@@ -51,3 +51,32 @@ enum MapLinkMode: String, CaseIterable, Identifiable {
         allowsNavigation(to: url) ? .allow : .cancel
     }
 }
+
+/// Automatic deletion of the embedded map's website data every N days (so a consent cookie
+/// does not live forever). Per device; 0 means never, `untilAppQuits` keeps it in memory only.
+enum MapWebsiteDataRetention {
+    static let userDefaultsKey = "mapWebsiteDataAutoDeleteDays"
+    static let lastCleanupUserDefaultsKey = "mapWebsiteDataLastCleanup"
+    static let defaultDays = 30
+    /// Cookies are kept only while the app process lives (in-memory store, gone after a
+    /// restart) — stored in the same setting as a negative number of days.
+    static let untilAppQuits = -1
+    static let choices = [untilAppQuits, 7, 30, 90, 180, 0]
+
+    static func title(days: Int) -> String {
+        switch days {
+        case untilAppQuits: return "Until the App Quits"
+        case 0: return "Never"
+        default: return "Every \(days) Days"
+        }
+    }
+
+    static func keepsDataOnlyInMemory(days: Int) -> Bool { days == untilAppQuits }
+
+    /// Whether the cleanup is due. No earlier cleanup (first use) is never due — the caller
+    /// starts the clock instead.
+    static func isDue(lastCleanup: Date?, days: Int, now: Date) -> Bool {
+        guard days > 0, let lastCleanup else { return false }
+        return now.timeIntervalSince(lastCleanup) >= Double(days) * 86_400
+    }
+}
