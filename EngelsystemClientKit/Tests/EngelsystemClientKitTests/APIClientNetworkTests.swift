@@ -86,6 +86,24 @@ extension StubbedNetworkTests {
             #expect(cached.commentsCount == 0)
         }
 
+        /// The shape the Engelsystem `WorklogResource` produces (Carbon timestamps with microseconds, `hours`
+        /// as a float, `created_by` as an identifier) must decode — otherwise the Profile worklog list stays empty.
+        @Test func worklogsInTheServersTimestampShapesDecode() async throws {
+            let json = """
+            {"data":[
+            {"id":1,"description":"Helped","hours":4.0,"created_by":{"id":2,"name":"admin"},\
+            "worked_at":"2026-10-12T00:00:00.000000Z","created_at":"2026-10-12T10:11:12.000000Z",\
+            "updated_at":"2026-10-12T10:11:12.000000Z"},
+            {"id":2,"description":"Second","hours":1.5,"created_by":{"id":2,"name":"admin"},\
+            "worked_at":"2026-10-13T00:00:00+00:00","created_at":null,"updated_at":null}
+            ]}
+            """
+            StubURLProtocol.route("GET /users/self/worklogs", body: Data(json.utf8))
+            let worklogs = try await client.fetchWorklogs(credential)
+            #expect(worklogs.map(\.id) == [1, 2])
+            #expect(worklogs.map(\.hours) == [4.0, 1.5])
+        }
+
         @Test func userScopedListsAreAddressedAsSelf() async throws {
             try StubURLProtocol.route("GET /users/self/shifts", data: DemoData.shifts)
             try StubURLProtocol.route("GET /users/self/worklogs", data: DemoData.worklogs)
