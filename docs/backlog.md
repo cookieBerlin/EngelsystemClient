@@ -44,5 +44,4 @@ missing comments/locations endpoint or a 403 is a real error again.
       with its FAQ pointer, the register section in `docs/architecture.md`, mark ADR 0013 "Superseded" (or amend it), and make
       sure `grep -rn "COMPAT("` finds nothing. (Messages: see R-06; #1712 only added tests.)
 
-_(No other open tasks. TestFlight: build 0.1.0 (2) is in internal testing and submitted for
-Beta App Review as of 2026-10-12; if Apple rejects it, the owner reports the reason here.)_
+_(No other open tasks.)_

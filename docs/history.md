@@ -468,7 +468,7 @@ a fresh temp directory before concluding it's a real bug.
 
 Ahead of switching the GitHub repo from private to public (part of
 TestFlight release planning, see
-[`roadmap.md`](roadmap.md#testflight-release-started-2026-10-09)),
+[`roadmap.md`](history.md#testflight-release-of-version-010-2026-10-09--2026-10-13)),
 user-requested audit of the entire repository **and its full commit
 history** (83 commits at the time) for anything that shouldn't go
 public — API keys, private keys/certificates, personal data, internal
@@ -727,4 +727,15 @@ directly above the in-form Save section on Watch), after the User ID and
 error sections — previously it sat right after the API Key field, above
 User ID.
 
+## TestFlight release of version 0.1.0 (2026-10-09 – 2026-10-13)
 
+Closed record of the first TestFlight release (it used to be a roadmap item):
+
+- **Public repository and licence**: the repo went public after the pre-public security audit above; GPL-2.0 was added at
+  the very first commit of the rewritten history.
+- **Apple-facing pages**: Privacy Policy and Support pages are served from `docs/` via GitHub Pages
+  (`https://cookieberlin.github.io/EngelsystemClient/`); the privacy text must follow every change of data handling.
+- **App Store Connect**: app record, Beta App Description, feedback email and export compliance were completed; the
+  Internal Testing group was set up 2026-10-12 with build 0.1.0 (2).
+- **Beta App Review**: submitted 2026-10-12 for build 0.1.0 (2) and **accepted 2026-10-13**; version 0.1.0 is available on
+  TestFlight. Tag and GitHub Release: `v0.1.0` (see `docs/release.md` for the procedure of later builds).

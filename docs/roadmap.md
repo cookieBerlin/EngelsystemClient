@@ -10,63 +10,6 @@ note and remove it from here.
 
 ## In progress
 
-### TestFlight release (started 2026-10-09)
-
-Goal: get the app into TestFlight, both Internal and External testing.
-
-- **Repo visibility**: the GitHub repo (`cookieBerlin/EngelsystemClient`)
-  is currently private and will be switched to public by the user
-  themselves (not by Claude) before Pages can serve it on the free plan.
-- **Security/privacy audit of the full repo + git history**, done
-  2026-10-09 ahead of going public — see
-  [`history.md`](history.md#2026-10-09-pre-public-security-audit) for
-  the full writeup. Result: no real secrets/credentials ever committed.
-  Two low-risk informational items found; both resolved the same day —
-  the private LAN IP in `CLAUDE.md` was redacted immediately, and the
-  old local absolute path in git history was scrubbed via a full
-  `git filter-repo --replace-text` rewrite (user-approved — see "Open
-  decisions" below for the now-resolved record).
-- **LICENSE added 2026-10-09**: GPL-2.0 (user's explicit choice — not
-  MIT/Apache-2.0, the two more common defaults for a project like this,
-  so noted here rather than assumed). Inserted at the very first commit
-  (via `git rebase --root`, same rewrite pass as the history scrub
-  above) so the whole project's history is covered by it, not just
-  commits from 2026-10-09 onward.
-- **Required Apple-facing web pages, hosted via GitHub Pages** (chosen
-  over a GitHub Wiki — see [`adr/`](adr/) once that decision gets its
-  own ADR, or treat this roadmap entry as the record for now):
-  - Privacy Policy — required by App Store Connect before any
-    TestFlight build (internal or external) can be distributed.
-    Content generated from the app's actual data handling (CloudKit
-    sync, Keychain storage, local-only notifications, no analytics/
-    tracking, Demo Mode, and — since 2026-10-09 — on-device MetricKit
-    crash/diagnostics reporting, see `features.md`'s
-    `MetricKitReporter` entry) — not boilerplate. **Must be kept up to
-    date whenever data handling changes** — same standing-maintenance
-    expectation as `CLAUDE.md` itself.
-  - Support page — contact method: GitHub Issues **and**
-    `EngelsystemClient@cuccato.net`.
-  - Both served from `docs/` on `main` via GitHub Pages (Jekyll
-    auto-renders Markdown — no separate build step), default
-    `<user>.github.io/<repo>/...` URL, no custom domain.
-  - **Content written 2026-10-09**: `docs/privacy.md`, `docs/support.md`,
-    `docs/index.md`, and `docs/_config.yml` (theme `jekyll-theme-minimal`,
-    excludes the dev-facing docs — `architecture.md`/
-    `features.md`/`app-store.md`/`history.md`/
-    `roadmap.md`/`backlog.md`/`adr/` — from being published as public
-    pages, so CLAUDE.md's existing cross-references into `docs/*.md`
-    keep working unchanged). Not yet verified live — needs the repo to
-    actually go public and GitHub Pages enabled first (see
-    `backlog.md`).
-- **Repo public, Pages live, app record created** (2026-10-12): Privacy/
-  Support URLs verified (HTTP 200) at `cookieberlin.github.io/EngelsystemClient/`.
-  Git history was re-scrubbed and force-pushed first (private LAN IP removed).
-- **App Store Connect metadata** — app record exists; still open: Beta
-  App Description, Feedback Email, export compliance questions.
-- **Internal Testing group** — done 2026-10-12 (build 0.1.0 (2)).
-- **External Testing** — submitted for Beta App Review 2026-10-12 (build 0.1.0 (2)); waiting
-  for Apple.
-
 ### Working with servers that lack the open Engelsystem PRs (planned 2026-10-12)
 
 Goal: the app stays fully usable — and never shows errors for missing features — against Engelsystem servers that do not
