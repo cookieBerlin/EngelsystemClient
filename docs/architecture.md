@@ -154,7 +154,7 @@ branch has moved on since.
 
 **`/messages` added 2026-09-23** (the Messages feature — full read/write
 private messaging, see `docs/features.md`), sourced from a
-not-yet-merged server branch (`feat/api-messages`) via the same
+not-yet-merged server branch (`feat/api-messages`, now PR [engelsystem/engelsystem#1720](https://github.com/engelsystem/engelsystem/pull/1720), open) via the same
 cross-session-branch workflow as `/news/{id}`/`/locations/{id}` above —
 fetched directly from the branch's `openapi.yml`, not hand-written, then
 regenerated. New schemas: `Message` (`id`, `text`, `sender`/`receiver`:
@@ -212,7 +212,7 @@ deliberately treats it differently from every read-only feature above**:
 
 Register of everything that exists only because Engelsystem pull requests are not merged yet (decision: ADR 0013, planned
 2026-10-12, built by backlog K-01 – K-06). Every spot is tagged `COMPAT(#<PR>)` — `git grep "COMPAT("` lists them all. The
-removal tasks R-02 (#1709), R-03 (#1710), R-04 (#1711) and R-05 (final cleanup) delete them once the PRs are merged, after
+removal tasks R-02 (#1709), R-03 (#1710), R-04 (#1711), R-06 (#1720) and R-05 (final cleanup) delete them once the PRs are merged, after
 which a missing endpoint or a 403 is a real error again. The app **hides what a server lacks** instead of showing errors.
 
 | PR | What the workaround does | Where |
@@ -225,8 +225,9 @@ which a missing endpoint or a 403 is a real error again. The app **hides what a 
 | #1709 (no `api` privilege for own data) | "Test Connection" probes `GET /users/self`; a 403 shows a neutral warning (privilege + groups, no PR mention) and still allows Save | `APIClient.accessDeniedWarning`, `APIError.missingPrivilegeMessage`, the four connection-test view models and views |
 | all | device-local `ServerCapabilities` store (`UserDefaults`, `@Observable`), unknown ⇒ available | `ServerCapabilities` (deleted by R-05) |
 
-Not part of this register: the Messages capability probe (`Instance.messagesSupported`, ADR 0006) — the messages API is not part
-of these PRs — and K-06, which stays: shift reminders are planned whenever the *shift* syncs succeeded, independent of News,
+Also temporary, though not tagged `COMPAT` (it predates the convention): the Messages capability probe
+(`Instance.messagesSupported`, ADR 0006) for PR [#1720](https://github.com/engelsystem/engelsystem/pull/1720) (messages API,
+requires the `user_messages` privilege instead of `api`) — removed by R-06. Not part of this register: K-06, which stays: shift reminders are planned whenever the *shift* syncs succeeded, independent of News,
 Profile, Locations or Messages failing.
 
 ## Demo mode (for testing without a real server)

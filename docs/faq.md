@@ -51,7 +51,8 @@ that has the “api” privilege, for example “API” or “Bureaucrat” (thi
 
 ### Why do I not see "Messages"?
 
-Messages need a server that offers the private-message interface. The app checks this during each sync and shows the area only
+Messages need a server that offers the private-message interface, which is the still open Engelsystem change
+[#1720](https://github.com/engelsystem/engelsystem/pull/1720), and an account with the `user_messages` privilege. The app checks this during each sync and shows the area only
 if at least one active server supports it. Demo Mode always has it.
 
 ### What happens when I activate several events?

@@ -78,7 +78,8 @@ All rooms and places of the event with their descriptions. Tap one for details s
 
 Private messages with other helpers. Tap the compose button to start a conversation, tap a conversation to read and reply.
 The **Messages** area only appears if at least one of your active servers supports it; if you do not see it, your server is
-simply not offering it yet. You can delete your own messages; opening a conversation marks incoming messages as read.
+simply not offering it yet (it needs the open Engelsystem change
+[#1720](https://github.com/engelsystem/engelsystem/pull/1720); see [Server compatibility](#server-compatibility)). You can delete your own messages; opening a conversation marks incoming messages as read.
 
 ## Settings
 
@@ -112,7 +113,7 @@ To add the **complication**: on the Watch, touch and hold the watch face, tap **
 ## Server compatibility
 
 The app uses Engelsystem's REST API **v0-beta**. A few things it can show need changes in Engelsystem that are still **open
-pull requests** at [engelsystem/engelsystem](https://github.com/engelsystem/engelsystem/pulls) (status 2026-10-12). Until they
+pull requests** at [engelsystem/engelsystem](https://github.com/engelsystem/engelsystem/pulls) (status 2026-10-13). Until they
 are merged **and** your event runs a server version that includes them, the app keeps working and simply hides what is missing:
 
 | Pull request | Status | Without it |
@@ -120,7 +121,7 @@ are merged **and** your event runs a server version that includes them, the app 
 | [#1709](https://github.com/engelsystem/engelsystem/pull/1709) — own data and news without the API privilege | open | Every request needs an account in a group with the server's `api` privilege (for example “API” or “Bureaucrat”). Otherwise **Test Connection** warns that the account is not allowed to use the API (403) and no data loads. |
 | [#1710](https://github.com/engelsystem/engelsystem/pull/1710) — news comments | open | No comments and no comment counts in **News**. |
 | [#1711](https://github.com/engelsystem/engelsystem/pull/1711) — single location, locations without the API privilege | open | **Locations** may be missing entirely (when only the API group may read them) and a single location cannot be refreshed. |
-| Private messages (a messages API) | not part of Engelsystem yet | **Messages** only appears on servers that offer it. |
+| [#1720](https://github.com/engelsystem/engelsystem/pull/1720) — private messages API | open | No **Messages** area at all: it only appears on servers that offer the messages API. With it, your account needs the `user_messages` privilege (the one the web interface uses), not the `api` privilege. |
 {: .table}
 
 Already merged and nothing to worry about: [#1708](https://github.com/engelsystem/engelsystem/pull/1708) (work logs for “my

@@ -5,7 +5,7 @@
 
 ## Context
 
-Three upstream Engelsystem pull requests are still open: #1709 (no `api` privilege for `/users/self/*` and `/news`),
+Three upstream Engelsystem pull requests are still open (plus #1720, the messages API, whose probe predates this ADR and is removed by R-06): #1709 (no `api` privilege for `/users/self/*` and `/news`),
 #1710 (`GET /news/{id}` with comments, `comments_count` in the news list) and #1711 (`GET /locations/{id}`, locations
 readable without the `api` privilege). Servers without them break parts of the app: the news list failed to decode
 (required `comments_count`), comments and the location refresh produced error banners. The owner decided that the app must
