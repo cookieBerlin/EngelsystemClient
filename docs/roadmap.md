@@ -39,13 +39,35 @@ Design (details in the backlog, items K-01 – K-07):
 - **Reminders independent of News**: shift reminders are planned whenever the *shift* sync succeeded, regardless of News,
   Profile or Locations failing.
 - **Temporary by design**: every workaround is tagged `COMPAT(#<PR>)` and listed in a register in `docs/architecture.md`.
-  Removal is split per pull request (backlog **R-02 – R-04**, plus **R-05** for the final cleanup): as soon as a PR is
+  Removal is split per pull request (backlog **R-02 – R-04**, plus **R-13** (formerly R-05) for the final cleanup): as soon as a PR is
   merged, its workarounds go, so afterwards a missing endpoint or a 403 is a real error again and the app may assume the
   servers support it. The numeric user-ID / `self` workaround (PR #1708, merged) was removed
   on 2026-10-12 (R-01, done): servers without #1708 are not supported. The 403 warning names the missing privilege and
   says the account must be added to one of the groups that have it (e.g. "API" or "Bureaucrat"); it never mentions pull requests.
 - **Website**: a "Server compatibility" section lists the open PRs (#1709, #1710, #1711, #1720), their status and what is unavailable without them (K-08); it is removed or rewritten once they are merged.
 - Decision record: ADR 0013 (device-local capabilities, optional fields).
+
+### Server access concept, per-feature compatibility and shift details (planned 2026-10-13)
+
+Goal: the app works with upstream Engelsystem `main` today and with each of the open PRs #1709 – #1726 (and all of them),
+never shows errors for missing rights or functions, explains per instance what is available, and gains a shift detail
+page. Once PRs are merged the fallbacks are removed again so the code is simple.
+
+Owner decisions (2026-10-13):
+- Missing privileges/functions hide the function silently; a "Features" list per instance (Settings › Instances ›
+  [instance], plus a summary after "Test Connection") shows available / not allowed (privilege name when known) / not offered.
+  Real failures (401, no connection, broken server) stay visible. Sections without an available instance leave the sidebar.
+- Detection per feature (field present, 404, 403, `privileges` of `GET /users/self`), tests as a fixture matrix (ADR 0015).
+- Shift detail page (iOS only, Watch unchanged): shift type with description, the shift's description, the team by angel
+  type with "did not show up", "sign out until" with a button that opens the shift's web page in the browser (the app
+  itself never signs out). Optional extras later: tags, talk link, night shift, "sign-up from".
+- API plan decided with the server session (engelsystem/engelsystem PRs, stacked on #1709): "api" is read-only for all GETs,
+  without it the matching web privilege decides; new fields follow the web rules (`freeloaded_by` only for admins and
+  supporters without "api"). #1721 shift types, #1722 shift lists/details (`shift_type.description`, `sign_out_until`,
+  `tags`, `talk_url`, `night_shift`, `signup_available_from`), #1723 entries (`freeloaded`, `can_sign_out`,
+  `user_comment`), #1724 `GET /shifts/{id}`, #1725 angel types, #1726 users/profiles (goodie score, vouchers).
+- Website updates are part of the plan (backlog W-01 – W-06).
+- Details: ADR 0015; backlog K-10 – K-13, S-01 – S-06, W-01 – W-06, R-02 – R-13. Nothing of this is implemented yet.
 
 ## Open decisions
 

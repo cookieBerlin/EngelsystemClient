@@ -1,6 +1,6 @@
 # 0013. Temporary, device-local server capabilities for features of unmerged Engelsystem PRs
 
-- **Status**: Accepted (temporary — superseded when backlog R-05 completes)
+- **Status**: Accepted (temporary — to be superseded by [0015](0015-per-feature-server-compatibility-and-instance-feature-list.md) when backlog K-10 – K-12 land; final cleanup is R-13)
 - **Date**: 2026-10-12
 
 ## Context
@@ -23,7 +23,7 @@ keep working against such servers and simply **hide** what a server lacks — bu
   device learns the answer from its own syncs. The Messages probe (`Instance.messagesSupported`) is a separate, permanent
   mechanism and stays as it is.
 - Every code path that exists only for this is tagged `COMPAT(#<PR>)` and listed in a register in `docs/architecture.md`.
-  Backlog tasks R-02 – R-04 remove one PR's workarounds each once it is merged; R-05 deletes the store and this ADR's
+  Backlog tasks R-02 – R-04 remove one PR's workarounds each once it is merged; R-13 (formerly R-05) deletes the store and this ADR's
   mechanism. Afterwards a missing endpoint is a real error again.
 
 ## Consequences

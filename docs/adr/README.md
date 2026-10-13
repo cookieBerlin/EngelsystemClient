@@ -42,4 +42,5 @@ point at it, so the history of *why things changed* stays readable.
 | [0011](0011-native-tooling-for-app-store-screenshots.md) | Native tooling and Debug-only launch arguments for App Store screenshots | Accepted |
 | [0012](0012-own-bootstrap-layout-for-the-pages-site.md) | Own self-hosted Bootstrap 5 layout for the GitHub Pages site | Accepted |
 | [0014](0014-embedded-map-web-view.md) | Optional embedded map view for location map links | Accepted |
+| [0015](0015-per-feature-server-compatibility-and-instance-feature-list.md) | Per-feature server compatibility and a feature list per instance | Proposed |
 | [0013](0013-temporary-device-local-server-capabilities.md) | Temporary, device-local server capabilities for features of unmerged Engelsystem PRs | Accepted (temporary) |

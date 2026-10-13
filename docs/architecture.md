@@ -212,7 +212,7 @@ deliberately treats it differently from every read-only feature above**:
 
 Register of everything that exists only because Engelsystem pull requests are not merged yet (decision: ADR 0013, planned
 2026-10-12, built by backlog K-01 – K-06). Every spot is tagged `COMPAT(#<PR>)` — `git grep "COMPAT("` lists them all. The
-removal tasks R-02 (#1709), R-03 (#1710), R-04 (#1711), R-06 (#1720) and R-05 (final cleanup) delete them once the PRs are merged, after
+removal tasks R-02 (#1709), R-03 (#1710), R-04 (#1711), R-06 (#1720) and R-13 (final cleanup; formerly R-05) delete them once the PRs are merged, after
 which a missing endpoint or a 403 is a real error again. The app **hides what a server lacks** instead of showing errors.
 
 | PR | What the workaround does | Where |
@@ -224,7 +224,25 @@ which a missing endpoint or a 403 is a real error again. The app **hides what a 
 | #1711 | Locations sidebar row needs one active instance that can list locations; shift location is plain text otherwise | `MainView.Section.visibleSidebarCases`, `ShiftRow` |
 | #1709 (no `api` privilege for own data) | "Test Connection" probes `GET /users/self`; a 403 shows a neutral warning (privilege + groups, no PR mention) and still allows Save | `APIClient.accessDeniedWarning`, `APIError.missingPrivilegeMessage`, the four connection-test view models and views |
 | #1720 (messages API; requires `user_messages`, not `api`) | Messages capability probe: `GET /messages` decides `Instance.messagesSupported`; the Messages area is hidden unless an active instance supports it | `APIClient.messagesSupported`, `Instance.messagesSupported`, `AppSyncCoordinator`, `MainView` |
-| all | device-local `ServerCapabilities` store (`UserDefaults`, `@Observable`), unknown ⇒ available | `ServerCapabilities` (deleted by R-05) |
+| all | device-local `ServerCapabilities` store (`UserDefaults`, `@Observable`), unknown ⇒ available | `ServerCapabilities` (reshaped by K-10 – K-12, ADR 0015; the leftovers are deleted by R-13) |
+
+### Planned matrix (ADR 0015, not built yet)
+
+Per PR the app feature, how its availability is detected, the fallback without the PR and the removing task. Every
+fallback is tagged `COMPAT(#<PR>)` when it is built; the feature list per instance (K-10 – K-12) stays permanently.
+
+| PR | App feature | Detection | Fallback without the PR | R task |
+|---|---|---|---|---|
+| #1709 | rights from `GET /users/self` (`groups`, `privileges`), no 403 warning | `privileges` present | 403 probing, hide on 403 | R-02 |
+| #1710 | news comments | `comments_count`, 404 | hidden | R-03 |
+| #1711 | locations (list, detail) | 403, 404 | hidden | R-04 |
+| #1720 | messages | 403/404 on `GET /messages` | hidden | R-06 |
+| #1721 | shift types | 403/404 on `GET /shifttypes` | type name without description | R-07 |
+| #1722 | shift fields (`shift_type.description`, `sign_out_until`, `tags`, `talk_url`, `night_shift`, `signup_available_from`) | field present | fields hidden, "usually 3 hours" | R-08 |
+| #1723 | `freeloaded`, `can_sign_out`, `user_comment` | field present | `freeloaded_by != null`, button by assumption | R-09 |
+| #1724 | `GET /shifts/{id}` | 404 | cached shift, no refresh | R-10 |
+| #1725 | angel type fields, `GET /angeltypes/{id}` | field/404 | hidden | R-11 |
+| #1726 | profile `goodie_score`, `vouchers`, `arrived`, `next_shift`, `groups` | field present | hidden | R-12 |
 
 Not part of this register: K-06, which stays: shift reminders are planned whenever the *shift* syncs succeeded, independent of News,
 Profile, Locations or Messages failing.

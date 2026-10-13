@@ -152,3 +152,11 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
 - **`-skipNotificationPrompt YES`** (Debug builds only, honoured by `NotificationScheduler`): skips the notification permission
   prompt; used for the Watch screenshot. **`ScreenshotTests`** is not a regression test — run it through
   `Scripts/screenshots.sh` (see `app-store.md`).
+
+## Compatibility matrix (planned 2026-10-13, ADR 0015, not built yet)
+
+The app has to work against upstream Engelsystem `main` today, against each of the open PRs (#1709 – #1726) and against all
+of them. The plan (backlog K-13): JSON fixtures in `TestSupport` for "main today", each PR's additions, the stacked chains
+(#1722 → #1723 → #1724) and "all PRs"; per feature one test per state (available, hidden by a missing right or function —
+never an error). Not every combination of PRs is tested. Removing a PR (R task) deletes its fixture state and simplifies the
+tests; coverage stays at 100 %.
