@@ -50,10 +50,7 @@ Design (details in the backlog, items K-01 – K-07):
 ## Open decisions
 
 Awaiting the user's input — nothing below should be assumed/acted on
-until answered.
-
-- **Website buttons on News and Shifts** (raised 2026-10-13): the "Open on Website" button was removed from locations; whether
-  the equivalent links on News and Shifts stay is to be discussed with the owner.
+until answered. _(none currently open)_
 
 ## Resolved decisions
 
