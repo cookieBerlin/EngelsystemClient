@@ -52,7 +52,11 @@ whenever the UI or the demo data changes visibly.
 ## After release
 
 - **Tag** the exact commit the uploaded archive was built from (not a later docs commit) with an
-  annotated tag `v<MARKETING_VERSION>`, e.g. `git tag -a v0.1.0 <commit> -m "Version 0.1.0 (build 2)"`.
+  annotated tag `v<MARKETING_VERSION>`. The tag message **contains the changelog section** of that
+  version, so GitHub shows real content on the tag page. Extract it from `CHANGELOG.md` instead of
+  typing a one-liner:
+  `{ echo "Version 0.1.0 (build 2)"; echo; awk '/^## \[0.1.0\]/{f=1;next} /^## \[/{f=0} f' CHANGELOG.md; } > /tmp/tag-msg && git tag -a v0.1.0 <commit> -F /tmp/tag-msg`
+  (use the scratchpad instead of `/tmp` in agent sessions; check with `git show v0.1.0`).
   Every upload that ships to testers or the store gets a tag; a further build of the same marketing
   version uses `v<MARKETING_VERSION>-<build>` (e.g. `v0.1.0-3`). Push tags together with the next
   block of commits (or when asked): `git push origin <tag>`.
