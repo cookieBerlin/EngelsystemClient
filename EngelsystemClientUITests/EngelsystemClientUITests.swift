@@ -225,7 +225,7 @@ final class EngelsystemClientUITests: XCTestCase {
         // Version/build/git-hash footer at the bottom of Settings (AppVersionInfo) —
         // scroll down since it sits below the fold after all the sections above.
         let versionFooter = containingText("Version", in: app)
-        for _ in 0..<10 where !versionFooter.exists {
+        for _ in 0..<20 where !versionFooter.exists {
             app.swipeUp()
         }
         XCTAssertTrue(versionFooter.waitForExistence(timeout: 5))
