@@ -225,6 +225,10 @@ struct SettingsView: View {
                 Text("“Link and Embedded Map” shows the map page inside a location's screen; “Link Only” just offers the link. The page is loaded from the address the server provides, every time the screen opens. Cookies the map page stores (for example your consent) are kept on this device, apart from Safari, until they are deleted automatically (every 30 days by default, or when the app quits if you choose that) or by you here. This setting is per device.")
             }
 
+            ForEach(PhoneNumberKind.allCases) { kind in
+                CallPreferenceSection(kind: kind)
+            }
+
             Section {
                 Toggle("Debug Logging", isOn: $isDebugLoggingEnabled)
                 Picker("Max Log Entries", selection: $maxDebugLogEntries) {

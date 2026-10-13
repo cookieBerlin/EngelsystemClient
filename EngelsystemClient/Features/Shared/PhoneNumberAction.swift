@@ -36,7 +36,7 @@ struct PhoneNumber: Equatable {
 }
 
 /// The app a number is handed to.
-enum CallApp: String, CaseIterable, Identifiable, Codable {
+enum CallApp: String, CaseIterable, Identifiable {
     /// iOS decides: `sip:` for internal numbers, `tel:` for other numbers.
     case system
     case acrobitsSoftphone
@@ -72,7 +72,7 @@ enum CallApp: String, CaseIterable, Identifiable, Codable {
 
 /// What an Acrobits app does with the number (`dialAction`; without one the app only
 /// opens with the number filled in and the user taps "call").
-enum CallAction: String, CaseIterable, Identifiable, Codable {
+enum CallAction: String, CaseIterable, Identifiable {
     case prefill
     case videoCall
     case text
@@ -93,7 +93,7 @@ enum CallAction: String, CaseIterable, Identifiable, Codable {
 }
 
 /// How numbers of one kind are opened; stored per device, one value per `PhoneNumberKind`.
-struct CallPreference: Codable, Equatable {
+struct CallPreference: Equatable {
     var app: CallApp = .system
     var action: CallAction = .prefill
     var customTemplate: String = "sip:{number}"
@@ -103,17 +103,19 @@ struct CallPreference: Codable, Equatable {
 
     static func userDefaultsKey(for kind: PhoneNumberKind) -> String { "callPreference.\(kind.rawValue)" }
 
-    /// The stored value, or the default (system) for an empty or damaged value.
+    /// The stored value ("app\naction\ntemplate"); an empty or damaged value gives the default (system),
+    /// an unknown app or action name falls back to that field's default.
     static func decode(raw: String) -> CallPreference {
-        guard let data = raw.data(using: .utf8),
-              let value = try? JSONDecoder().decode(CallPreference.self, from: data) else { return CallPreference() }
-        return value
+        let parts = raw.components(separatedBy: "\n")
+        var result = CallPreference()
+        guard parts.count == 3 else { return result }
+        result.app = CallApp(rawValue: parts[0]) ?? .system
+        result.action = CallAction(rawValue: parts[1]) ?? .prefill
+        result.customTemplate = parts[2]
+        return result
     }
 
-    var encoded: String {
-        // `CallPreference` only holds strings, so encoding cannot fail.
-        String(decoding: (try? JSONEncoder().encode(self)) ?? Data(), as: UTF8.self)
-    }
+    var encoded: String { [app.rawValue, action.rawValue, customTemplate].joined(separator: "\n") }
 
     /// The link template this preference stands for; nil when numbers are only copied.
     func template(for kind: PhoneNumberKind) -> String? {
@@ -122,7 +124,7 @@ struct CallPreference: Codable, Equatable {
         case .custom: return customTemplate
         case .system: return (kind == .internalNumber ? "sip:" : "tel:") + Self.numberPlaceholder
         case .acrobitsSoftphone, .groundwire, .cloudSoftphone:
-            let base = (app.scheme ?? "") + ":" + Self.numberPlaceholder
+            let base = [app.scheme, Self.numberPlaceholder].compactMap { $0 }.joined(separator: ":")
             return action.dialAction.map { base + "?dialAction=" + $0 } ?? base
         }
     }

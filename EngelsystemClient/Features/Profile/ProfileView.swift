@@ -229,6 +229,12 @@ private struct ProfileIdentityRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                if let dect = profile.dect {
+                    PhoneNumberRow(label: "DECT", value: dect)
+                }
+                if let mobile = profile.mobile {
+                    PhoneNumberRow(label: "Mobile", value: mobile)
+                }
             }
             Spacer()
             if let instanceName {
@@ -245,6 +251,12 @@ private struct ProfileIdentityDetail: View {
         LabeledContent("Name", value: profile.displayName)
         if let pronoun = profile.pronoun {
             LabeledContent("Pronoun", value: pronoun)
+        }
+        if let dect = profile.dect {
+            PhoneNumberRow(label: "DECT", value: dect)
+        }
+        if let mobile = profile.mobile {
+            PhoneNumberRow(label: "Mobile", value: mobile)
         }
         if let tshirtSize = profile.tshirtSize {
             LabeledContent("T-Shirt Size", value: tshirtSize)

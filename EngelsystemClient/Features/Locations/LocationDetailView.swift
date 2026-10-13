@@ -75,12 +75,7 @@ struct LocationDetailView: View {
             }
             Text(location.locationDescription)
             if let contactDect = location.contactDect {
-                VStack(alignment: .leading, spacing: 2) {
-                    LabeledContent("DECT", value: contactDect)
-                    Text("Internal short number — reachable from any DECT phone on site.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+                PhoneNumberRow(label: "DECT", value: contactDect)
             }
             if let url = URL(string: location.mapUrl ?? "") {
                 Link(destination: url) {
@@ -108,9 +103,7 @@ struct LocationDetailView: View {
 
             if let contactDect = location.contactDect {
                 Section {
-                    LabeledContent("DECT", value: contactDect)
-                } footer: {
-                    Text("Internal short number — reachable from any DECT phone on site.")
+                    PhoneNumberRow(label: "DECT", value: contactDect)
                 }
             }
 
