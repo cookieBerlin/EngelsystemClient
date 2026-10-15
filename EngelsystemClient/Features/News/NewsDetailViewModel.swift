@@ -45,7 +45,7 @@ final class NewsDetailViewModel {
             let credential = try credentialResolver.credential(for: instance)
             let detail = try await apiClient.fetchNewsDetail(id: newsServerID, credential)
             comments = detail.comments.sorted { $0.createdAt < $1.createdAt }
-            capabilities.record(.newsComments, supported: true, for: instance.id)
+            capabilities.record(.newsComments, state: .available, evidence: .probe, for: instance.id)
             DebugLog.log("[NewsDetailViewModel] loaded \(comments.count) comment(s) for news \(newsServerID)")
         } catch {
             // Same guard every other sync entry point in this app applies — a
@@ -55,7 +55,7 @@ final class NewsDetailViewModel {
             if let apiError = error as? APIError, [APIError.notFound, .forbidden].contains(apiError) {
                 // COMPAT(#1710): a server without the endpoint — hide comments for it.
                 DebugLog.log("[NewsDetailViewModel] server has no news comments (\(apiError)) — hiding the feature", level: .warning)
-                capabilities.record(.newsComments, supported: false, for: instance.id)
+                capabilities.record(.newsComments, afterFailure: apiError, for: instance.id)
                 commentsUnavailable = true
                 comments = []
                 return

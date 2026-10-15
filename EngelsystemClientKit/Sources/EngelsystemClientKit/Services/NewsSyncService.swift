@@ -27,7 +27,9 @@ public struct NewsSyncService {
     @discardableResult
     public func sync(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> NewsSyncResult {
         let news = try await apiClient.fetchNews(credential)
-        capabilities.record(.newsComments, supported: ServerCapabilities.newsCommentsSupported(by: news), for: instance.id)
+        if let supported = ServerCapabilities.newsCommentsSupported(by: news) {
+            capabilities.record(.newsComments, state: supported ? .available : .notOffered, evidence: .field, for: instance.id)
+        }
         return try upsert(news, instanceID: instance.id, in: modelContext)
     }
 

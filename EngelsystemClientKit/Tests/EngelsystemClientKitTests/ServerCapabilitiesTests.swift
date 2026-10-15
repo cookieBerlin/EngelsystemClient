@@ -74,6 +74,80 @@ struct ServerCapabilitiesStoreTests {
         #expect(ServerCapabilities.newsCommentsSupported(by: [newsItem(commentsCount: nil), newsItem(commentsCount: 0)]) == true)
     }
 
+    @Test func everyFeatureHasATitleAndTheRightPrivilege() {
+        #expect(Set(ServerFeature.allCases.map(\.title)).count == ServerFeature.allCases.count)
+        #expect(ServerFeature.news.requiredPrivilege == "news")
+        #expect(ServerFeature.locationDetail.requiredPrivilege == "locations.view")
+        #expect(ServerFeature.messages.requiredPrivilege == "user_messages")
+        #expect(ServerFeature.signOutDeadline.requiredPrivilege == "user_shifts")
+        #expect(ServerFeature.shifts.requiredPrivilege == nil)
+    }
+
+    @Test func statusDefaultsToUnknownAndKeepsStateEvidenceAndTime() {
+        let capabilities = ServerCapabilities(defaults: freshDefaults())
+        let id = UUID()
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        #expect(capabilities.status(.news, for: id) == .unknown)
+        capabilities.record(.news, state: .notAllowed, evidence: .privileges, privilege: "news", for: id, now: now)
+        #expect(capabilities.status(.news, for: id)
+            == FeatureStatus(state: .notAllowed, evidence: .privileges, privilege: "news", checkedAt: now))
+        #expect(!capabilities.isAvailable(.news, for: id))
+        capabilities.record(.news, state: .unknown, evidence: .probe, for: id)
+        #expect(capabilities.status(.news, for: id).state == .notAllowed)
+    }
+
+    @Test func failuresMapTo403NotAllowedAnd404NotOffered() {
+        let capabilities = ServerCapabilities(defaults: freshDefaults())
+        let id = UUID()
+        #expect(capabilities.record(.locationsList, afterFailure: .forbidden, for: id))
+        #expect(capabilities.status(.locationsList, for: id).state == .notAllowed)
+        #expect(capabilities.status(.locationsList, for: id).privilege == "locations.view")
+        #expect(capabilities.status(.locationsList, for: id).evidence == .forbidden)
+        #expect(capabilities.record(.newsComments, afterFailure: .notFound, for: id))
+        #expect(capabilities.status(.newsComments, for: id).state == .notOffered)
+        #expect(capabilities.status(.newsComments, for: id).evidence == .notFound)
+        #expect(!capabilities.record(.shifts, afterFailure: .unauthorized, for: id))
+        #expect(capabilities.status(.shifts, for: id) == .unknown)
+    }
+
+    @Test func privilegesDecideTheFunctionsThatNeedOne() {
+        let capabilities = ServerCapabilities(defaults: freshDefaults())
+        let id = UUID()
+        capabilities.applyPrivileges(nil, for: id)
+        #expect(capabilities.status(.news, for: id) == .unknown)
+
+        capabilities.applyPrivileges(["news", "user_messages"], for: id)
+        #expect(capabilities.status(.news, for: id).state == .available)
+        #expect(capabilities.status(.news, for: id).evidence == .privileges)
+        #expect(capabilities.status(.messages, for: id).state == .available)
+        #expect(capabilities.status(.locationsList, for: id).state == .notAllowed)
+        #expect(capabilities.status(.locationsList, for: id).privilege == "locations.view")
+        #expect(capabilities.status(.shiftTeam, for: id).privilege == "user_shifts")
+        // Functions without a required privilege are not touched.
+        #expect(capabilities.status(.shifts, for: id) == .unknown)
+
+        // The read-only `api` privilege grants every GET.
+        capabilities.applyPrivileges(["api"], for: id)
+        for feature in ServerFeature.allCases where feature.requiredPrivilege != nil {
+            #expect(capabilities.status(feature, for: id).state == .available)
+        }
+    }
+
+    @Test func statusSurvivesARecreatedStoreAndMigratesTheLegacyFormat() {
+        let defaults = freshDefaults()
+        let id = UUID()
+        ServerCapabilities(defaults: defaults).record(.messages, state: .notOffered, evidence: .notFound, for: id)
+        #expect(ServerCapabilities(defaults: defaults).status(.messages, for: id).state == .notOffered)
+        #expect(ServerCapabilities(defaults: defaults).status(.messages, for: id).evidence == .notFound)
+
+        let legacy = freshDefaults()
+        legacy.set([id.uuidString + "/locationsList": false, id.uuidString + "/newsComments": true],
+                   forKey: ServerCapabilities.legacyDefaultsKey)
+        let migrated = ServerCapabilities(defaults: legacy)
+        #expect(migrated.status(.locationsList, for: id).state == .notOffered)
+        #expect(migrated.status(.newsComments, for: id).state == .available)
+    }
+
     @Test func sharedInstanceExists() {
         #expect(ServerCapabilities.shared.isAvailable(.newsComments, for: UUID()))
     }

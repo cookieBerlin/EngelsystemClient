@@ -22,10 +22,10 @@ public struct LocationSyncService {
         } catch APIError.forbidden {
             // COMPAT(#1711): without that PR only the `api` group may read locations — not an
             // error for the app, the Locations area is simply hidden for this instance.
-            capabilities.record(.locationsList, supported: false, for: instance.id)
+            capabilities.record(.locationsList, afterFailure: .forbidden, for: instance.id)
             return []
         }
-        capabilities.record(.locationsList, supported: true, for: instance.id)
+        capabilities.record(.locationsList, state: .available, evidence: .probe, for: instance.id)
         return try upsert(locations, instanceID: instance.id, in: modelContext)
     }
 
@@ -60,10 +60,10 @@ public struct LocationSyncService {
             location = try await apiClient.fetchLocation(id: serverID, credential)
         } catch let error as APIError where error == .notFound || error == .forbidden {
             // COMPAT(#1711): servers without `GET /locations/{id}` answer 404/403.
-            capabilities.record(.locationDetail, supported: false, for: instance.id)
+            capabilities.record(.locationDetail, afterFailure: error, for: instance.id)
             throw error
         }
-        capabilities.record(.locationDetail, supported: true, for: instance.id)
+        capabilities.record(.locationDetail, state: .available, evidence: .probe, for: instance.id)
         let uid = CachedLocation.uid(instanceID: instance.id, serverID: location.id)
         var descriptor = FetchDescriptor<CachedLocation>(predicate: #Predicate { $0.uid == uid })
         descriptor.fetchLimit = 1

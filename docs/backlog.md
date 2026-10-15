@@ -17,11 +17,6 @@ the W tasks alongside, the R tasks when the owner reports a merge.
 
 ### Framework
 
-- [ ] **K-10** Feature list in the model: `InstanceFeature` (Shifts, News, News comments, Locations, Messages, Profile work
-      logs/angel types, Profile goodie score/vouchers, Shift type description, Shift team and freeloaded, Sign-out deadline,
-      Refresh a single shift) with a state per instance (`available`, `notAllowed(privilege?)`, `notOffered`, `unknown`),
-      source (`privileges` of `GET /users/self`, field present/missing, 404, 403) and "checked at". Device-local like
-      `ServerCapabilities` (no CloudKit schema change). Unknown counts as available. Unit tests for every transition.
 - [ ] **K-11** UI: "Features" section on the instance detail page (Settings › Instances › [instance]: symbol, name, short
       reason, "Checked: …"); a one-line summary ("5 of 11 features available") after "Test Connection" in the setup and edit
       flows (iOS and Watch setup keep their own wording); refreshed after every sync. Demo mode: everything available.
