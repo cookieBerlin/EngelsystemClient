@@ -12,6 +12,7 @@ final class ShiftsViewModel {
     private let syncService: ShiftSyncService
     private let credentialResolver: InstanceCredentialResolver
     private let notificationScheduler: NotificationScheduler
+    private let capabilities: ServerCapabilities
 
     // `ShiftSyncService` is @MainActor, so its default can't be evaluated as a
     // parameter default (those are evaluated in a nonisolated context) — it has
@@ -19,8 +20,10 @@ final class ShiftsViewModel {
     init(
         syncService: ShiftSyncService? = nil,
         credentialResolver: InstanceCredentialResolver? = nil,
-        notificationScheduler: NotificationScheduler = NotificationScheduler()
+        notificationScheduler: NotificationScheduler = NotificationScheduler(),
+        capabilities: ServerCapabilities? = nil
     ) {
+        self.capabilities = capabilities ?? .shared
         self.syncService = syncService ?? ShiftSyncService()
         self.credentialResolver = credentialResolver ?? InstanceCredentialResolver()
         self.notificationScheduler = notificationScheduler
@@ -53,6 +56,7 @@ final class ShiftsViewModel {
                 let credential = try credentialResolver.credential(for: instance)
                 let result = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
                 DebugLog.log("[ShiftsViewModel] synced \(result.shifts.count) shift(s) from \(credential.baseURL)")
+                capabilities.record(.shifts, state: .available, evidence: .probe, for: instance.id)
                 allShifts.append(contentsOf: result.shifts)
                 // 2026-09-23, "keep the Watch fresh" feature — this pull-to-refresh path
                 // bypasses AppSyncCoordinator, so it needs the same signal-bump here too.
@@ -65,6 +69,9 @@ final class ShiftsViewModel {
             } catch {
                 DebugLog.log("[ShiftsViewModel] refresh failed for '\(instance.name)': \(error)", level: .error)
                 guard !SyncErrorMapper.isCancellation(error) else { continue }
+                // Not allowed / not offered (403/404): hidden silently, explained by the instance's
+                // Features list (ADR 0015) — never a banner.
+                if capabilities.record(.shifts, afterError: error, for: instance.id) { continue }
                 lastError = error
             }
         }

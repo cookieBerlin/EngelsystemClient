@@ -22,6 +22,9 @@ versioning: [Semantic Versioning](https://semver.org/).
   “my own account” support for work logs are no longer supported.
 
 ### Changed
+- Missing rights or functions are no longer shown as errors: areas the server or your account does not offer are simply
+  hidden. Settings › Instances › [instance] has a **Features** list that shows what is available and why something is not;
+  “Test Connection” shows a short summary instead of the former 403 warning.
 - The main screen is grouped: Communication (News, Messages), Event (Shifts, Locations) and Account (Profile). An area that
   is no longer available sends you back to the main screen instead of to Shifts.
 - Settings are reorganised into pages: Instances (with Multiple Active Instances), Notifications, Sync (now also showing the

@@ -18,9 +18,9 @@ final class WatchSetupViewModel {
 
     var isTesting = false
     var errorMessage: String?
-    /// COMPAT(#1709): set by `testConnection` when the server denies this account API access (403).
-    /// A warning only — saving stays possible.
-    var accessWarning: String?
+    /// "5 of 8 features available" after a successful `testConnection` against a server that
+    /// reports the account's privileges (PR #1709); nil otherwise. Never an error.
+    var featureSummary: String?
 
     /// See the iOS `InstanceSetupViewModel` counterpart for the full rationale — gates
     /// the Save button.
@@ -53,7 +53,7 @@ final class WatchSetupViewModel {
     /// `InstanceSetupViewModel.testConnection()` counterpart for the full rationale.
     func testConnection() async {
         errorMessage = nil
-        accessWarning = nil
+        featureSummary = nil
         isTesting = true
         defer { isTesting = false }
 
@@ -63,7 +63,7 @@ final class WatchSetupViewModel {
         )
         do {
             _ = try await apiClient.fetchInfo(credential)
-            accessWarning = await apiClient.accessDeniedWarning(credential)
+            featureSummary = ServerCapabilities.featureSummary(privileges: await apiClient.ownPrivileges(credential))
             connectionTested = true
         } catch {
             connectionTested = false

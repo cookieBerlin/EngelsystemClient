@@ -49,22 +49,30 @@ extension StubbedNetworkTests {
             #expect(try await client.fetchShiftTypes(credential).count == DemoData.shiftTypes.count)
         }
 
-        /// COMPAT(#1709): "Test Connection" warns when data requests are denied, but never otherwise.
-        @Test func accessProbeWarnsOnlyOnForbidden() async throws {
-            StubURLProtocol.route("GET /users/self", status: 403)
-            #expect(await client.accessDeniedWarning(credential) == APIError.missingPrivilegeMessage)
-            StubURLProtocol.route("GET /users/self", status: 500)
-            #expect(await client.accessDeniedWarning(credential) == nil)
+        /// COMPAT(#1709): "Test Connection" reads the account's privileges when the server sends them.
+        @Test func ownPrivilegesComeFromTheProfileAndAreNilOtherwise() async throws {
+            let json = """
+            {"data":{"id":2,"name":"cookie","first_name":null,"last_name":null,"pronoun":null,\
+            "contact":{"dect":null,"mobile":null},"url":"https://example.org/users/2","email":"a@b.c",\
+            "tshirt_size":null,"dates":{"planned_arrival":null,"planned_departure":null,"arrival":null},\
+            "language":"en_US","arrived":false,"oauth":[],"groups":[{"id":1,"name":"Angel"}],\
+            "privileges":["news","user_shifts"]}}
+            """
+            StubURLProtocol.route("GET /users/self", body: Data(json.utf8))
+            #expect(await client.ownPrivileges(credential) == ["news", "user_shifts"])
             try StubURLProtocol.route("GET /users/self", data: DemoData.ownProfile)
-            #expect(await client.accessDeniedWarning(credential) == nil)
+            #expect(await client.ownPrivileges(credential) == nil)
+            StubURLProtocol.route("GET /users/self", status: 403)
+            #expect(await client.ownPrivileges(credential) == nil)
             let demo = EventCredential(baseURL: Instance.demoBaseURL + "/api/v0-beta", apiKey: "demo")
-            #expect(await client.accessDeniedWarning(demo) == nil)
+            #expect(await client.ownPrivileges(demo) == ["api"])
         }
 
-        @Test func theForbiddenMessageNamesThePrivilegeAndGroupsButNoPullRequest() {
+        @Test func theForbiddenMessageNamesNeitherGroupsNorPullRequests() {
             let message = APIError.forbidden.userMessage
             #expect(message == APIError.missingPrivilegeMessage)
-            #expect(message.contains("API") && message.contains("Bureaucrat") && message.contains("privilege"))
+            #expect(message.contains("privilege"))
+            #expect(!message.contains("Bureaucrat"))
             #expect(!message.lowercased().contains("pull request"))
         }
 

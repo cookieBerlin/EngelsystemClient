@@ -7,14 +7,18 @@ import SwiftData
 @MainActor
 public struct ProfileSyncService {
     private let apiClient: APIClient
+    private let capabilities: ServerCapabilities
 
-    public init(apiClient: APIClient = .shared) {
+    public init(apiClient: APIClient = .shared, capabilities: ServerCapabilities? = nil) {
         self.apiClient = apiClient
+        self.capabilities = capabilities ?? .shared
     }
 
     @discardableResult
     public func syncProfile(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> CachedUser {
         let profile = try await apiClient.fetchOwnProfile(credential)
+        // COMPAT(#1709): servers with the access concept tell which privileges the account has.
+        capabilities.applyPrivileges(profile.privileges, for: instance.id)
         return try upsertProfile(profile, instanceID: instance.id, in: modelContext)
     }
 

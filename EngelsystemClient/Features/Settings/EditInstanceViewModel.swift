@@ -24,9 +24,9 @@ final class EditInstanceViewModel {
     }
     var isTesting = false
     var errorMessage: String?
-    /// COMPAT(#1709): set by `testConnection` when the server denies this account API access (403).
-    /// A warning only — saving stays possible.
-    var accessWarning: String?
+    /// "5 of 8 features available" after a successful `testConnection` against a server that
+    /// reports the account's privileges (PR #1709); nil otherwise. Never an error.
+    var featureSummary: String?
 
     /// Gates the Save button (`canSubmit`) and drives the "Test Connection" button's
     /// own display (progress/checkmark/label); reset whenever `baseURL`/`apiKey`
@@ -73,7 +73,7 @@ final class EditInstanceViewModel {
     /// alone never mutates the store (Verify previews, Save commits).
     func testConnection(for instance: Instance) async {
         errorMessage = nil
-        accessWarning = nil
+        featureSummary = nil
         isTesting = true
         defer { isTesting = false }
 
@@ -86,7 +86,7 @@ final class EditInstanceViewModel {
                 apiKey: effectiveAPIKey
             )
             _ = try await apiClient.fetchInfo(credential)
-            accessWarning = await apiClient.accessDeniedWarning(credential)
+            featureSummary = ServerCapabilities.featureSummary(privileges: await apiClient.ownPrivileges(credential))
             connectionTested = true
         } catch {
             connectionTested = false

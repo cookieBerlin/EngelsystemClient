@@ -32,10 +32,10 @@ public enum APIError: Error, Equatable {
 }
 
 public extension APIError {
-    /// COMPAT(#1709): shown for a 403 — without that PR every API request needs the server's
-    /// `api` privilege. Never mentions pull requests; removed/reworded by backlog R-02.
+    /// Shown for a 403 that is not hidden silently (optional functions are hidden, see the
+    /// instance's Features list). Names no group and no pull request.
     static let missingPrivilegeMessage =
-        "This account is not allowed to use the API on this server (403). Ask the server administrators to add it to a group that has the “api” privilege, for example “API” or “Bureaucrat”."
+        "This account is not allowed to do this (403). Ask the Engelsystem administrators to give it the matching privilege."
 
     /// User-facing English message for this error, shared by every feature that
     /// surfaces `APIError` to the UI (Instance Setup, Shifts, News, Profile).

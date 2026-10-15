@@ -21,10 +21,13 @@ final class MessagesViewModel {
 
     private let credentialResolver: InstanceCredentialResolver
     private let apiClient: APIClient
+    private let capabilities: ServerCapabilities
 
-    init(credentialResolver: InstanceCredentialResolver = InstanceCredentialResolver(), apiClient: APIClient = .shared) {
+    init(credentialResolver: InstanceCredentialResolver = InstanceCredentialResolver(), apiClient: APIClient = .shared,
+         capabilities: ServerCapabilities? = nil) {
         self.credentialResolver = credentialResolver
         self.apiClient = apiClient
+        self.capabilities = capabilities ?? .shared
     }
 
     /// Fetches every given instance's conversation list. A failure on one instance
@@ -44,9 +47,12 @@ final class MessagesViewModel {
                 let conversations = try await apiClient.fetchConversations(credential)
                 conversationsByInstanceID[instance.id] = conversations
                 DebugLog.log("[MessagesViewModel] loaded \(conversations.count) conversation(s) for '\(instance.name)'")
+                capabilities.record(.messages, state: .available, evidence: .probe, for: instance.id)
             } catch {
                 if error is CancellationError { continue }
                 DebugLog.log("[MessagesViewModel] refresh failed for '\(instance.name)': \(error)", level: .error)
+                // Not allowed / not offered (403/404): hidden silently, see the Features list (ADR 0015).
+                if capabilities.record(.messages, afterError: error, for: instance.id) { continue }
                 lastError = error
             }
         }

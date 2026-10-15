@@ -24,7 +24,7 @@ enum FeaturePresentation {
     }
 
     static func summaryText(available: Int, total: Int) -> String {
-        "\(available) of \(total) features available"
+        ServerCapabilities.summaryText(available: available, total: total)
     }
 
     /// "Checked: 5 minutes ago", or nil when nothing was recorded yet.

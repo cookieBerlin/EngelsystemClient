@@ -489,6 +489,19 @@ components:
               description: OAuth/SSO provider identifiers linked to this user
               items:
                 $ref: '#/components/schemas/OAuthIdentifier'
+            # COMPAT(#1709): local divergence — PR #1709 adds the account's groups and privileges to
+            # `GET /users/self`; both stay optional so servers without it still decode. Re-fetch the
+            # upstream spec when the PR is merged (backlog R-02).
+            groups:
+              type: array
+              description: Groups of the account (only with PR #1709)
+              items:
+                $ref: '#/components/schemas/Reference'
+            privileges:
+              type: array
+              description: Names of the privileges of the account (only with PR #1709)
+              items:
+                type: string
       required:
         - email
         - tshirt_size

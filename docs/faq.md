@@ -44,12 +44,13 @@ depend on Engelsystem changes that are partly still open pull requests; see
 [Server compatibility](guide.md#server-compatibility) for the list and status, and for the privileges an account needs.
 Nothing is wrong with the app — the area appears automatically after a sync once your server and your account allow it.
 
-### Test Connection warns that the account is “not allowed to use the API (403)”.
+### Where can I see what my account may use?
 
-The server answered, but denied this account access to its data. Ask the server administrators to add your account to a group
-that has the `api` privilege, for example “API” or “Bureaucrat”. On a server with the newer access concept
-([#1709](https://github.com/engelsystem/engelsystem/pull/1709)) the web privileges of your account are enough. You can still
-save the instance and test again later.
+Open **Settings → Instances →** your event. The **Features** list shows for every area whether it is available, not allowed
+for your account (with the privilege it needs, when the server tells) or not offered by the server, and when it was checked.
+Missing areas are hidden quietly — the app does not show errors for them. After **Test Connection** a server with the newer
+access concept ([#1709](https://github.com/engelsystem/engelsystem/pull/1709)) also shows a short summary such as “5 of 8
+features available”.
 
 ### Why do I not see "Messages"?
 

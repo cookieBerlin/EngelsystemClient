@@ -73,6 +73,75 @@ extension StubbedNetworkTests {
         }
 
         /// Reminders depend on the shift syncs only: a failing News/Profile/Locations step still schedules them.
+        private func coordinator(capabilities: ServerCapabilities) -> AppSyncCoordinator {
+            AppSyncCoordinator(
+                newsSyncService: NewsSyncService(capabilities: capabilities),
+                profileSyncService: ProfileSyncService(capabilities: capabilities),
+                locationSyncService: LocationSyncService(capabilities: capabilities),
+                credentialResolver: InstanceCredentialResolver(stores: [keys]),
+                notificationScheduler: NotificationScheduler(center: center),
+                newsNotifier: NewsNotifier(center: center),
+                capabilities: capabilities
+            )
+        }
+
+        private func freshCapabilities() -> ServerCapabilities {
+            let name = "CoordinatorCapabilities-\(UUID().uuidString)"
+            return ServerCapabilities(defaults: UserDefaults(suiteName: name)!)
+        }
+
+        /// ADR 0015: a 403/404 on an optional function is recorded as "not allowed"/"not offered" and
+        /// the privileges of the profile decide the others.
+        @Test func deniedFunctionsAreRecordedPerInstance() async throws {
+            StubURLProtocol.route("GET \(prefix)/users/self/shifts", status: 403)
+            StubURLProtocol.route("GET \(prefix)/news", status: 403)
+            try StubURLProtocol.routeDemoOwnProfile("GET \(prefix)/users/self")
+            StubURLProtocol.route("GET \(prefix)/users/self/worklogs", status: 403)
+            StubURLProtocol.route("GET \(prefix)/users/self/angeltypes", status: 403)
+            StubURLProtocol.route("GET \(prefix)/locations", status: 403)
+            try StubURLProtocol.route("GET \(prefix)/messages", data: [Conversation]())
+            let capabilities = freshCapabilities()
+            let context = try makeContext()
+            let instance = stubInstance()
+            context.insert(instance)
+
+            _ = await coordinator(capabilities: capabilities).syncEverything(instances: [instance], in: context)
+
+            #expect(capabilities.status(.shifts, for: instance.id).state == .notAllowed)
+            #expect(capabilities.status(.news, for: instance.id).state == .notAllowed)
+            #expect(capabilities.status(.profileWorklogs, for: instance.id).state == .notAllowed)
+            #expect(capabilities.status(.profileAngelTypes, for: instance.id).state == .notAllowed)
+            #expect(capabilities.status(.locationsList, for: instance.id).state == .notAllowed)
+            #expect(capabilities.status(.messages, for: instance.id).state == .available)
+        }
+
+        @Test func workingFunctionsAreRecordedAsAvailableAndOtherProfileErrorsStayFailures() async throws {
+            try StubURLProtocol.route("GET \(prefix)/users/self/shifts", data: DemoData.shifts)
+            try StubURLProtocol.route("GET \(prefix)/news", data: DemoData.news)
+            try StubURLProtocol.routeDemoOwnProfile("GET \(prefix)/users/self")
+            try StubURLProtocol.route("GET \(prefix)/users/self/worklogs", data: DemoData.worklogs)
+            try StubURLProtocol.route("GET \(prefix)/users/self/angeltypes", data: DemoData.ownAngelTypes)
+            try StubURLProtocol.route("GET \(prefix)/locations", data: DemoData.locations)
+            try StubURLProtocol.route("GET \(prefix)/messages", data: await DemoData.conversations())
+            let capabilities = freshCapabilities()
+            let context = try makeContext()
+            let instance = stubInstance()
+            context.insert(instance)
+
+            let succeeded = await coordinator(capabilities: capabilities).syncEverything(instances: [instance], in: context)
+            #expect(succeeded)
+            for feature in [ServerFeature.shifts, .news, .profileWorklogs, .profileAngelTypes, .locationsList, .messages] {
+                #expect(capabilities.status(feature, for: instance.id).state == .available)
+            }
+
+            // A server error in the optional profile parts is still a real failure.
+            StubURLProtocol.route("GET \(prefix)/users/self/worklogs", status: 500)
+            #expect(await coordinator(capabilities: capabilities).syncEverything(instances: [instance], in: context) == false)
+            try StubURLProtocol.route("GET \(prefix)/users/self/worklogs", data: DemoData.worklogs)
+            StubURLProtocol.route("GET \(prefix)/users/self/angeltypes", status: 500)
+            #expect(await coordinator(capabilities: capabilities).syncEverything(instances: [instance], in: context) == false)
+        }
+
         @Test func shiftRemindersAreScheduledEvenWhenOtherDomainsFail() async throws {
             try StubURLProtocol.route("GET \(prefix)/users/self/shifts", data: DemoData.shifts)
             for path in ["/news", "/users/self", "/locations"] {

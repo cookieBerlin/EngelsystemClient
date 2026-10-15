@@ -130,7 +130,7 @@ simply hides what is missing:
 
 | Pull request | Status | Without it |
 |---|---|---|
-| [#1709](https://github.com/engelsystem/engelsystem/pull/1709) — access concept: read with the `api` privilege or the matching web privilege | open | Every request needs an account in a group with the server's `api` privilege (for example “API” or “Bureaucrat”). Otherwise **Test Connection** warns that the account is not allowed to use the API (403) and no data loads. |
+| [#1709](https://github.com/engelsystem/engelsystem/pull/1709) — access concept: read with the `api` privilege or the matching web privilege | open | Every request needs an account in a group with the server's `api` privilege (for example “API” or “Bureaucrat”); otherwise no data loads and the **Features** list of the instance shows what is not allowed. With it, the account's own privileges are known and **Test Connection** shows a summary. |
 | [#1710](https://github.com/engelsystem/engelsystem/pull/1710) — news comments | open | No comments and no comment counts in **News**. |
 | [#1711](https://github.com/engelsystem/engelsystem/pull/1711) — single location and location details | open | **Locations** may be missing entirely (when only the API group may read them) and a single location cannot be refreshed. |
 | [#1720](https://github.com/engelsystem/engelsystem/pull/1720) — private messages API | open | No **Messages** area at all: it only appears on servers that offer the messages API. With it, reading works with the `api` or the `user_messages` privilege, sending needs `user_messages`. |

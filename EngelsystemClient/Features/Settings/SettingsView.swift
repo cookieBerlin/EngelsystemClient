@@ -333,11 +333,10 @@ private struct EditInstanceView: View {
                 } footer: {
                     Text("Leave blank to keep the current key. Only fill this in if it's expired, been revoked, or you're pointing this instance at a different account.")
                 }
-                // COMPAT(#1709): the server answered 403 to a data request — warn, but allow saving.
-                if viewModel.connectionTested, let accessWarning = viewModel.accessWarning {
+                if viewModel.connectionTested, let featureSummary = viewModel.featureSummary {
                     Section {
-                        Label(accessWarning, systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
+                        Label(featureSummary, systemImage: "checklist")
+                            .foregroundStyle(.secondary)
                     }
                 }
 

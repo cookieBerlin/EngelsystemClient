@@ -11,11 +11,14 @@ final class NewsViewModel {
 
     private let syncService: NewsSyncService
     private let credentialResolver: InstanceCredentialResolver
+    private let capabilities: ServerCapabilities
 
     // `NewsSyncService` is @MainActor, so its default can't be evaluated as a
     // parameter default (those are evaluated in a nonisolated context) — it has
     // to be constructed inside this (already MainActor-isolated) init body instead.
-    init(syncService: NewsSyncService? = nil, credentialResolver: InstanceCredentialResolver? = nil) {
+    init(syncService: NewsSyncService? = nil, credentialResolver: InstanceCredentialResolver? = nil,
+         capabilities: ServerCapabilities? = nil) {
+        self.capabilities = capabilities ?? .shared
         self.syncService = syncService ?? NewsSyncService()
         self.credentialResolver = credentialResolver ?? InstanceCredentialResolver()
     }
@@ -44,9 +47,12 @@ final class NewsViewModel {
                 let credential = try credentialResolver.credential(for: instance)
                 let result = try await syncService.sync(instance: instance, credential: credential, in: modelContext)
                 DebugLog.log("[NewsViewModel] synced \(result.items.count) news item(s) from \(credential.baseURL)")
+                capabilities.record(.news, state: .available, evidence: .probe, for: instance.id)
             } catch {
                 DebugLog.log("[NewsViewModel] refresh failed for '\(instance.name)': \(error)", level: .error)
                 guard !SyncErrorMapper.isCancellation(error) else { continue }
+                // Not allowed / not offered (403/404): hidden silently, see the Features list (ADR 0015).
+                if capabilities.record(.news, afterError: error, for: instance.id) { continue }
                 lastError = error
             }
         }

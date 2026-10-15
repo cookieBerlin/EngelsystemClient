@@ -91,8 +91,9 @@ extension StubbedNetworkTests {
             #expect(viewModel.errorMessage != nil)
         }
 
-        /// COMPAT(#1709): a 403 on the data probe is a warning; the connection still counts as tested.
-        @Test @MainActor func aDeniedDataProbeWarnsButStillAllowsSaving() async throws {
+        /// COMPAT(#1709): a server that reports the account's privileges gets a features summary; a
+        /// denied or older server just gets none — never a warning.
+        @Test @MainActor func connectionTestShowsAFeaturesSummaryOnlyWhenPrivilegesAreKnown() async throws {
             try StubURLProtocol.routeDemoInfo("GET /api/v0-beta/info")
             StubURLProtocol.route("GET /api/v0-beta/users/self", status: 403)
             let viewModel = InstanceSetupViewModel()
@@ -102,11 +103,18 @@ extension StubbedNetworkTests {
             await viewModel.testConnection()
             #expect(viewModel.connectionTested)
             #expect(viewModel.canSubmit)
-            #expect(viewModel.accessWarning == APIError.missingPrivilegeMessage)
+            #expect(viewModel.featureSummary == nil)
 
-            try StubURLProtocol.routeDemoOwnProfile("GET /api/v0-beta/users/self")
+            let json = """
+            {"data":{"id":2,"name":"cookie","first_name":null,"last_name":null,"pronoun":null,\
+            "contact":{"dect":null,"mobile":null},"url":"https://example.org/users/2","email":"a@b.c",\
+            "tshirt_size":null,"dates":{"planned_arrival":null,"planned_departure":null,"arrival":null},\
+            "language":"en_US","arrived":false,"oauth":[],"groups":[],"privileges":["news"]}}
+            """
+            StubURLProtocol.route("GET /api/v0-beta/users/self", body: Data(json.utf8))
             await viewModel.testConnection()
-            #expect(viewModel.accessWarning == nil)
+            #expect(viewModel.featureSummary == ServerCapabilities.featureSummary(privileges: ["news"]))
+            #expect(viewModel.featureSummary?.hasSuffix("features available") == true)
         }
 
         @Test @MainActor func editingCanTestOnlyWithAServerURLAndNotWhileTesting() {

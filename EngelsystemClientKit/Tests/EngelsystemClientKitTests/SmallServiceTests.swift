@@ -21,7 +21,7 @@ struct APIErrorTests {
 
     @Test func everyCaseHasAUserMessage() {
         #expect(APIError.unauthorized.userMessage.contains("API key"))
-        #expect(APIError.forbidden.userMessage.contains("Bureaucrat"))
+        #expect(APIError.forbidden.userMessage.contains("privilege"))
         #expect(APIError.notFound.userMessage.contains("404"))
         #expect(APIError.invalidBaseURL.userMessage.contains("URL"))
         #expect(APIError.server(statusCode: 503).userMessage.contains("503"))

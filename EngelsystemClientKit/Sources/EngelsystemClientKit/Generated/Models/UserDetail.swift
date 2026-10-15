@@ -28,8 +28,12 @@ public struct UserDetail: Codable, JSONEncodable, Hashable {
     public var arrived: Bool
     /** OAuth/SSO provider identifiers linked to this user */
     public var oauth: [OAuthIdentifier]
+    /** Groups of the account (only with PR */
+    public var groups: [Reference]?
+    /** Names of the privileges of the account (only with PR */
+    public var privileges: [String]?
 
-    public init(id: Int, name: String, firstName: String?, lastName: String?, pronoun: String?, contact: UserContact, url: String, email: String, tshirtSize: String?, dates: UserDetailAllOfDates, language: String, arrived: Bool, oauth: [OAuthIdentifier]) {
+    public init(id: Int, name: String, firstName: String?, lastName: String?, pronoun: String?, contact: UserContact, url: String, email: String, tshirtSize: String?, dates: UserDetailAllOfDates, language: String, arrived: Bool, oauth: [OAuthIdentifier], groups: [Reference]? = nil, privileges: [String]? = nil) {
         self.id = id
         self.name = name
         self.firstName = firstName
@@ -43,6 +47,8 @@ public struct UserDetail: Codable, JSONEncodable, Hashable {
         self.language = language
         self.arrived = arrived
         self.oauth = oauth
+        self.groups = groups
+        self.privileges = privileges
     }
 
     public enum CodingKeys: String, CodingKey, CaseIterable {
@@ -59,6 +65,8 @@ public struct UserDetail: Codable, JSONEncodable, Hashable {
         case language
         case arrived
         case oauth
+        case groups
+        case privileges
     }
 
     // Encodable protocol methods
@@ -78,6 +86,8 @@ public struct UserDetail: Codable, JSONEncodable, Hashable {
         try container.encode(language, forKey: .language)
         try container.encode(arrived, forKey: .arrived)
         try container.encode(oauth, forKey: .oauth)
+        try container.encodeIfPresent(groups, forKey: .groups)
+        try container.encodeIfPresent(privileges, forKey: .privileges)
     }
 }
 

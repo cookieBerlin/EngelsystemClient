@@ -51,11 +51,10 @@ struct InstanceSetupView: View {
                     Text("Checks the server and API key before adding this instance.")
                 }
 
-                // COMPAT(#1709): the server answered 403 to a data request — warn, but allow saving.
-                if viewModel.connectionTested, let accessWarning = viewModel.accessWarning {
+                if viewModel.connectionTested, let featureSummary = viewModel.featureSummary {
                     Section {
-                        Label(accessWarning, systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
+                        Label(featureSummary, systemImage: "checklist")
+                            .foregroundStyle(.secondary)
                     }
                 }
 

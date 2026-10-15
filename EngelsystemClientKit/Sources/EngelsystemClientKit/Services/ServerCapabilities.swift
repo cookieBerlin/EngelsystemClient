@@ -87,6 +87,13 @@ public struct FeatureStatus: Equatable, Codable, Sendable {
     public var privilege: String?
     public var checkedAt: Date?
 
+    public init(state: FeatureState, evidence: FeatureEvidence, privilege: String? = nil, checkedAt: Date? = nil) {
+        self.state = state
+        self.evidence = evidence
+        self.privilege = privilege
+        self.checkedAt = checkedAt
+    }
+
     public static let unknown = FeatureStatus(state: .unknown, evidence: .probe, privilege: nil, checkedAt: nil)
 }
 
@@ -194,6 +201,30 @@ public final class ServerCapabilities {
             record(feature, state: granted ? .available : .notAllowed, evidence: .privileges,
                    privilege: granted ? nil : required, for: instanceID, now: now)
         }
+    }
+
+    /// "5 of 8 features available" — the one-line summary shown after "Test Connection".
+    public static func summaryText(available: Int, total: Int) -> String {
+        "\(available) of \(total) features available"
+    }
+
+    /// The summary for the account's `privileges` (`GET /users/self`, PR #1709); nil when the
+    /// server does not tell (an older Engelsystem) — nothing is claimed then.
+    public static func featureSummary(privileges: [String]?) -> String? {
+        guard let privileges else { return nil }
+        let available = ServerFeature.listed.filter { feature in
+            guard let required = feature.requiredPrivilege else { return true }
+            return !Set(privileges).isDisjoint(with: [required, "api"])
+        }.count
+        return summaryText(available: available, total: ServerFeature.listed.count)
+    }
+
+    /// Records the outcome of a failed request for `feature`; see `record(_:afterFailure:for:)`.
+    /// Anything that is not an `APIError` is a real error.
+    @discardableResult
+    public func record(_ feature: ServerFeature, afterError error: Error, for instanceID: UUID) -> Bool {
+        guard let apiError = error as? APIError else { return false }
+        return record(feature, afterFailure: apiError, for: instanceID)
     }
 
     /// `COMPAT(#1710)`: a server supports news comments exactly when its `/news` items carry

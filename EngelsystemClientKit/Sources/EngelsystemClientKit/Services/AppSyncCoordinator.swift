@@ -34,6 +34,7 @@ public struct AppSyncCoordinator {
     private let notificationScheduler: NotificationScheduler
     private let newsNotifier: NewsNotifier
     private let apiClient: APIClient
+    private let capabilities: ServerCapabilities
 
     // Several of these types are @MainActor, so their defaults can't be evaluated as
     // literal parameter defaults (evaluated in a nonisolated context) — same reason
@@ -47,8 +48,10 @@ public struct AppSyncCoordinator {
         credentialResolver: InstanceCredentialResolver? = nil,
         notificationScheduler: NotificationScheduler = NotificationScheduler(),
         newsNotifier: NewsNotifier = NewsNotifier(),
-        apiClient: APIClient? = nil
+        apiClient: APIClient? = nil,
+        capabilities: ServerCapabilities? = nil
     ) {
+        self.capabilities = capabilities ?? .shared
         self.shiftSyncService = shiftSyncService ?? ShiftSyncService()
         self.newsSyncService = newsSyncService ?? NewsSyncService()
         self.profileSyncService = profileSyncService ?? ProfileSyncService()
@@ -122,6 +125,7 @@ public struct AppSyncCoordinator {
                     let result = try await shiftSyncService.sync(instance: instance, credential: credential, in: modelContext)
                     allShifts.append(contentsOf: result.shifts)
                     DebugLog.log("AppSyncCoordinator: synced \(result.shifts.count) shift(s) for '\(instance.name)'")
+                    capabilities.record(.shifts, state: .available, evidence: .probe, for: instance.id)
                     // 2026-09-23, "keep the Watch fresh" feature: bump the CloudKit-synced
                     // signal only on a genuine change, not on every routine sync — see
                     // Instance.shiftsChangedAt and WatchConnectivityBridge. Safe to call
@@ -135,6 +139,9 @@ public struct AppSyncCoordinator {
                     }
                 } catch {
                     guard !(error is CancellationError) else { continue }
+                    // A 403/404 is "not allowed"/"not offered", not a failure to report (ADR 0015); the
+                    // reminders are still left alone because no shift list was received.
+                    capabilities.record(.shifts, afterError: error, for: instance.id)
                     allSucceeded = false
                     allShiftsSucceeded = false
                     DebugLog.log("AppSyncCoordinator: Shifts failed for '\(instance.name)': \(error)", level: .error)
@@ -148,9 +155,12 @@ public struct AppSyncCoordinator {
                         let result = try await newsSyncService.sync(instance: instance, credential: credential, in: modelContext)
                         newNewsByInstance.append(contentsOf: result.insertedItems.map { (item: $0, instanceName: instance.name) })
                         DebugLog.log("AppSyncCoordinator: synced \(result.items.count) news item(s), \(result.insertedItems.count) new, for '\(instance.name)'")
+                        capabilities.record(.news, state: .available, evidence: .probe, for: instance.id)
                     } catch {
                         if !(error is CancellationError) {
-                            allSucceeded = false
+                            if !capabilities.record(.news, afterError: error, for: instance.id) {
+                                allSucceeded = false
+                            }
                             DebugLog.log("AppSyncCoordinator: News failed for '\(instance.name)': \(error)", level: .error)
                         }
                     }
@@ -160,8 +170,18 @@ public struct AppSyncCoordinator {
                 if let credential {
                     do {
                         _ = try await profileSyncService.syncProfile(instance: instance, credential: credential, in: modelContext)
-                        _ = try await profileSyncService.syncWorklogs(instance: instance, credential: credential, in: modelContext)
-                        _ = try await profileSyncService.syncAngelTypes(instance: instance, credential: credential, in: modelContext)
+                        do {
+                            _ = try await profileSyncService.syncWorklogs(instance: instance, credential: credential, in: modelContext)
+                            capabilities.record(.profileWorklogs, state: .available, evidence: .probe, for: instance.id)
+                        } catch {
+                            if !capabilities.record(.profileWorklogs, afterError: error, for: instance.id) { throw error }
+                        }
+                        do {
+                            _ = try await profileSyncService.syncAngelTypes(instance: instance, credential: credential, in: modelContext)
+                            capabilities.record(.profileAngelTypes, state: .available, evidence: .probe, for: instance.id)
+                        } catch {
+                            if !capabilities.record(.profileAngelTypes, afterError: error, for: instance.id) { throw error }
+                        }
                         DebugLog.log("AppSyncCoordinator: synced Profile for '\(instance.name)'")
                     } catch {
                         if !(error is CancellationError) {
@@ -192,6 +212,7 @@ public struct AppSyncCoordinator {
                     // is picked up without a dedicated Setup/Edit-time probe. Cheap: a single
                     // GET, no persistence beyond the one Bool.
                     let supported = await apiClient.messagesSupported(credential)
+                    capabilities.record(.messages, supported: supported, for: instance.id)
                     if instance.messagesSupported != supported {
                         instance.messagesSupported = supported
                         instance.touch()

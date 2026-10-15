@@ -157,6 +157,25 @@ struct ServerCapabilitiesStoreTests {
         #expect(capabilities.summary(for: id).available == 1)
     }
 
+    @Test func featureSummaryFollowsThePrivileges() {
+        #expect(ServerCapabilities.featureSummary(privileges: nil) == nil)
+        let total = ServerFeature.listed.count
+        #expect(ServerCapabilities.featureSummary(privileges: ["api"]) == "\(total) of \(total) features available")
+        let withoutAny = ServerCapabilities.featureSummary(privileges: [])
+        let free = ServerFeature.listed.filter { $0.requiredPrivilege == nil }.count
+        #expect(withoutAny == "\(free) of \(total) features available")
+        #expect(ServerCapabilities.summaryText(available: 1, total: 2) == "1 of 2 features available")
+    }
+
+    @Test func afterErrorOnlyRecordsAPIErrors() {
+        let capabilities = ServerCapabilities(defaults: freshDefaults())
+        let id = UUID()
+        struct Other: Error {}
+        #expect(!capabilities.record(.news, afterError: Other(), for: id))
+        #expect(capabilities.record(.news, afterError: APIError.forbidden, for: id))
+        #expect(capabilities.status(.news, for: id).state == .notAllowed)
+    }
+
     @Test func sharedInstanceExists() {
         #expect(ServerCapabilities.shared.isAvailable(.newsComments, for: UUID()))
     }
