@@ -343,7 +343,27 @@ components:
         location:
           $ref: '#/components/schemas/Reference'
         shift_type:
-          $ref: '#/components/schemas/Reference'
+          # COMPAT(#1722): local divergence — PR #1722 adds `description` to the shift's type; optional
+          # here so servers without it still decode (upstream: plain Reference).
+          $ref: '#/components/schemas/ShiftTypeReference'
+        sign_out_until:
+          # COMPAT(#1722): local divergence — new optional field.
+          $ref: '#/components/schemas/DateTimeOptional'
+        signup_available_from:
+          # COMPAT(#1722): local divergence — new optional field.
+          $ref: '#/components/schemas/DateTimeOptional'
+        tags:
+          # COMPAT(#1722): local divergence — new optional field.
+          type: array
+          items:
+            type: string
+        talk_url:
+          # COMPAT(#1722): local divergence — new optional field.
+          type: string
+          nullable: true
+        night_shift:
+          # COMPAT(#1722): local divergence — new optional field.
+          type: boolean
         schedule_guid:
           type: string
           format: uuid
@@ -385,16 +405,43 @@ components:
         user:
           $ref: '#/components/schemas/Reference'
         freeloaded_by:
+          # COMPAT(#1723): local divergence — only sent to admins/supporters without `api`; not required here.
           oneOf:
             - $ref: '#/components/schemas/Reference'
           nullable: true
           description: >
             Contains a reference to the user who has marked this shift entry as freeloaded, if
             for a user not arriving to their shift
+        freeloaded:
+          # COMPAT(#1723): local divergence — new optional field.
+          type: boolean
+        can_sign_out:
+          # COMPAT(#1723): local divergence — new optional field.
+          type: boolean
+        user_comment:
+          # COMPAT(#1723): local divergence — new optional field.
+          type: string
+          nullable: true
+        freeloaded_comment:
+          # COMPAT(#1723): local divergence — new optional field.
+          type: string
+          nullable: true
       required:
         - id
         - user
-        - freeloaded_by
+    ShiftTypeReference:
+      # COMPAT(#1722): see Shift.shift_type.
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - id
+        - name
     ShiftType:
       type: object
       properties:

@@ -17,17 +17,29 @@ public struct ShiftEntry: Codable, JSONEncodable, Hashable {
     public var user: Reference
     /** Contains a reference to the user who has marked this shift entry as freeloaded, if for a user not arriving to their shift  */
     public var freeloadedBy: Reference?
+    public var freeloaded: Bool?
+    public var canSignOut: Bool?
+    public var userComment: String?
+    public var freeloadedComment: String?
 
-    public init(id: Int, user: Reference, freeloadedBy: Reference?) {
+    public init(id: Int, user: Reference, freeloadedBy: Reference? = nil, freeloaded: Bool? = nil, canSignOut: Bool? = nil, userComment: String? = nil, freeloadedComment: String? = nil) {
         self.id = id
         self.user = user
         self.freeloadedBy = freeloadedBy
+        self.freeloaded = freeloaded
+        self.canSignOut = canSignOut
+        self.userComment = userComment
+        self.freeloadedComment = freeloadedComment
     }
 
     public enum CodingKeys: String, CodingKey, CaseIterable {
         case id
         case user
         case freeloadedBy = "freeloaded_by"
+        case freeloaded
+        case canSignOut = "can_sign_out"
+        case userComment = "user_comment"
+        case freeloadedComment = "freeloaded_comment"
     }
 
     // Encodable protocol methods
@@ -36,7 +48,11 @@ public struct ShiftEntry: Codable, JSONEncodable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(user, forKey: .user)
-        try container.encode(freeloadedBy, forKey: .freeloadedBy)
+        try container.encodeIfPresent(freeloadedBy, forKey: .freeloadedBy)
+        try container.encodeIfPresent(freeloaded, forKey: .freeloaded)
+        try container.encodeIfPresent(canSignOut, forKey: .canSignOut)
+        try container.encodeIfPresent(userComment, forKey: .userComment)
+        try container.encodeIfPresent(freeloadedComment, forKey: .freeloadedComment)
     }
 }
 

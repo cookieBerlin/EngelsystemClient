@@ -63,7 +63,7 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
 /// syncs *always* look "changed" and defeat a "no real change" test at that level.
 @Test @MainActor func cachedShiftApplyReportsWhetherAnythingActuallyChanged() {
     let location = Reference(id: 1, name: "Heaven")
-    let shiftType = Reference(id: 2, name: "Info Desk")
+    let shiftType = ShiftTypeReference(id: 2, name: "Info Desk")
     let start = Date()
     let end = start.addingTimeInterval(3600)
     let dto = Shift(
@@ -88,6 +88,57 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
 
     // And applying that same (now-current) data again must go back to no change.
     #expect(cached.apply(movedDTO) == false)
+}
+
+/// S-01: the shift detail fields are cached with the shift, the team as one encoded field, and none
+/// of it counts as a change that wakes the Watch.
+@Test @MainActor func cachedShiftKeepsDetailFieldsAndTheTeamWithoutReportingThemAsChanges() throws {
+    let start = Date()
+    let until = start.addingTimeInterval(-3 * 3600)
+    func dto(team: [NeededAngelType], description: String?) -> Shift {
+        Shift(
+            id: 7, name: "Desk", description: "Help", startsAt: start, endsAt: start.addingTimeInterval(3600),
+            location: Reference(id: 1, name: "Heaven"),
+            shiftType: ShiftTypeReference(id: 2, name: "Info Desk", description: description),
+            signOutUntil: until, signupAvailableFrom: nil, tags: ["quiet"], talkUrl: "https://talk.test/1",
+            nightShift: true, scheduleGuid: nil, createdAt: nil, updatedAt: nil, neededAngelTypes: team,
+            url: "https://example.org/shifts/7")
+    }
+    let own = Reference(id: 1, name: "demo")
+    let angelType = Reference(id: 5, name: "Info Desk Angel")
+    func entry(_ id: Int, _ user: Reference) -> ShiftEntry {
+        ShiftEntry(id: id, user: user, freeloadedBy: nil, freeloaded: false, canSignOut: true,
+                   userComment: nil, freeloadedComment: nil)
+    }
+    let first = dto(team: [NeededAngelType(entries: [entry(1, own)], angelType: angelType, needs: 2)], description: "Answer questions")
+    let cached = CachedShift(shift: first, instanceID: UUID())
+
+    #expect(cached.shiftTypeDescription == "Answer questions")
+    #expect(cached.signOutUntil == until)
+    #expect(cached.signupAvailableFrom == nil)
+    #expect(cached.tags == ["quiet"])
+    #expect(cached.talkURL == "https://talk.test/1")
+    #expect(cached.nightShift == true)
+    #expect(cached.team.count == 1)
+    #expect(cached.ownEntry(userID: 1)?.angelType == angelType)
+    #expect(cached.ownEntry(userID: 99) == nil)
+
+    // A changed team and description are stored but do not report a change (the Watch only needs
+    // the fields it shows).
+    let second = dto(
+        team: [NeededAngelType(entries: [entry(1, own), entry(2, Reference(id: 3, name: "Other"))], angelType: angelType, needs: 3)],
+        description: "Changed")
+    #expect(cached.apply(second) == false)
+    #expect(cached.team[0].entries.count == 2)
+    #expect(cached.shiftTypeDescription == "Changed")
+
+    // Without team data the cached team is empty and there is no own entry.
+    let bare = CachedShift(shift: dto(team: [], description: nil), instanceID: UUID())
+    #expect(bare.teamData == nil)
+    #expect(bare.team.isEmpty)
+    #expect(bare.ownEntry(userID: 1) == nil)
+    bare.teamData = Data("not json".utf8)
+    #expect(bare.team.isEmpty)
 }
 
 @Test @MainActor func newsSyncServiceInsertsAndUpdatesWithoutDuplicating() async throws {

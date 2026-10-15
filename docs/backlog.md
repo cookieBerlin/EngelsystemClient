@@ -17,12 +17,6 @@ the W tasks alongside, the R tasks when the owner reports a merge.
 
 ### Shift detail page (iOS; the Watch stays unchanged)
 
-- [ ] **S-01** Model: decode the new fields as optional (`openapi.yml` copy patched with `COMPAT(#<PR>)` until merged, then
-      re-fetched from upstream): Shift `shift_type.description`, `sign_out_until`, `signup_available_from`, `tags`,
-      `talk_url`, `night_shift`; ShiftEntry `freeloaded`, `freeloaded_by`, `can_sign_out`, `user_comment`,
-      `freeloaded_comment`. Cache `needed_angel_types` with its entries (encoded field on `CachedShift`, no new model); the
-      change detection that wakes the Watch must ignore team-only changes. The own entry is found by the cached profile's
-      user id. Fill the so-far empty `angelTypeID`/`angelTypeName`.
 - [ ] **S-02** `ShiftDetailView` (iOS) reached from a shift row (the location link stays in the row): header (title, time,
       duration, location with link), shift type name + description, the shift's own description, optional tags / night
       shift hint / talk link button / "sign-up from". Display texts as tested static functions.

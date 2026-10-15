@@ -22,7 +22,14 @@ public struct Shift: Codable, JSONEncodable, Hashable {
     /** DateTime in ISO-8601 format */
     public var endsAt: Date
     public var location: Reference
-    public var shiftType: Reference
+    public var shiftType: ShiftTypeReference
+    /** DateTime in ISO-8601 format */
+    public var signOutUntil: Date?
+    /** DateTime in ISO-8601 format */
+    public var signupAvailableFrom: Date?
+    public var tags: [String]?
+    public var talkUrl: String?
+    public var nightShift: Bool?
     /** schedule.xml event guid */
     public var scheduleGuid: UUID?
     /** DateTime in ISO-8601 format */
@@ -34,7 +41,7 @@ public struct Shift: Codable, JSONEncodable, Hashable {
     /** Direct link to the shift */
     public var url: String
 
-    public init(id: Int, name: String, description: String, startsAt: Date, endsAt: Date, location: Reference, shiftType: Reference, scheduleGuid: UUID?, createdAt: Date?, updatedAt: Date?, neededAngelTypes: [NeededAngelType], url: String) {
+    public init(id: Int, name: String, description: String, startsAt: Date, endsAt: Date, location: Reference, shiftType: ShiftTypeReference, signOutUntil: Date? = nil, signupAvailableFrom: Date? = nil, tags: [String]? = nil, talkUrl: String? = nil, nightShift: Bool? = nil, scheduleGuid: UUID?, createdAt: Date?, updatedAt: Date?, neededAngelTypes: [NeededAngelType], url: String) {
         self.id = id
         self.name = name
         self.description = description
@@ -42,6 +49,11 @@ public struct Shift: Codable, JSONEncodable, Hashable {
         self.endsAt = endsAt
         self.location = location
         self.shiftType = shiftType
+        self.signOutUntil = signOutUntil
+        self.signupAvailableFrom = signupAvailableFrom
+        self.tags = tags
+        self.talkUrl = talkUrl
+        self.nightShift = nightShift
         self.scheduleGuid = scheduleGuid
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -57,6 +69,11 @@ public struct Shift: Codable, JSONEncodable, Hashable {
         case endsAt = "ends_at"
         case location
         case shiftType = "shift_type"
+        case signOutUntil = "sign_out_until"
+        case signupAvailableFrom = "signup_available_from"
+        case tags
+        case talkUrl = "talk_url"
+        case nightShift = "night_shift"
         case scheduleGuid = "schedule_guid"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -75,6 +92,11 @@ public struct Shift: Codable, JSONEncodable, Hashable {
         try container.encode(endsAt, forKey: .endsAt)
         try container.encode(location, forKey: .location)
         try container.encode(shiftType, forKey: .shiftType)
+        try container.encodeIfPresent(signOutUntil, forKey: .signOutUntil)
+        try container.encodeIfPresent(signupAvailableFrom, forKey: .signupAvailableFrom)
+        try container.encodeIfPresent(tags, forKey: .tags)
+        try container.encodeIfPresent(talkUrl, forKey: .talkUrl)
+        try container.encodeIfPresent(nightShift, forKey: .nightShift)
         try container.encode(scheduleGuid, forKey: .scheduleGuid)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)

@@ -182,6 +182,32 @@ enum DemoData {
         )
     }
 
+    private static func shiftTypeReference(_ id: Int) -> ShiftTypeReference {
+        let type = shiftTypes[id - 1] // ids are 1...6 in order
+        return ShiftTypeReference(id: id, name: type.name, description: type.description)
+    }
+
+    /// A demo team: the own account (id 1) on the first angel type, the demo users on the rest.
+    private static func team(
+        shiftID: Int, own: Bool, needs: [Int], freeloaded: Bool = false
+    ) -> [NeededAngelType] {
+        var entryID = shiftID * 10
+        func entry(_ user: Reference, freeloadedFlag: Bool = false) -> ShiftEntry {
+            entryID += 1
+            return ShiftEntry(
+                id: entryID, user: user, freeloadedBy: nil, freeloaded: freeloadedFlag, canSignOut: user.id == 1,
+                userComment: nil, freeloadedComment: nil)
+        }
+        let ownReference = Reference(id: 1, name: "demo")
+        var first = own ? [entry(ownReference)] : []
+        first.append(entry(users[0], freeloadedFlag: freeloaded))
+        return [
+            NeededAngelType(entries: first, angelType: Reference(id: 2, name: "Info Desk Angel"), needs: needs[0]),
+            NeededAngelType(
+                entries: [entry(users[1])], angelType: Reference(id: 1, name: "Engel"), needs: needs[1]),
+        ]
+    }
+
     static var shifts: [Shift] {
         let now = Date()
         return [
@@ -189,39 +215,39 @@ enum DemoData {
                 id: 1, name: "Info Desk Shift", description: "Help visitors find their way",
                 startsAt: now.addingTimeInterval(3600), endsAt: now.addingTimeInterval(3600 * 4),
                 location: Reference(id: 1, name: "Heaven"),
-                shiftType: Reference(id: 2, name: "Info Desk"),
+                shiftType: shiftTypeReference(2),
                 scheduleGuid: nil, createdAt: nil, updatedAt: nil,
-                neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/1"
+                neededAngelTypes: team(shiftID: 1, own: true, needs: [3, 1]), url: "https://demo.engelsystem.local/shifts/1"
             ),
             Shift(
                 id: 2, name: "Set-up Shift", description: "Help build up the chill space",
                 startsAt: now.addingTimeInterval(-3600 * 20), endsAt: now.addingTimeInterval(-3600 * 16),
                 location: Reference(id: 2, name: "Chill Space"),
-                shiftType: Reference(id: 1, name: "Set-up"),
+                shiftType: shiftTypeReference(1),
                 scheduleGuid: nil, createdAt: nil, updatedAt: nil,
-                neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/2"
+                neededAngelTypes: team(shiftID: 2, own: true, needs: [1, 1], freeloaded: true), url: "https://demo.engelsystem.local/shifts/2"
             ),
             Shift(
                 id: 3, name: "Registration Desk", description: "Welcome and register arriving visitors",
                 startsAt: now.addingTimeInterval(3600 * 20), endsAt: now.addingTimeInterval(3600 * 24),
                 location: Reference(id: 1, name: "Heaven"),
-                shiftType: Reference(id: 4, name: "Registration"),
+                shiftType: shiftTypeReference(4),
                 scheduleGuid: nil, createdAt: nil, updatedAt: nil,
-                neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/3"
+                neededAngelTypes: team(shiftID: 3, own: true, needs: [2, 2]), url: "https://demo.engelsystem.local/shifts/3"
             ),
             Shift(
                 id: 4, name: "Workshop Support: Soldering", description: "Hand out kits and help beginners",
                 startsAt: now.addingTimeInterval(3600 * 26), endsAt: now.addingTimeInterval(3600 * 29),
                 location: Reference(id: 3, name: "Workshop Room A"),
-                shiftType: Reference(id: 5, name: "Workshop Support"),
+                shiftType: shiftTypeReference(5),
                 scheduleGuid: nil, createdAt: nil, updatedAt: nil,
-                neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/4"
+                neededAngelTypes: team(shiftID: 4, own: false, needs: [1, 3]), url: "https://demo.engelsystem.local/shifts/4"
             ),
             Shift(
                 id: 5, name: "Foodcourt Helper", description: "Serve lunch and keep the lounge tidy",
                 startsAt: now.addingTimeInterval(3600 * 30), endsAt: now.addingTimeInterval(3600 * 34),
                 location: Reference(id: 4, name: "Foodcourt"),
-                shiftType: Reference(id: 6, name: "Catering"),
+                shiftType: shiftTypeReference(6),
                 scheduleGuid: nil, createdAt: nil, updatedAt: nil,
                 neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/5"
             ),
@@ -229,7 +255,7 @@ enum DemoData {
                 id: 6, name: "Late Night Info Desk", description: "Quiet hours, mostly lost-and-found questions",
                 startsAt: now.addingTimeInterval(3600 * 44), endsAt: now.addingTimeInterval(3600 * 48),
                 location: Reference(id: 1, name: "Heaven"),
-                shiftType: Reference(id: 2, name: "Info Desk"),
+                shiftType: shiftTypeReference(2),
                 scheduleGuid: nil, createdAt: nil, updatedAt: nil,
                 neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/6"
             ),
@@ -237,7 +263,7 @@ enum DemoData {
                 id: 7, name: "Teardown Crew", description: "Pack up Heaven after the closing ceremony",
                 startsAt: now.addingTimeInterval(3600 * 70), endsAt: now.addingTimeInterval(3600 * 76),
                 location: Reference(id: 1, name: "Heaven"),
-                shiftType: Reference(id: 3, name: "Teardown"),
+                shiftType: shiftTypeReference(3),
                 scheduleGuid: nil, createdAt: nil, updatedAt: nil,
                 neededAngelTypes: [], url: "https://demo.engelsystem.local/shifts/7"
             ),
