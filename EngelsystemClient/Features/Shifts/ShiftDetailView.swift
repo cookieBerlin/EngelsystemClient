@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import EngelsystemClientKit
 
 /// One shift in full (ADR 0015, backlog S-02 – S-04): type and description, the team by angel
@@ -12,6 +13,8 @@ struct ShiftDetailView: View {
     let ownUserID: Int?
 
     @Environment(\.openURL) private var openURL
+    @Environment(\.modelContext) private var modelContext
+    @State private var viewModel = ShiftDetailViewModel()
     @State private var expandedTeams: Set<String> = []
 
     private var detail: ShiftDetail { ShiftDetail(shift: shift, ownUserID: ownUserID) }
@@ -39,6 +42,20 @@ struct ShiftDetailView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .toolbar {
+            if viewModel.isLoading {
+                ToolbarItem { ProgressView() }
+            }
+        }
+        .refreshable {
+            guard let instance else { return }
+            await viewModel.refresh(shift: shift, instance: instance, in: modelContext)
+        }
+        .safeAreaInset(edge: .top) {
+            if let message = viewModel.errorMessage {
+                ErrorBanner(message: message)
+            }
+        }
     }
 
     private func headerSection(_ detail: ShiftDetail) -> some View {

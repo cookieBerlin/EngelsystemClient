@@ -68,6 +68,12 @@ list, a switcher, or one section per event. Each row shows a small badge with it
 
 Not yet. The app is read-only for shifts by design; signing up needs support in the Engelsystem server's API first.
 
+### Can I sign out of a shift in the app?
+
+No. The shift details show until when you can sign out; **Sign out in browser** opens the shift on the Engelsystem website,
+where you do it. Whether the time comes from the server or is the usual “3 hours before the start” depends on the server
+version (see the **Features** list of the instance).
+
 ### How do I get back to the main list?
 
 Use the back button at the top left of any screen. The app starts on the main list, or on the last area you used.

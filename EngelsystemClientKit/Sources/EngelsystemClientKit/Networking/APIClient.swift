@@ -120,6 +120,23 @@ public final class APIClient {
         }
     }
 
+    /// A single shift, fetched live (`GET /shifts/{id}`) — backs the shift detail page's pull to
+    /// refresh. COMPAT(#1724): servers without the endpoint answer 404, which is a "not offered"
+    /// finding for the caller, not an empty result.
+    public func fetchShift(id: Int, _ credential: EventCredential) async throws -> Shift {
+        if credential.isDemo {
+            await DemoData.simulateLatency()
+            guard let shift = DemoData.shifts.first(where: { $0.id == id }) else { throw APIError.notFound }
+            return shift
+        }
+        return try await withCredential("GET /shifts/\(id)", credential) {
+            guard let data = try await ShiftAPI.shiftsIdGet(id: id).data else {
+                throw APIError.decoding("Missing data in /shifts/{id} response")
+            }
+            return data
+        }
+    }
+
     /// A single location, fetched live (`GET /locations/{id}`) — backs
     /// `LocationDetailView`'s own pull-to-refresh (2026-09-23), separate from the
     /// cached list `fetchLocations` returns. A 404 here is a genuine error (the

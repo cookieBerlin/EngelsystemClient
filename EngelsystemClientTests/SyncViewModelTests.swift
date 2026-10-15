@@ -190,6 +190,52 @@ extension StubbedNetworkTests {
             #expect(!viewModel.refreshUnavailable)
         }
 
+        @Test @MainActor func shiftDetailRefreshUpdatesTheCachedShiftAndStaysSilentWithoutServerSupport() async throws {
+            let context = try makeContext()
+            let instance = try seed(baseURL: Instance.demoBaseURL, in: context)
+            defer { cleanUp(instance) }
+            let cached = CachedShift(
+                serverID: 1, instanceID: instance.id, title: "Stale", startsAt: Date(), endsAt: Date(),
+                locationID: 1, shiftTypeID: 1, url: "u")
+            context.insert(cached)
+            let viewModel = ShiftDetailViewModel()
+            await viewModel.refresh(shift: cached, instance: instance, in: context)
+            #expect(viewModel.errorMessage == nil)
+            #expect(!viewModel.refreshUnavailable)
+            #expect(cached.title != "Stale")
+
+            // COMPAT(#1724): an unknown id (404) keeps the cached data and shows no error.
+            let unknown = CachedShift(
+                serverID: 999, instanceID: instance.id, title: "Cached", startsAt: Date(), endsAt: Date(),
+                locationID: 1, shiftTypeID: 1, url: "u")
+            context.insert(unknown)
+            await viewModel.refresh(shift: unknown, instance: instance, in: context)
+            #expect(viewModel.errorMessage == nil)
+            #expect(viewModel.refreshUnavailable)
+            #expect(unknown.title == "Cached")
+        }
+
+        @Test @MainActor func shiftDetailRefreshReportsFailuresButIgnoresCancellation() async throws {
+            let context = try makeContext()
+            let missing = try seed(baseURL: Instance.demoBaseURL, in: context, withKey: false)
+            let cached = CachedShift(
+                serverID: 1, instanceID: missing.id, title: "S", startsAt: Date(), endsAt: Date(),
+                locationID: 1, shiftTypeID: 1, url: "u")
+            let viewModel = ShiftDetailViewModel()
+            await viewModel.refresh(shift: cached, instance: missing, in: context)
+            #expect(viewModel.errorMessage != nil)
+
+            let stub = try seed(baseURL: stubBase, in: context)
+            defer { cleanUp(stub) }
+            let task = Task { @MainActor in
+                while !Task.isCancelled { await Task.yield() }
+                await viewModel.refresh(shift: cached, instance: stub, in: context)
+            }
+            task.cancel()
+            await task.value
+            #expect(viewModel.errorMessage == nil)
+        }
+
         @Test @MainActor func locationDetailRefreshReportsFailuresButIgnoresCancellation() async throws {
             let context = try makeContext()
             let missing = try seed(baseURL: Instance.demoBaseURL, in: context, withKey: false)

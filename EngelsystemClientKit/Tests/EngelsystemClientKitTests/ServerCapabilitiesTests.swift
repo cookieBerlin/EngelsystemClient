@@ -254,5 +254,36 @@ extension StubbedNetworkTests {
             try await service.refreshOne(serverID: location.id, instance: instance, credential: StubbedNetwork.credential, in: context)
             #expect(capabilities.isAvailable(.locationDetail, for: instance.id))
         }
+
+        @Test func singleShiftRefreshRecordsSupportAndLackOfIt() async throws {
+            let capabilities = ServerCapabilities(defaults: freshDefaults())
+            let context = try makeContext()
+            let instance = Instance(name: "I", baseURL: "https://stub.test", apiKeyKeychainRef: "r")
+            let service = ShiftSyncService(apiClient: APIClient(), capabilities: capabilities)
+            let shift = DemoData.shifts[0]
+
+            StubURLProtocol.route("GET /shifts/\(shift.id)", status: 404)
+            await #expect(throws: APIError.notFound) {
+                try await service.refreshOne(serverID: shift.id, instance: instance, credential: StubbedNetwork.credential, in: context)
+            }
+            #expect(capabilities.status(.singleShiftRefresh, for: instance.id).state == .notOffered)
+
+            StubURLProtocol.route("GET /shifts/\(shift.id)", status: 403)
+            await #expect(throws: APIError.forbidden) {
+                try await service.refreshOne(serverID: shift.id, instance: instance, credential: StubbedNetwork.credential, in: context)
+            }
+            #expect(capabilities.status(.singleShiftRefresh, for: instance.id).state == .notAllowed)
+
+            try StubURLProtocol.route("GET /shifts/\(shift.id)", data: shift)
+            let cached = try await service.refreshOne(
+                serverID: shift.id, instance: instance, credential: StubbedNetwork.credential, in: context)
+            #expect(cached.serverID == shift.id)
+            #expect(capabilities.status(.singleShiftRefresh, for: instance.id).state == .available)
+
+            StubURLProtocol.route("GET /shifts/\(shift.id)", body: Data("{}".utf8))
+            await #expect(throws: APIError.decoding("Missing data in /shifts/{id} response")) {
+                try await APIClient().fetchShift(id: shift.id, StubbedNetwork.credential)
+            }
+        }
     }
 }

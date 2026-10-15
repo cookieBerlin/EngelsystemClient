@@ -34,6 +34,22 @@ public struct ShiftSyncService {
         return try upsert(shifts, instanceID: instance.id, in: modelContext)
     }
 
+    /// Refreshes one shift via `GET /shifts/{id}` and updates its cached row in place.
+    /// COMPAT(#1724): 404/403 are recorded as "not offered"/"not allowed" and rethrown for the caller
+    /// to keep the cached shift without an error.
+    @discardableResult
+    public func refreshOne(serverID: Int, instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> CachedShift {
+        let shift: Shift
+        do {
+            shift = try await apiClient.fetchShift(id: serverID, credential)
+        } catch let error as APIError where error == .notFound || error == .forbidden {
+            capabilities.record(.singleShiftRefresh, afterFailure: error, for: instance.id)
+            throw error
+        }
+        capabilities.record(.singleShiftRefresh, state: .available, evidence: .probe, for: instance.id)
+        return try upsert([shift], instanceID: instance.id, in: modelContext).shifts[0]
+    }
+
     private func upsert(_ shifts: [Shift], instanceID: UUID, in modelContext: ModelContext) throws -> ShiftSyncResult {
         var result: [CachedShift] = []
         var didChange = false

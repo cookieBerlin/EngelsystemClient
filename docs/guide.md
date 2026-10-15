@@ -54,6 +54,13 @@ syncing. The gear button opens **Settings**.
 Your shifts, grouped by day ("Today", "Tomorrow", …). Each shift shows its time and location; tap the location to read its
 description. Pull down to refresh. A small badge shows which instance a shift belongs to when you use several.
 
+Tap a shift to open its **details**: the shift type with its description, the shift's own description, the team by angel
+type ("2 of 3" people, your own entry highlighted, entries marked as “did not show up”), tags, a night-shift hint, a link to
+the talk page and — on your own shifts — until when you can sign out. **Sign out in browser** opens the shift on the
+Engelsystem website; the app itself never signs you out. What is shown depends on the server: a page only shows what the
+server tells (see the table below and the **Features** list of the instance). Pull down on the page to refresh just this
+shift.
+
 ### News
 
 ![News](assets/guide/news.png){: width="240"}
@@ -135,9 +142,9 @@ simply hides what is missing:
 | [#1711](https://github.com/engelsystem/engelsystem/pull/1711) — single location and location details | open | **Locations** may be missing entirely (when only the API group may read them) and a single location cannot be refreshed. |
 | [#1720](https://github.com/engelsystem/engelsystem/pull/1720) — private messages API | open | No **Messages** area at all: it only appears on servers that offer the messages API. With it, reading works with the `api` or the `user_messages` privilege, sending needs `user_messages`. |
 | [#1721](https://github.com/engelsystem/engelsystem/pull/1721) — shift types readable with `user_shifts` | open, planned feature | Shift type descriptions (planned for the shift detail page) are only available to accounts with the `api` privilege. |
-| [#1722](https://github.com/engelsystem/engelsystem/pull/1722) — shift lists and shift details | open, planned feature | Planned shift detail page: no shift type description, tags, talk link, night shift hint or “sign out until” time from the server. |
-| [#1723](https://github.com/engelsystem/engelsystem/pull/1723) — shift entry details | open, planned feature | Planned shift detail page: no “did not show up” flag and no information whether you can still sign out. |
-| [#1724](https://github.com/engelsystem/engelsystem/pull/1724) — `GET /shifts/{id}` | open, planned feature | A single shift cannot be refreshed on its own. |
+| [#1722](https://github.com/engelsystem/engelsystem/pull/1722) — shift lists and shift details | open | The shift detail page has no shift type description, tags, talk link, night shift hint or “sign out until” time from the server (it then says “usually until 3 hours before the start”). |
+| [#1723](https://github.com/engelsystem/engelsystem/pull/1723) — shift entry details | open | The shift detail page has no “did not show up” flag and cannot tell whether you can still sign out (the button follows the usual 3 hours). |
+| [#1724](https://github.com/engelsystem/engelsystem/pull/1724) — `GET /shifts/{id}` | open | A single shift cannot be refreshed on its own; the detail page shows the cached shift. |
 | [#1725](https://github.com/engelsystem/engelsystem/pull/1725) — angel types readable like on the website | open, planned feature | No additional angel type details. |
 | [#1726](https://github.com/engelsystem/engelsystem/pull/1726) — users and profile details | open, planned feature | No goodie score or vouchers in your profile. |
 {: .table}

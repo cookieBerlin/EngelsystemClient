@@ -113,6 +113,13 @@ public struct ServerFixture: Sendable {
         if locationDetail, mayUse("locations.view") {
             try StubURLProtocol.route("GET \(Self.prefix)/locations/1", data: DemoData.location(id: 1))
         }
+        if singleShift {
+            let shift = try shiftsJSON()["data"] as? [[String: Any]]
+            if let first = shift?.first {
+                StubURLProtocol.route(
+                    "GET \(Self.prefix)/shifts/1", body: try JSONSerialization.data(withJSONObject: ["data": first]))
+            }
+        }
         if messages {
             try route("/messages", privilege: "user_messages", json: try wrapped([Conversation]()))
         } else {

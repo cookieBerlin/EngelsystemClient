@@ -406,6 +406,18 @@ exists without reading the whole diff history.
   401-triggers-navigation behavior (see "Data/code flow" in
   [`architecture.md`](architecture.md)) keeps
   working unchanged; only the visible row disappeared.
+- **Shift details** (`Features/Shifts/ShiftDetailView`, 2026-10-16, ADR 0015): reached from a shift row
+  (the location keeps its own link; both navigate by state because two `NavigationLink`s in one `List` row
+  fire together). Everything it shows comes from `ShiftDetail` (Kit, tested): shift type name and description,
+  the shift's own description, tags, night shift, talk link (http/https only), "sign-up opens" while in the
+  future, the team grouped by angel type with "n of m" (`TeamGroup.occupancyText`; overbooked types show
+  "n (needs m)"), the own entry highlighted (found via the cached profile's user id) and "did not show up"
+  from `freeloaded` (COMPAT(#1723): `freeloaded_by != null`), teams above ten collapse to the own entry.
+  The sign-out hint uses `sign_out_until`/`can_sign_out` (COMPAT(#1722/#1723): otherwise the usual
+  3 hours before the start, marked as assumed); **Sign out in browser** opens the shift's `url` — the app
+  never signs out. Pull to refresh uses `GET /shifts/{id}` (COMPAT(#1724): 404/403 ⇒ cached shift, no
+  error). The detail fields are display-only cache fields on `CachedShift` (the team as one encoded field)
+  and never count as a change for the Watch. The Watch is unchanged.
 - **Shifts** (`Features/Shifts`): lists the signed-in user's shifts
   aggregated across every active instance (see "Multi-instance concept"
   above for `MultiInstanceDisplayMode`). `ShiftsViewModel.refresh(instances:

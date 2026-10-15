@@ -38,7 +38,12 @@ profile, or any other data you access through the app.
 - **Shifts, news, your profile, and locations**: fetched from the
   Engelsystem server you configure and cached locally on your device
   (so the app works offline and loads quickly) — never sent anywhere
-  except back to that same server on your next sync.
+  except back to that same server on your next sync. The cached
+  shifts include the team of a shift (the names of the other angels
+  and whether they showed up), as the server shows it to you; they are
+  removed together with the instance. The “Sign out in browser” button
+  only opens the shift's page in your default browser — the app does
+  not sign you out itself.
 - **Private messages** (on servers that support this feature): fetched
   live from the Engelsystem server each time you open a conversation —
   not cached or stored by the app at all.

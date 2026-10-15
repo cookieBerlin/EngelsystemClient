@@ -193,6 +193,14 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == DemoData.locations.count) // still no duplicate
 }
 
+@Test func apiClientFetchShiftReturnsDemoDataAndThrowsNotFoundForUnknownID() async throws {
+    let client = APIClient.shared
+    #expect(try await client.fetchShift(id: 1, demoCredential).id == 1)
+    await #expect(throws: APIError.notFound) {
+        _ = try await client.fetchShift(id: 999, demoCredential)
+    }
+}
+
 @Test func apiClientFetchLocationReturnsDemoDataAndThrowsNotFoundForUnknownID() async throws {
     let client = APIClient.shared
     let location = try await client.fetchLocation(id: 1, demoCredential)

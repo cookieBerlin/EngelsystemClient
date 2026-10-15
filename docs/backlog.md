@@ -15,18 +15,10 @@ rights or functions are **never errors** (silent hiding plus a feature list per 
 fallbacks are deleted again (R tasks). Order of work: K-10 – K-13 (framework, done), then S-01 – S-06 (features with fallbacks),
 the W tasks alongside, the R tasks when the owner reports a merge.
 
-### Shift detail page (iOS; the Watch stays unchanged)
-
-- [ ] **S-05** Pull to refresh on the detail page via `GET /shifts/{id}` (`COMPAT(#1724)`: 404 ⇒ "not offered", the page
-      shows the cached shift without an error).
-- [ ] **S-06** Docs: `docs/features.md`, the guide ("Shift details", "Instance features"), the privacy page (names of team
-      members are cached on the device, the sign-out link only opens the browser), `CHANGELOG.md`, and the FAQ.
-
 ### Website (GitHub Pages; each step its own commit)
 
 - [ ] **W-03** With K-11: "Instance features" in the guide, FAQ entries ("Why is an area missing?", "What may my account
       do?"), privacy and support pages.
-- [ ] **W-04** With S-06: shift details in the guide, the start page and the privacy page.
 - [ ] **W-05** Screenshots: new scenes (main screen with groups, shift detail, settings hub, features list) in
       `ScreenshotTests`/`Scripts/screenshots.sh`/`Scripts/publish-guide-images.sh`; refresh `docs/assets/guide/`. The main
       screen and settings first (after W-02), shift detail after S-04, features list after K-11.

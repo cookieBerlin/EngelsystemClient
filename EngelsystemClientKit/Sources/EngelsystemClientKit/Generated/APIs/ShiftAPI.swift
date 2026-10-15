@@ -101,6 +101,50 @@ open class ShiftAPI {
     }
 
     /**
+     Get a single shift
+     
+     - parameter id: (path) Shift identifier 
+     - returns: ShiftsIdGet200Response
+     */
+    @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    open class func shiftsIdGet(id: Int) async throws -> ShiftsIdGet200Response {
+        return try await shiftsIdGetWithRequestBuilder(id: id).execute().body
+    }
+
+    /**
+     Get a single shift
+     - GET /shifts/{id}
+     - API Key:
+       - type: apiKey x-api-key (HEADER)
+       - name: api-key-header
+     - Bearer Token:
+       - type: http
+       - name: bearer-auth
+     - parameter id: (path) Shift identifier 
+     - returns: RequestBuilder<ShiftsIdGet200Response> 
+     */
+    open class func shiftsIdGetWithRequestBuilder(id: Int) -> RequestBuilder<ShiftsIdGet200Response> {
+        var localVariablePath = "/shifts/{id}"
+        let idPreEscape = "\(APIHelper.mapValueToPathItem(id))"
+        let idPostEscape = idPreEscape.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+        localVariablePath = localVariablePath.replacingOccurrences(of: "{id}", with: idPostEscape, options: .literal, range: nil)
+        let localVariableURLString = EngelsystemAPIAPI.basePath + localVariablePath
+        let localVariableParameters: [String: Any]? = nil
+
+        let localVariableUrlComponents = URLComponents(string: localVariableURLString)
+
+        let localVariableNillableHeaders: [String: Any?] = [
+            :
+        ]
+
+        let localVariableHeaderParameters = APIHelper.rejectNilHeaders(localVariableNillableHeaders)
+
+        let localVariableRequestBuilder: RequestBuilder<ShiftsIdGet200Response>.Type = EngelsystemAPIAPI.requestBuilderFactory.getBuilder()
+
+        return localVariableRequestBuilder.init(method: "GET", URLString: (localVariableUrlComponents?.string ?? localVariableURLString), parameters: localVariableParameters, headers: localVariableHeaderParameters, requiresAuthentication: true)
+    }
+
+    /**
      Get all shifts of the requested shift type
      
      - parameter id: (path) Shift type identifier 

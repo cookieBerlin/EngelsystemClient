@@ -173,7 +173,7 @@ public extension CachedShift {
     }
 
     /// The cached team: needed angel types with their entries; empty when unknown.
-    public var team: [NeededAngelType] {
+    var team: [NeededAngelType] {
         guard let teamData else { return [] }
         return (try? CodableHelper.jsonDecoder.decode([NeededAngelType].self, from: teamData)) ?? []
     }

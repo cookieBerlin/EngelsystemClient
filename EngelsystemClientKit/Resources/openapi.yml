@@ -1138,6 +1138,37 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /shifts/{id}:
+    # COMPAT(#1724): local divergence — PR #1724 adds this endpoint; servers without it answer 404.
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Shift identifier
+        example: 42
+        schema:
+          type: integer
+    get:
+      tags:
+        - shift
+      summary: Get a single shift
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Shift'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
   /users/{id}/shifts:
     parameters:
       - name: id
