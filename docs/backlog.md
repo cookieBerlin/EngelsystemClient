@@ -58,10 +58,6 @@ the W tasks alongside, the R tasks when the owner reports a merge.
 
 ### Website (GitHub Pages; each step its own commit)
 
-- [ ] **W-01** Rewrite the "Server compatibility" table in `docs/guide.md`: one row per PR (#1709 – #1726, status, what is
-      missing without it), a short "which privileges do I need?" paragraph (`news`, `locations.view`, `user_shifts`,
-      `angeltypes.view`, `user_messages` or `api`; the default group "Angel" has them), reword the FAQ "Why do I not see
-      …?" and the "403" entry to the new behaviour. Rows for #1721 – #1726 are marked "planned feature".
 - [ ] **W-02** Guide and start page for what is already built: main screen groups and order, Settings pages, phone numbers,
       embedded map, Privacy page; `docs/index.html` feature list.
 - [ ] **W-03** With K-11: "Instance features" in the guide, FAQ entries ("Why is an area missing?", "What may my account

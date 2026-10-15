@@ -122,17 +122,31 @@ To add the **complication**: on the Watch, touch and hold the watch face, tap **
 
 ## Server compatibility
 
-The app uses Engelsystem's REST API **v0-beta**. A few things it can show need changes in Engelsystem that are still **open
-pull requests** at [engelsystem/engelsystem](https://github.com/engelsystem/engelsystem/pulls) (status 2026-10-13). Until they
-are merged **and** your event runs a server version that includes them, the app keeps working and simply hides what is missing:
+The app uses Engelsystem's REST API **v0-beta** and works with the Engelsystem of today. Several improvements it can show are
+still **open pull requests** at [engelsystem/engelsystem](https://github.com/engelsystem/engelsystem/pulls) (status
+2026-10-15). Until they are merged **and** your event runs a server version that includes them, the app keeps working and
+simply hides what is missing:
 
 | Pull request | Status | Without it |
 |---|---|---|
-| [#1709](https://github.com/engelsystem/engelsystem/pull/1709) — own data and news without the API privilege | open | Every request needs an account in a group with the server's `api` privilege (for example “API” or “Bureaucrat”). Otherwise **Test Connection** warns that the account is not allowed to use the API (403) and no data loads. |
+| [#1709](https://github.com/engelsystem/engelsystem/pull/1709) — access concept: read with the `api` privilege or the matching web privilege | open | Every request needs an account in a group with the server's `api` privilege (for example “API” or “Bureaucrat”). Otherwise **Test Connection** warns that the account is not allowed to use the API (403) and no data loads. |
 | [#1710](https://github.com/engelsystem/engelsystem/pull/1710) — news comments | open | No comments and no comment counts in **News**. |
-| [#1711](https://github.com/engelsystem/engelsystem/pull/1711) — single location, locations without the API privilege | open | **Locations** may be missing entirely (when only the API group may read them) and a single location cannot be refreshed. |
-| [#1720](https://github.com/engelsystem/engelsystem/pull/1720) — private messages API | open | No **Messages** area at all: it only appears on servers that offer the messages API. With it, your account needs the `user_messages` privilege (the one the web interface uses), not the `api` privilege. |
+| [#1711](https://github.com/engelsystem/engelsystem/pull/1711) — single location and location details | open | **Locations** may be missing entirely (when only the API group may read them) and a single location cannot be refreshed. |
+| [#1720](https://github.com/engelsystem/engelsystem/pull/1720) — private messages API | open | No **Messages** area at all: it only appears on servers that offer the messages API. With it, reading works with the `api` or the `user_messages` privilege, sending needs `user_messages`. |
+| [#1721](https://github.com/engelsystem/engelsystem/pull/1721) — shift types readable with `user_shifts` | open, planned feature | Shift type descriptions (planned for the shift detail page) are only available to accounts with the `api` privilege. |
+| [#1722](https://github.com/engelsystem/engelsystem/pull/1722) — shift lists and shift details | open, planned feature | Planned shift detail page: no shift type description, tags, talk link, night shift hint or “sign out until” time from the server. |
+| [#1723](https://github.com/engelsystem/engelsystem/pull/1723) — shift entry details | open, planned feature | Planned shift detail page: no “did not show up” flag and no information whether you can still sign out. |
+| [#1724](https://github.com/engelsystem/engelsystem/pull/1724) — `GET /shifts/{id}` | open, planned feature | A single shift cannot be refreshed on its own. |
+| [#1725](https://github.com/engelsystem/engelsystem/pull/1725) — angel types readable like on the website | open, planned feature | No additional angel type details. |
+| [#1726](https://github.com/engelsystem/engelsystem/pull/1726) — users and profile details | open, planned feature | No goodie score or vouchers in your profile. |
 {: .table}
+
+“Planned feature” means the app does not use these changes yet; the row says what they will make possible.
+
+**Which privileges does my account need?** With the new access concept an account without the `api` privilege can read what
+the website shows it: `news` for News, `locations.view` for Locations, `user_shifts` for shift types and shifts,
+`angeltypes.view` for angel types and `user_messages` for Messages. The default group “Angel” has them. Until the
+change is on your server, the account needs the `api` privilege (a group such as “API” or “Bureaucrat”).
 
 Already merged and nothing to worry about: [#1708](https://github.com/engelsystem/engelsystem/pull/1708) (work logs for “my
 own account”) and [#1712](https://github.com/engelsystem/engelsystem/pull/1712) (API tests).

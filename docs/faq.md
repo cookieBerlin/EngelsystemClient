@@ -39,21 +39,24 @@ unreachable server, or an invalid address.
 
 ### Why do I not see comments, locations or messages?
 
-The app only shows what your server offers. News comments, the Locations area and Messages depend on Engelsystem features
-that are partly still open pull requests; see [Server compatibility](guide.md#server-compatibility) for the list and status.
-Nothing is wrong with your account or the app — the area appears automatically after a sync once your server supports it.
+The app only shows what your server offers and what your account may use. News comments, the Locations area and Messages
+depend on Engelsystem changes that are partly still open pull requests; see
+[Server compatibility](guide.md#server-compatibility) for the list and status, and for the privileges an account needs.
+Nothing is wrong with the app — the area appears automatically after a sync once your server and your account allow it.
 
 ### Test Connection warns that the account is “not allowed to use the API (403)”.
 
 The server answered, but denied this account access to its data. Ask the server administrators to add your account to a group
-that has the “api” privilege, for example “API” or “Bureaucrat” (this requirement disappears once the Engelsystem change
-[#1709](https://github.com/engelsystem/engelsystem/pull/1709) is in your server). You can still save the instance and test again later.
+that has the `api` privilege, for example “API” or “Bureaucrat”. On a server with the newer access concept
+([#1709](https://github.com/engelsystem/engelsystem/pull/1709)) the web privileges of your account are enough. You can still
+save the instance and test again later.
 
 ### Why do I not see "Messages"?
 
 Messages need a server that offers the private-message interface, which is the still open Engelsystem change
-[#1720](https://github.com/engelsystem/engelsystem/pull/1720), and an account with the `user_messages` privilege. The app checks this during each sync and shows the area only
-if at least one active server supports it. Demo Mode always has it.
+[#1720](https://github.com/engelsystem/engelsystem/pull/1720), and an account with the `api` or the `user_messages`
+privilege. The app checks this during each sync and shows the area only if at least one active server supports it. Demo
+Mode always has it.
 
 ### What happens when I activate several events?
 
