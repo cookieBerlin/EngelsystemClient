@@ -71,7 +71,7 @@ final class EngelsystemClientUITests: XCTestCase {
         // Demo mode lands on the main page (the sidebar) since 2026-10-12 — the app no
         // longer opens Shifts by default — so open Shifts from there; it syncs the sample shifts.
         openShifts(app)
-        XCTAssertTrue(app.staticTexts["Info Desk Shift"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Info Desk Shift")).firstMatch.waitForExistence(timeout: 5))
 
         // 2026-09-23, user-requested: a shift's location name links to that location's
         // detail screen (Locations feature). Wrapped in a `NavigationLink`/`Label`, so
@@ -82,6 +82,19 @@ final class EngelsystemClientUITests: XCTestCase {
         heavenLocationLink.tap()
         XCTAssertTrue(app.navigationBars["Heaven"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Main hall and central meeting point"].waitForExistence(timeout: 5))
+        goBack(app)
+        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
+
+        // Shift detail page (ADR 0015): the row opens it; it shows the shift type, the team by angel
+        // type with the occupancy, and — for the own shift — the sign-out hint.
+        let firstShiftRow = app.buttons.matching(identifier: "shiftRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "Registration Desk")).firstMatch
+        XCTAssertTrue(firstShiftRow.waitForExistence(timeout: 5))
+        firstShiftRow.tap()
+        XCTAssertTrue(app.navigationBars["Registration Desk"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Info Desk Angel"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Demo Angel"].exists || containingText("demo", in: app).exists)
+        XCTAssertTrue(app.buttons["Sign out in browser"].waitForExistence(timeout: 5))
         goBack(app)
         XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
 
@@ -479,7 +492,7 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
         app.swipeDown()
         XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Info Desk Shift"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Info Desk Shift")).firstMatch.waitForExistence(timeout: 5))
     }
 
     @MainActor

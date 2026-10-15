@@ -7,6 +7,10 @@ versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Shift details: tapping a shift opens a page with the shift type and its description, the team by angel type ("2 of 3",
+  your own entry highlighted, "did not show up" marks), tags, night-shift hint, talk link and — on your own shifts —
+  until when you can sign out, with a button that opens the shift in the browser (the app never signs out by itself).
+  Servers without the newer fields show what they have.
 - Phone numbers (DECT and mobile, on a location and in your profile) can be tapped to call and copied. Numbers of up to five
   digits count as internal; Settings › Phone Numbers chooses the app for internal and for other numbers: the system default
   (`sip:` / `tel:`), Acrobits Softphone, Groundwire, Cloud Softphone (with an action such as preparing the number or a video

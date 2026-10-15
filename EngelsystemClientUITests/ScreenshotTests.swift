@@ -40,7 +40,7 @@ final class ScreenshotTests: XCTestCase {
 
         // 01 – Shifts
         openSection("Shifts", in: app)
-        XCTAssertTrue(app.staticTexts["Info Desk Shift"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Info Desk Shift")).firstMatch.waitForExistence(timeout: 10))
         capture("01-shifts")
 
         // 02 – News

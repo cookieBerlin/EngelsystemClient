@@ -18,14 +18,19 @@ public struct ShiftSyncResult {
 @MainActor
 public struct ShiftSyncService {
     private let apiClient: APIClient
+    private let capabilities: ServerCapabilities
 
-    public init(apiClient: APIClient = .shared) {
+    public init(apiClient: APIClient = .shared, capabilities: ServerCapabilities? = nil) {
         self.apiClient = apiClient
+        self.capabilities = capabilities ?? .shared
     }
 
     @discardableResult
     public func sync(instance: Instance, credential: EventCredential, in modelContext: ModelContext) async throws -> ShiftSyncResult {
         let shifts = try await apiClient.fetchShifts(credential)
+        for (feature, supported) in ServerCapabilities.shiftFeaturesSupported(by: shifts) {
+            capabilities.record(feature, state: supported ? .available : .notOffered, evidence: .field, for: instance.id)
+        }
         return try upsert(shifts, instanceID: instance.id, in: modelContext)
     }
 

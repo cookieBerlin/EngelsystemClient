@@ -17,16 +17,6 @@ the W tasks alongside, the R tasks when the owner reports a merge.
 
 ### Shift detail page (iOS; the Watch stays unchanged)
 
-- [ ] **S-02** `ShiftDetailView` (iOS) reached from a shift row (the location link stays in the row): header (title, time,
-      duration, location with link), shift type name + description, the shift's own description, optional tags / night
-      shift hint / talk link button / "sign-up from". Display texts as tested static functions.
-- [ ] **S-03** Team section grouped by angel type: occupancy "n of m" (overbooked or additional-only types show the count),
-      names, the own entry highlighted, "did not show up" from `freeloaded` (fallback `freeloaded_by != null`,
-      `COMPAT(#1723)`), "by <name>" only when `freeloaded_by` is present. Long teams collapse above about ten names.
-- [ ] **S-04** "Sign out until <time>" from `sign_out_until`; the button "Sign out in browser" (opens the shift's web `url` in
-      the default browser; hidden without a known URL) is shown on the own entry when `can_sign_out` is true. Fallback
-      without the fields (`COMPAT(#1722)`/`COMPAT(#1723)`): "usually until 3 hours before the start" and the button while
-      that time is in the future. The app never signs out by itself (no Phase 2 write feature).
 - [ ] **S-05** Pull to refresh on the detail page via `GET /shifts/{id}` (`COMPAT(#1724)`: 404 ⇒ "not offered", the page
       shows the cached shift without an error).
 - [ ] **S-06** Docs: `docs/features.md`, the guide ("Shift details", "Instance features"), the privacy page (names of team

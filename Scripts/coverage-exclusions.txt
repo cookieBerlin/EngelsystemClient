@@ -25,6 +25,7 @@
 */EngelsystemClient/Features/News/NewsDetailView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/Profile/ProfileView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/Shifts/ShiftsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient/Features/Shifts/ShiftDetailView.swift   # SwiftUI layout (ADR 0010); every text and decision lives in the tested Kit type ShiftDetail
 */EngelsystemClient/Features/Messages/MessagesView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/Messages/ConversationDetailView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/Messages/NewConversationView.swift   # SwiftUI layout (ADR 0010)

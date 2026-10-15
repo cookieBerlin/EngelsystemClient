@@ -23,6 +23,9 @@ struct ShiftsView: View {
     // Unfiltered, same fetch-everything-and-filter-in-Swift pattern as `allShifts` —
     // backs the location link below (2026-09-23, user-requested).
     @Query private var allLocations: [CachedLocation]
+    // Own account's cached profile, for finding the own entry in a shift's team (only the own
+    // profile has an email address).
+    @Query private var allUsers: [CachedUser]
 
     /// A single active instance renders the same regardless of the display-mode
     /// setting, so it's always treated as `.merged` (no pointless picker/sections).
@@ -50,6 +53,10 @@ struct ShiftsView: View {
     /// back to a plain, non-linked label in that case rather than linking to nothing.
     private func location(for shift: CachedShift) -> CachedLocation? {
         InstanceScope.location(for: shift, in: allLocations)
+    }
+
+    private func ownUserID(for shift: CachedShift) -> Int? {
+        allUsers.first { $0.instanceID == shift.instanceID && $0.email != nil }?.serverID
     }
 
     var body: some View {
@@ -97,7 +104,7 @@ struct ShiftsView: View {
                                             // already filtered to it) — not a call to the
                                             // `instance(for:)` helper below, which exists
                                             // for the .merged/.switcher case instead.
-                                            ShiftRow(shift: shift, location: location(for: shift), instance: instance)
+                                            ShiftRow(shift: shift, location: location(for: shift), instance: instance, ownUserID: ownUserID(for: shift))
                                         }
                                     }
                                 }
@@ -149,6 +156,7 @@ struct ShiftsView: View {
                             shift: shift,
                             location: location(for: shift),
                             instance: instance(for: shift),
+                            ownUserID: ownUserID(for: shift),
                             instanceName: labeled ? instanceName(for: shift) : nil
                         )
                     }
@@ -178,29 +186,48 @@ private struct ShiftRow: View {
     /// plain, non-linked label in that case rather than linking to nothing.
     var location: CachedLocation?
     var instance: Instance?
+    var ownUserID: Int?
     var instanceName: String?
+
+    @State private var showsDetail = false
+    @State private var showsLocation = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(shift.title)
-                    .font(.headline)
-                if let instanceName {
-                    Spacer()
-                    InstanceBadge(name: instanceName)
+            // The detail page and the location are separate buttons: two `NavigationLink`s in one
+            // `List` row would fire together (same quirk as the news row), so both navigate by state.
+            Button {
+                showsDetail = true
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(shift.title)
+                            .font(.headline)
+                        if let instanceName {
+                            Spacer()
+                            InstanceBadge(name: instanceName)
+                        }
+                    }
+                    Text(shift.formattedTimeRange())
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
+                .contentShape(Rectangle())
             }
-            Text(shift.formattedTimeRange())
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("shiftRow")
             // COMPAT(#1711): without readable locations the name stays plain text.
             if let location, ServerCapabilities.shared.isAvailable(.locationsList, for: shift.instanceID) {
-                NavigationLink {
-                    LocationDetailView(location: location, instance: instance)
+                Button {
+                    showsLocation = true
                 } label: {
                     Label(location.name, systemImage: "mappin.and.ellipse")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .navigationDestination(isPresented: $showsLocation) {
+                    LocationDetailView(location: location, instance: instance)
                 }
             } else if let locationName = shift.locationName {
                 Label(locationName, systemImage: "mappin.and.ellipse")
@@ -209,6 +236,9 @@ private struct ShiftRow: View {
             }
         }
         .padding(.vertical, 4)
+        .navigationDestination(isPresented: $showsDetail) {
+            ShiftDetailView(shift: shift, location: location, instance: instance, ownUserID: ownUserID)
+        }
     }
 }
 

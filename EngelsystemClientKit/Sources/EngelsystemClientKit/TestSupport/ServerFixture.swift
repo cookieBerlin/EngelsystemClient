@@ -136,20 +136,37 @@ public struct ServerFixture: Sendable {
 
     func shiftsJSON() throws -> [String: Any] {
         mutate(try wrapped(DemoData.shifts)) { shift in
+            var type = shift["shift_type"] as? [String: Any] ?? [:]
             if shiftDetails {
-                var type = shift["shift_type"] as? [String: Any] ?? [:]
                 type["description"] = "What this shift is about."
-                shift["shift_type"] = type
                 shift["sign_out_until"] = "2026-12-27T08:00:00+01:00"
                 shift["signup_available_from"] = NSNull()
                 shift["tags"] = [String]()
                 shift["talk_url"] = NSNull()
                 shift["night_shift"] = false
+            } else {
+                for key in ["sign_out_until", "signup_available_from", "tags", "talk_url", "night_shift"] {
+                    shift[key] = nil
+                }
+                type["description"] = nil
             }
-            if entryDetails {
-                shift["can_sign_out"] = true
-                shift["freeloaded"] = false
+            shift["shift_type"] = type
+
+            // The demo team carries every entry field; strip what this server does not have.
+            var needed = shift["needed_angel_types"] as? [[String: Any]] ?? []
+            for typeIndex in needed.indices {
+                var entries = needed[typeIndex]["entries"] as? [[String: Any]] ?? []
+                for index in entries.indices {
+                    if !entryDetails {
+                        for key in ["freeloaded", "can_sign_out", "user_comment", "freeloaded_comment"] {
+                            entries[index][key] = nil
+                        }
+                    }
+                    if privileges?.contains("api") != true, privileges != nil { entries[index]["freeloaded_by"] = nil }
+                }
+                needed[typeIndex]["entries"] = entries
             }
+            shift["needed_angel_types"] = needed
         }
     }
 

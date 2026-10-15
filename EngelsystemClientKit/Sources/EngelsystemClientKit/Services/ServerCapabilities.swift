@@ -32,6 +32,7 @@ public enum ServerFeature: String, CaseIterable, Sendable {
     /// list grows with the shift detail work (backlog S-01 – S-05).
     public static let listed: [ServerFeature] = [
         .shifts, .news, .newsComments, .locationsList, .locationDetail, .messages, .profileWorklogs, .profileAngelTypes,
+        .shiftTypeDescription, .shiftTeam, .signOutDeadline,
     ]
 
     public var title: String {
@@ -232,5 +233,21 @@ public final class ServerCapabilities {
     public static func newsCommentsSupported(by items: [News]) -> Bool? {
         guard !items.isEmpty else { return nil }
         return items.contains { $0.commentsCount != nil }
+    }
+
+    /// `COMPAT(#1722)`/`COMPAT(#1723)`: which shift detail fields the server sends, read from the
+    /// synced shifts. An empty list says nothing (no entries). The sign-out deadline and the team
+    /// flags are judged on the first shift that has entries/the field's carrier.
+    public static func shiftFeaturesSupported(by shifts: [Shift]) -> [ServerFeature: Bool] {
+        guard !shifts.isEmpty else { return [:] }
+        var result: [ServerFeature: Bool] = [
+            .shiftTypeDescription: shifts.contains { $0.shiftType.description != nil },
+            .signOutDeadline: shifts.contains { $0.signOutUntil != nil } || shifts.contains { shift in
+                shift.neededAngelTypes.contains { $0.entries.contains { $0.canSignOut != nil } }
+            },
+        ]
+        let entries = shifts.flatMap { $0.neededAngelTypes.flatMap(\.entries) }
+        if !entries.isEmpty { result[.shiftTeam] = entries.contains { $0.freeloaded != nil } }
+        return result
     }
 }

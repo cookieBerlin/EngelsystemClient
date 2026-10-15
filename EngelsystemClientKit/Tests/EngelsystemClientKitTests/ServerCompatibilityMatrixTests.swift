@@ -35,6 +35,7 @@ extension StubbedNetworkTests {
             let capabilities = ServerCapabilities(defaults: UserDefaults(suiteName: "Matrix-\(UUID().uuidString)")!)
             let center = RecordingNotificationCenter()
             let coordinator = AppSyncCoordinator(
+                shiftSyncService: ShiftSyncService(capabilities: capabilities),
                 newsSyncService: NewsSyncService(capabilities: capabilities),
                 profileSyncService: ProfileSyncService(capabilities: capabilities),
                 locationSyncService: LocationSyncService(capabilities: capabilities),
@@ -64,7 +65,8 @@ extension StubbedNetworkTests {
             try await expect(.upstreamToday, [
                 .shifts: .available, .news: .available, .newsComments: .notOffered, .locationsList: .available,
                 .messages: .notOffered, .profileWorklogs: .available, .profileAngelTypes: .available,
-                .locationDetail: .unknown, .shiftTypeDescription: .unknown,
+                .locationDetail: .unknown, .shiftTypeDescription: .notOffered, .shiftTeam: .notOffered,
+                .signOutDeadline: .notOffered,
             ])
         }
 
@@ -92,8 +94,17 @@ extension StubbedNetworkTests {
             ])
         }
 
-        @Test func theShiftChainAddsNothingTheSyncHasToHide() async throws {
-            try await expect(.shiftChain, [.shifts: .available, .news: .available, .messages: .notOffered])
+        @Test func theShiftChainOffersTheDetailFieldsStepByStep() async throws {
+            try await expect(.shiftChain, [
+                .shifts: .available, .news: .available, .messages: .notOffered,
+                .shiftTypeDescription: .available, .shiftTeam: .available, .signOutDeadline: .available,
+            ])
+            try await expect(.with(pr: 1722), [
+                .shiftTypeDescription: .available, .signOutDeadline: .available, .shiftTeam: .notOffered,
+            ])
+            try await expect(.with(pr: 1723), [
+                .shiftTypeDescription: .notOffered, .shiftTeam: .available, .signOutDeadline: .available,
+            ])
         }
 
         @Test func aServerWithoutAPrivilegesFieldIsNeverCalledForbiddenByGuessing() async throws {
