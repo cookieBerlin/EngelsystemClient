@@ -15,8 +15,6 @@ rights or functions are **never errors** (silent hiding plus a feature list per 
 fallbacks are deleted again (R tasks). Order of work: K-10 – K-13 (framework, done), then S-01 – S-06 (features with fallbacks),
 the W tasks alongside, the R tasks when the owner reports a merge.
 
-### Framework
-
 ### Shift detail page (iOS; the Watch stays unchanged)
 
 - [ ] **S-01** Model: decode the new fields as optional (`openapi.yml` copy patched with `COMPAT(#<PR>)` until merged, then
