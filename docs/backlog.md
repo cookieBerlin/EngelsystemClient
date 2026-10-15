@@ -58,8 +58,6 @@ the W tasks alongside, the R tasks when the owner reports a merge.
 
 ### Website (GitHub Pages; each step its own commit)
 
-- [ ] **W-02** Guide and start page for what is already built: main screen groups and order, Settings pages, phone numbers,
-      embedded map, Privacy page; `docs/index.html` feature list.
 - [ ] **W-03** With K-11: "Instance features" in the guide, FAQ entries ("Why is an area missing?", "What may my account
       do?"), privacy and support pages.
 - [ ] **W-04** With S-06: shift details in the guide, the start page and the privacy page.

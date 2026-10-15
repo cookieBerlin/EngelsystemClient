@@ -65,8 +65,9 @@ read the discussion. The filter button at the top shows only **Meetings** or onl
 
 ![Profile](assets/guide/profile.png){: width="240"}
 
-Your name, your **angel types** (with a note if you are a supporter or still unconfirmed) and your **work logs** with the
-total hours.
+Your name with your **DECT and mobile numbers** (tap to call, copy with the copy button), your **angel types** (with a note
+if you are a supporter or still unconfirmed) and your **work logs** with the total hours. The work logs are the entries
+added by hand; hours from your shifts are not part of that list.
 
 ### Locations
 
