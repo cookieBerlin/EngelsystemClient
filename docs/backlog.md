@@ -17,12 +17,10 @@ the W tasks alongside, the R tasks when the owner reports a merge.
 
 ### Framework
 
-- [ ] **K-11** UI: "Features" section on the instance detail page (Settings › Instances › [instance]: symbol, name, short
-      reason, "Checked: …"); a one-line summary ("5 of 11 features available") after "Test Connection" in the setup and edit
-      flows (iOS and Watch setup keep their own wording); refreshed after every sync. Demo mode: everything available.
 - [ ] **K-12** Silent hiding: a 403/404 on an optional function becomes "not allowed"/"not offered" and never an error
       banner; sidebar sections without any available active instance disappear (already so for Messages/Locations);
-      the "Test Connection" 403 warning (`COMPAT(#1709)`) is removed; remaining messages name web privileges, not the
+      the "Test Connection" 403 warning (`COMPAT(#1709)`) is removed and replaced by a one-line summary ("5 of 8 features
+      available", from the `privileges` of `GET /users/self`, applied after saving; iOS and Watch setup keep their own wording); remaining messages name web privileges, not the
       `API`/`Bureaucrat` groups; 401, network and server errors stay visible.
 - [ ] **K-13** Test fixtures and the matrix: JSON fixtures for "upstream main today", each PR's additions, the stacked
       chains (#1722 → #1723 → #1724) and "all PRs" in `TestSupport`; per feature one test per state (available/hidden, no

@@ -28,6 +28,12 @@ public enum ServerFeature: String, CaseIterable, Sendable {
     /// `GET /shifts/{id}` — PR #1724.
     case singleShiftRefresh
 
+    /// The functions the app uses today, in the order of the instance's "Features" list. The
+    /// list grows with the shift detail work (backlog S-01 – S-05).
+    public static let listed: [ServerFeature] = [
+        .shifts, .news, .newsComments, .locationsList, .locationDetail, .messages, .profileWorklogs, .profileAngelTypes,
+    ]
+
     public var title: String {
         switch self {
         case .shifts: return "Shifts"
@@ -130,6 +136,12 @@ public final class ServerCapabilities {
     /// `false` only once something showed that the function cannot be used on the instance.
     public func isAvailable(_ feature: ServerFeature, for instanceID: UUID) -> Bool {
         ![FeatureState.notAllowed, .notOffered].contains(status(feature, for: instanceID).state)
+    }
+
+    /// How many functions are known to be available out of all of them ("5 of 13").
+    public func summary(for instanceID: UUID) -> (available: Int, total: Int) {
+        let available = ServerFeature.listed.filter { status($0, for: instanceID).state == .available }.count
+        return (available, ServerFeature.listed.count)
     }
 
     /// Whether the function is available on at least one of the given instances.

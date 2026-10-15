@@ -148,6 +148,15 @@ struct ServerCapabilitiesStoreTests {
         #expect(migrated.status(.newsComments, for: id).state == .available)
     }
 
+    @Test func summaryCountsTheAvailableFunctions() {
+        let capabilities = ServerCapabilities(defaults: freshDefaults())
+        let id = UUID()
+        #expect(capabilities.summary(for: id) == (0, ServerFeature.listed.count))
+        capabilities.record(.news, state: .available, evidence: .probe, for: id)
+        capabilities.record(.messages, state: .notOffered, evidence: .notFound, for: id)
+        #expect(capabilities.summary(for: id).available == 1)
+    }
+
     @Test func sharedInstanceExists() {
         #expect(ServerCapabilities.shared.isAvailable(.newsComments, for: UUID()))
     }

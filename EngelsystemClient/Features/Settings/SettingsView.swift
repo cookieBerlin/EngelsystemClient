@@ -207,6 +207,7 @@ private struct InstanceDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var isPresentingEdit = false
+    private let capabilities = ServerCapabilities.shared
 
     // Unfiltered `@Query`s, same pattern as Shifts/News/Profile — filtered down to
     // this one instance below. 2026-09-23, user-requested "last sync timestamps".
@@ -239,6 +240,19 @@ private struct InstanceDetailView: View {
                 Button("Edit Instance") { isPresentingEdit = true }
             }
 
+            Section {
+                let summary = capabilities.summary(for: instance.id)
+                Text(FeaturePresentation.summaryText(available: summary.available, total: summary.total))
+                    .foregroundStyle(.secondary)
+                ForEach(ServerFeature.listed, id: \.self) { feature in
+                    featureRow(feature)
+                }
+            } header: {
+                Text("Features")
+            } footer: {
+                Text("What this server offers and this account may use, learned during every sync. An area that is not available is simply not shown.")
+            }
+
             Section("Last Synced") {
                 syncRow("Shifts", lastShiftsSync)
                 syncRow("News", lastNewsSync)
@@ -256,6 +270,22 @@ private struct InstanceDetailView: View {
         .sheet(isPresented: $isPresentingEdit) {
             EditInstanceView(instance: instance)
         }
+    }
+
+    private func featureRow(_ feature: ServerFeature) -> some View {
+        let status = capabilities.status(feature, for: instance.id)
+        return VStack(alignment: .leading, spacing: 2) {
+            Label(feature.title, systemImage: FeaturePresentation.systemImage(status))
+            Text(FeaturePresentation.statusText(status))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            if let checked = FeaturePresentation.checkedText(status) {
+                Text(checked)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
