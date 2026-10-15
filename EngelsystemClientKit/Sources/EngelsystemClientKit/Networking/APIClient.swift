@@ -320,18 +320,24 @@ public final class APIClient {
     /// which `APIError`'s unified shape doesn't preserve (see `withLockedCredential`).
     /// So this calls that directly instead of going through `withCredential`.
     public func messagesSupported(_ credential: EventCredential) async -> Bool {
-        if credential.isDemo { return true }
-        guard !credential.baseURL.isEmpty, URL(string: credential.baseURL) != nil else { return true }
+        await messagesState(credential) != .notOffered
+    }
+
+    /// Like `messagesSupported(_:)`, but tells a route the account may not use (403) from a usable
+    /// one: `.available`, `.notAllowed` (route exists, 403) or `.notOffered` (route missing).
+    public func messagesState(_ credential: EventCredential) async -> FeatureState {
+        if credential.isDemo { return .available }
+        guard !credential.baseURL.isEmpty, URL(string: credential.baseURL) != nil else { return .available }
         do {
             _ = try await withLockedCredential(credential) {
                 try await MessageAPI.messagesGet().data
             }
             DebugLog.log("API GET /messages (capability probe) → supported")
-            return true
+            return .available
         } catch {
-            let supported = Self.messagesSupported(afterProbeError: error)
-            DebugLog.log("API GET /messages (capability probe) → \(supported ? "supported" : "NOT supported") (\(error))")
-            return supported
+            let state = Self.messagesState(afterProbeError: error)
+            DebugLog.log("API GET /messages (capability probe) → \(state.rawValue) (\(error))")
+            return state
         }
     }
 
@@ -346,6 +352,17 @@ public final class APIClient {
     /// other outcome (200, or a 403/422/etc. for an unrelated reason) means the route
     /// exists — a missing route never responds with anything but that exact 404 body.
     static func messagesSupported(afterProbeError error: Error) -> Bool {
+        messagesState(afterProbeError: error) != .notOffered
+    }
+
+    static func messagesState(afterProbeError error: Error) -> FeatureState {
+        if let errorResponse = error as? ErrorResponse, case .error(403, _, _, _) = errorResponse {
+            return .notAllowed
+        }
+        return messagesRouteExists(afterProbeError: error) ? .available : .notOffered
+    }
+
+    private static func messagesRouteExists(afterProbeError error: Error) -> Bool {
         guard let errorResponse = error as? ErrorResponse,
               case let .error(404, data, _, _) = errorResponse,
               let data,

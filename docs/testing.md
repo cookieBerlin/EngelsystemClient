@@ -153,10 +153,15 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
   prompt; used for the Watch screenshot. **`ScreenshotTests`** is not a regression test — run it through
   `Scripts/screenshots.sh` (see `app-store.md`).
 
-## Compatibility matrix (planned 2026-10-13, ADR 0015, not built yet)
+## Compatibility matrix (ADR 0015)
 
 The app has to work against upstream Engelsystem `main` today, against each of the open PRs (#1709 – #1726) and against all
-of them. The plan (backlog K-13): JSON fixtures in `TestSupport` for "main today", each PR's additions, the stacked chains
-(#1722 → #1723 → #1724) and "all PRs"; per feature one test per state (available, hidden by a missing right or function —
-never an error). Not every combination of PRs is tested. Removing a PR (R task) deletes its fixture state and simplifies the
-tests; coverage stays at 100 %.
+of them. `ServerFixture` (`TestSupport/ServerFixture.swift`) builds such a server for the stubbed network: the demo data as
+real JSON plus the fields and endpoints each PR adds, and the account's `privileges` (403 where the account may not read,
+the catch-all 404 `"Not implemented"` for routes an older server lacks). Presets: `.upstreamToday`, `.with(pr:)`,
+`.shiftChain` (#1722 → #1723 → #1724), `.allPRs`; `.account(privileges:)` swaps the account.
+
+`ServerCompatibilityMatrixTests` runs the full sync against a fixture and asserts the recorded `FeatureState` per function
+and that the sync still succeeds — a missing or forbidden function is hidden, never an error. Not every combination of PRs is
+tested. New functions (S tasks) add their expectations to the matrix; removing a PR (R task) deletes its fixture state and
+simplifies the tests. Coverage stays at 100 % (`TestSupport` itself is excluded as test infrastructure).

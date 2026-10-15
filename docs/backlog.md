@@ -12,14 +12,10 @@ done and reflected in [`features.md`](features.md).
 Background: the server side is a stack of open upstream PRs (#1709 – #1726, see the matrix below and
 [`roadmap.md`](roadmap.md)). The app must work with upstream `main` today, with each PR and with all of them; missing
 rights or functions are **never errors** (silent hiding plus a feature list per instance); once PRs are merged the
-fallbacks are deleted again (R tasks). Order of work: K-10 – K-13 (framework), then S-01 – S-06 (features with fallbacks),
+fallbacks are deleted again (R tasks). Order of work: K-10 – K-13 (framework, done), then S-01 – S-06 (features with fallbacks),
 the W tasks alongside, the R tasks when the owner reports a merge.
 
 ### Framework
-
-- [ ] **K-13** Test fixtures and the matrix: JSON fixtures for "upstream main today", each PR's additions, the stacked
-      chains (#1722 → #1723 → #1724) and "all PRs" in `TestSupport`; per feature one test per state (available/hidden, no
-      error). Document the matrix in `docs/testing.md`. Coverage stays at 100 %.
 
 ### Shift detail page (iOS; the Watch stays unchanged)
 

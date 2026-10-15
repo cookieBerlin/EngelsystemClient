@@ -211,8 +211,11 @@ public struct AppSyncCoordinator {
                     // whole Messages sidebar entry) so a server that gains or loses support
                     // is picked up without a dedicated Setup/Edit-time probe. Cheap: a single
                     // GET, no persistence beyond the one Bool.
-                    let supported = await apiClient.messagesSupported(credential)
-                    capabilities.record(.messages, supported: supported, for: instance.id)
+                    let state = await apiClient.messagesState(credential)
+                    let supported = state != .notOffered
+                    capabilities.record(
+                        .messages, state: state, evidence: state == .available ? .probe : state == .notAllowed ? .forbidden : .notFound,
+                        privilege: state == .notAllowed ? ServerFeature.messages.requiredPrivilege : nil, for: instance.id)
                     if instance.messagesSupported != supported {
                         instance.messagesSupported = supported
                         instance.touch()
