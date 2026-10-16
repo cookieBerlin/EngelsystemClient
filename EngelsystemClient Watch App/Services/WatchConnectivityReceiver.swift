@@ -21,10 +21,20 @@ import EngelsystemClientKit
 final class WatchConnectivityReceiver: NSObject, WCSessionDelegate {
     private let modelContainer: ModelContainer
     private let syncCoordinator: WatchShiftsSyncCoordinator
+    private let logResponder: WatchLogResponder
+    private let defaults: UserDefaults
+    private let handledShiftsChangeKey = "watchLastHandledShiftsChangedAt"
 
-    init(modelContainer: ModelContainer, syncCoordinator: WatchShiftsSyncCoordinator = .shared) {
+    init(
+        modelContainer: ModelContainer,
+        syncCoordinator: WatchShiftsSyncCoordinator = .shared,
+        logResponder: WatchLogResponder = WatchLogResponder(sender: WatchSystemSender()),
+        defaults: UserDefaults = .standard
+    ) {
         self.modelContainer = modelContainer
         self.syncCoordinator = syncCoordinator
+        self.logResponder = logResponder
+        self.defaults = defaults
     }
 
     /// Call once at app launch — sets itself as the session delegate (required before
@@ -44,14 +54,32 @@ final class WatchConnectivityReceiver: NSObject, WCSessionDelegate {
     }
 
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
-        DebugLog.log("WatchConnectivityReceiver: received shifts-changed nudge — resyncing")
+        DebugLog.log("WatchConnectivityReceiver: received a context from the iPhone")
         Task { @MainActor in
-            await handleApplicationContext()
+            await handleApplicationContext(applicationContext)
+        }
+    }
+
+    /// A live message from the iPhone (the Watch app is reachable): the request for the debug log.
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        Task { @MainActor in
+            handleMessage(message)
         }
     }
 
     @MainActor
-    func handleApplicationContext(handleNotifications: Bool = true) async {
+    func handleMessage(_ message: [String: Any]) {
+        logResponder.handleMessage(message)
+    }
+
+    /// Reacts to the iPhone's context: the debug log parts (a request, the logging switch) and — only when the
+    /// shifts-changed timestamp is new, or there is none — a resync of the active instances.
+    @MainActor
+    func handleApplicationContext(_ context: [String: Any] = [:], handleNotifications: Bool = true) async {
+        logResponder.handleContext(context)
+        let shiftsChangedAt = context["shiftsChangedAt"] as? Double
+        if let shiftsChangedAt, defaults.object(forKey: handledShiftsChangeKey) as? Double == shiftsChangedAt { return }
+        if let shiftsChangedAt { defaults.set(shiftsChangedAt, forKey: handledShiftsChangeKey) }
         await syncCoordinator.refreshActiveInstances(in: modelContainer.mainContext, handleNotifications: handleNotifications)
     }
 }

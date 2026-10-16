@@ -277,17 +277,47 @@ private struct WatchSyncSettingsView: View {
     }
 }
 
-/// Diagnostics page: the Watch's own debug logging switch (on by default in the beta).
+/// Diagnostics page: the Watch's own debug logging switch (on by default in the beta) and "Send Log to iPhone".
 private struct WatchDiagnosticsSettingsView: View {
     @AppStorage(DebugLog.isEnabledUserDefaultsKey)
     private var isDebugLoggingEnabled: Bool = DebugLog.defaultEnabled
+    @State private var viewModel = WatchDiagnosticsViewModel()
+    @State private var entryCount = 0
 
     var body: some View {
         List {
             Section {
-                Toggle("Debug Logging", isOn: $isDebugLoggingEnabled)
+                // The switch changes through the model, which also remembers when (the newer change wins against
+                // the iPhone's remote switch).
+                Toggle("Debug Logging", isOn: Binding(
+                    get: { isDebugLoggingEnabled },
+                    set: { viewModel.setLogging($0) }
+                ))
             } footer: {
                 Text("Records this app's internal activity on the Watch for troubleshooting. Never includes API keys or other secrets.")
+                    .font(.caption2)
+            }
+
+            Section {
+                Button {
+                    viewModel.sendLog()
+                    entryCount = DebugLog.shared.entries.count
+                } label: {
+                    Label("Send Log to iPhone", systemImage: "paperplane")
+                }
+                .disabled(DebugLog.shared.entries.isEmpty)
+                if let status = viewModel.statusText {
+                    Text(status)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                if let lastSent = viewModel.lastSentText() {
+                    Text(lastSent)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            } footer: {
+                Text("Only when you tap. The log goes to your own iPhone, nowhere else.")
                     .font(.caption2)
             }
         }

@@ -54,6 +54,7 @@
 */EngelsystemClient Watch App/Views/NextShiftView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient Watch App/Setup/WatchSetupView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient Watch App/Settings/WatchSettingsView.swift   # SwiftUI layout (ADR 0010)
+*/EngelsystemClient Watch App/Services/WatchSystemSender.swift   # WCSession adapter: only the system can transfer a file; the decisions live in WatchLogResponder (Kit) and are tested through WatchLogSending. Owner standing approval for thin adapter layers 2026-10-12
 */EngelsystemClient Watch App/Services/WatchConnectivityReceiver.swift   # WCSessionDelegate adapter: only the system calls activate()/the delegate callbacks; its one logic method, handleApplicationContext, is a single forward call that is tested. Owner standing approval for thin adapter layers 2026-10-12
 
 # Watch complication (WidgetKit extension, no test target): the timeline provider is WidgetKit glue (placeholder/snapshot/timeline

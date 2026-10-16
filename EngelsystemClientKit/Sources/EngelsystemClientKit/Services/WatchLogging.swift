@@ -55,14 +55,14 @@ public struct WatchLogReport: Equatable, Sendable {
         self.reportedAt = reportedAt
     }
 
-    var dictionary: [String: Any] {
+    public var dictionary: [String: Any] {
         [
             WatchLogKeys.reportLoggingOn: isLoggingOn, WatchLogKeys.reportChangedAt: changedAt,
             WatchLogKeys.reportEntryCount: entryCount, WatchLogKeys.reportedAt: reportedAt,
         ]
     }
 
-    init?(dictionary: [String: Any]) {
+    public init?(dictionary: [String: Any]) {
         guard let isOn = dictionary[WatchLogKeys.reportLoggingOn] as? Bool,
               let changedAt = dictionary[WatchLogKeys.reportChangedAt] as? Double,
               let entryCount = dictionary[WatchLogKeys.reportEntryCount] as? Int,
@@ -74,19 +74,19 @@ public struct WatchLogReport: Equatable, Sendable {
 /// The keys of the messages between the devices.
 public enum WatchLogKeys {
     // iPhone -> Watch (application context, merged with `shiftsChangedAt`)
-    static let logRequestID = "logRequestID"
-    static let loggingOn = "watchLoggingOn"
-    static let loggingChangedAt = "watchLoggingChangedAt"
+    public static let logRequestID = "logRequestID"
+    public static let loggingOn = "watchLoggingOn"
+    public static let loggingChangedAt = "watchLoggingChangedAt"
     // iPhone -> Watch (live message)
-    static let requestLog = "requestLog"
+    public static let requestLog = "requestLog"
     // Watch -> iPhone (report, application context of the Watch)
-    static let reportLoggingOn = "loggingOn"
-    static let reportChangedAt = "loggingChangedAt"
-    static let reportEntryCount = "entryCount"
-    static let reportedAt = "reportedAt"
+    public static let reportLoggingOn = "loggingOn"
+    public static let reportChangedAt = "loggingChangedAt"
+    public static let reportEntryCount = "entryCount"
+    public static let reportedAt = "reportedAt"
     // Watch -> iPhone (file metadata)
-    static let fileEntryCount = "entryCount"
-    static let fileSentAt = "sentAt"
+    public static let fileEntryCount = "entryCount"
+    public static let fileSentAt = "sentAt"
 }
 
 /// The iPhone's application context for the Watch. `updateApplicationContext` replaces the whole dictionary, so the

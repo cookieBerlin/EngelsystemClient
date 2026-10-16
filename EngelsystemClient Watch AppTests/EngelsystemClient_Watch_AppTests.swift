@@ -40,14 +40,14 @@ private func makeInMemoryContext() throws -> ModelContext {
 }
 
 @MainActor
-private func makeTestAppSyncCoordinator() -> AppSyncCoordinator {
+func makeTestAppSyncCoordinator() -> AppSyncCoordinator {
     AppSyncCoordinator(
         notificationScheduler: NotificationScheduler(center: UnusedNotificationCenter()),
         newsNotifier: NewsNotifier(center: UnusedNotificationCenter())
     )
 }
 
-private func uniqueTestSnapshotStore() -> NextShiftSnapshotStore {
+func uniqueTestSnapshotStore() -> NextShiftSnapshotStore {
     NextShiftSnapshotStore(appGroupID: "net.cuccato.engelsystem.de.tests.\(UUID().uuidString)")
 }
 
@@ -56,7 +56,7 @@ private func uniqueTestSnapshotStore() -> NextShiftSnapshotStore {
 /// which the caller resolves a credential for directly). Mirrors
 /// `EngelsystemClientKitTests.SyncServiceTests`'s equivalent setup.
 @MainActor
-private func seedDemoInstance(in context: ModelContext) throws -> Instance {
+func seedDemoInstance(in context: ModelContext) throws -> Instance {
     let ref = "watch-app-tests-\(UUID().uuidString)"
     try LocalKeychainStore().save(apiKey: "demo", for: ref)
     let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: ref)
