@@ -151,7 +151,8 @@ via iCloud Keychain if you use it. Shifts, news and profile are cached on each d
 ## Something is wrong: how do I report it?
 
 Use TestFlight's **Send Beta Feedback** (screenshots welcome) or open an issue on
-[GitHub](https://github.com/cookieBerlin/EngelsystemClient/issues), or write to
+[GitHub](https://github.com/cookieBerlin/EngelsystemClient/issues) (a form asks for the details; security problems go to the
+[security policy](https://github.com/cookieBerlin/EngelsystemClient/security/policy) instead), or write to
 [EngelsystemClient@cuccato.net](mailto:EngelsystemClient@cuccato.net). Please include what you expected, what happened, your
 iOS version, and — if useful — the debug log (**Settings → Diagnostics → View Debug Log → Copy to Clipboard**) or an
 **Export Diagnostics** report. For the Apple Watch, tap **Settings → Diagnostics → Send Log to iPhone** on the Watch (or **Request Log from

@@ -56,6 +56,7 @@ xcodebuild test -scheme EngelsystemClient \
 |----------|---------|
 | [CLAUDE.md](CLAUDE.md) | Rules for the coding agent, documentation map |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Workflow, commit rules, definition of done |
+| [SECURITY.md](SECURITY.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Reporting vulnerabilities, community rules |
 | [CHANGELOG.md](CHANGELOG.md) | User-visible changes |
 | [docs/requirements.md](docs/requirements.md) | Scope, Phase 2 rules, Watch scope |
 | [docs/architecture.md](docs/architecture.md) | Tech stack, structure, API, sync, data flow |

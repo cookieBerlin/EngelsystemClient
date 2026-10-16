@@ -15,7 +15,7 @@ Congress.
 
 - **Bug reports and feature requests**: open an issue on GitHub —
   [github.com/cookieBerlin/EngelsystemClient/issues](https://github.com/cookieBerlin/EngelsystemClient/issues).
-  Please include: what you expected, what happened instead, your iOS
+  The issue form asks for the details below. Please include: what you expected, what happened instead, your iOS
   version, and (if relevant) a copy of the in-app debug log
   (Settings → Diagnostics → "View Debug Log" → "Copy to Clipboard") or
   an exported diagnostics report (Settings → Diagnostics → "Export

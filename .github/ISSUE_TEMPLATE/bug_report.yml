@@ -1,0 +1,77 @@
+name: Bug report
+description: Something does not work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! The more of the fields below you fill in, the faster it can be fixed.
+        Please **do not** put API keys or other secrets into this issue.
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+      description: Screenshots are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Tap …
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options:
+        - iPhone
+        - iPad
+        - Apple Watch
+        - Watch complication
+        - More than one of these
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version and build
+      description: Settings → About (for example 0.1.0 (12)).
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: iOS / watchOS version and device
+      placeholder: iOS 26.5, iPhone 17
+  - type: dropdown
+    id: server
+    attributes:
+      label: Which server?
+      options:
+        - Demo Mode (no server)
+        - A real Engelsystem server
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: server-version
+    attributes:
+      label: Engelsystem server version or address
+      description: Optional. Only if it is not a private server you prefer to keep to yourself.
+  - type: textarea
+    id: log
+    attributes:
+      label: Debug log (optional)
+      description: |
+        Settings → Diagnostics → View Debug Log → Copy to Clipboard (for the Apple Watch: Send Log to iPhone first).
+        The log contains the names you gave your instances and request paths. **Check it for anything you do not want to
+        make public before pasting it**, or e-mail it to EngelsystemClient@cuccato.net instead.
+      render: text

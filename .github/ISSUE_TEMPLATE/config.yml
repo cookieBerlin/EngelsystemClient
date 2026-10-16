@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: User guide
+    url: https://cookieberlin.github.io/EngelsystemClient/guide
+    about: How the app works, screen by screen.
+  - name: FAQ
+    url: https://cookieberlin.github.io/EngelsystemClient/faq
+    about: Common questions, and how to report a problem.
+  - name: Security vulnerability
+    url: https://github.com/cookieBerlin/EngelsystemClient/security/policy
+    about: Please do not open a public issue for a security problem. See the security policy.

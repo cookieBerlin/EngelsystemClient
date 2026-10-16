@@ -41,7 +41,13 @@
 Coding agents follow [`CLAUDE.md`](CLAUDE.md). Finish and commit the
 current step before another agent or person edits the same files.
 
+## Issues and pull requests
+
+Issues use the forms in `.github/ISSUE_TEMPLATE/` (bug report, feature request); pull requests the checklist in
+`.github/PULL_REQUEST_TEMPLATE.md`. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Security
 
+Vulnerabilities are reported privately, see [`SECURITY.md`](SECURITY.md). 
 Never commit API keys, personal paths or private hostnames; see
 [`docs/security.md`](docs/security.md).
