@@ -36,7 +36,12 @@ extension DemoData {
             result.name = "Demo Congress 2"
             result.url = "https://congress.demo.engelsystem.local"
         case .unknown:
-            result.name = "Unknown demo address"
+            // Nothing that looks like data: a name, and neutral values for the required fields.
+            let epoch = Date(timeIntervalSince1970: 0)
+            result = EventInfo(
+                api: result.api, spec: "", name: "Unknown demo address", appName: result.appName, url: "",
+                timezone: "UTC", buildup: EventInfoBuildup(start: epoch),
+                event: EventInfoEvent(start: epoch, end: epoch), teardown: EventInfoTeardown(end: epoch))
         }
         return result
     }

@@ -423,7 +423,9 @@ exists without reading the whole diff history.
   info, shifts, locations and news. Two demo instances with the same host count as one server (two accounts) and are
   merged where the real server would be; different hosts are different servers. Any other `demo://` host is a server that
   offers only News (`DemoScenario.offersOnlyNews`): one pinned post names the addresses that work, every other function
-  answers like a missing route, so the app hides it (Shifts, Locations, Messages, Profile) without errors.
+  answers like a missing route (also the own profile, the users, angel types and shift types), so the app hides it
+  (Shifts, Locations, Messages, Profile) without errors and stores nothing but the hint post. A missing or forbidden own
+  profile marks the work logs and angel types as not offered and is not a sync failure.
 - **Merged locations and edges** (2026-10-16): in the merged mode the locations of instances on the same server collapse to
   one entry (`CachedLocation.mergedAcrossServers`, like news) with a badge per instance. The colored left edge belongs to an
   entry only when exactly one instance owns it (`InstanceEdge`); shared entries show just the badges. The Profile band no

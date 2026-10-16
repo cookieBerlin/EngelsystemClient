@@ -364,6 +364,28 @@ extension StubbedNetworkTests {
                 #expect(capabilities.status(feature, for: instance.id).state == .notOffered, "\(feature)")
             }
             #expect(!instance.messagesSupported)
+
+            // Nothing but the hint post is stored: no profile, shifts, locations, work logs or angel types.
+            #expect(try context.fetch(FetchDescriptor<CachedNews>()).count == 1)
+            #expect(try context.fetch(FetchDescriptor<CachedUser>()).isEmpty)
+            #expect(try context.fetch(FetchDescriptor<CachedShift>()).isEmpty)
+            #expect(try context.fetch(FetchDescriptor<CachedLocation>()).isEmpty)
+            #expect(try context.fetch(FetchDescriptor<CachedWorklog>()).isEmpty)
+            #expect(try context.fetch(FetchDescriptor<CachedAngelTypeMembership>()).isEmpty)
+        }
+
+        /// A server without the own-profile route (404) or without the right to read it (403) is not a failing sync.
+        @Test func aMissingOrForbiddenOwnProfileIsNotASyncFailure() async throws {
+            for status in [404, 403] {
+                try routeAllDomains()
+                StubURLProtocol.route("GET \(prefix)/users/self", status: status)
+                let context = try makeContext()
+                let instance = stubInstance()
+                context.insert(instance)
+                var events: [SyncEvent] = []
+                _ = await coordinator().syncEverything(instances: [instance], in: context, onEvent: { events.append($0) })
+                #expect(events.last == .instanceFinished(id: instance.id, outcome: .succeeded), "status \(status)")
+            }
         }
 
         @Test func aFailingInstanceIsReportedAsFailed() async throws {

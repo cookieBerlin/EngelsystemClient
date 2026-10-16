@@ -217,7 +217,15 @@ public struct AppSyncCoordinator {
                         DebugLog.log("AppSyncCoordinator: synced Profile for '\(instance.name)'")
                     } catch {
                         if !(error is CancellationError) {
-                            fail(instance)
+                            // A missing or forbidden own profile is "not offered", not a failure (ADR 0015).
+                            let apiError = error as? APIError
+                            if apiError == .notFound || apiError == .forbidden {
+                                // Without the own profile the profile parts (work logs, angel types) cannot be read either.
+                                capabilities.record(.profileWorklogs, afterError: error, for: instance.id)
+                                capabilities.record(.profileAngelTypes, afterError: error, for: instance.id)
+                            } else {
+                                fail(instance)
+                            }
                             DebugLog.log("AppSyncCoordinator: Profile failed for '\(instance.name)': \(error)", level: .error)
                         }
                     }

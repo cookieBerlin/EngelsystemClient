@@ -101,6 +101,7 @@ public final class APIClient {
 
     public func fetchAngelTypes(_ credential: EventCredential) async throws -> [AngelType] {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return DemoData.angelTypes
         }
@@ -182,6 +183,7 @@ public final class APIClient {
 
     public func fetchShiftTypes(_ credential: EventCredential) async throws -> [ShiftType] {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return DemoData.shiftTypes
         }
@@ -217,7 +219,8 @@ public final class APIClient {
     /// reads everything. Used by "Test Connection" for the features summary.
     public func ownPrivileges(_ credential: EventCredential) async -> [String]? {
         if credential.isDemo {
-            return ["api"]
+            // The News-only demo server does not tell (like a server without the field).
+            return credential.scenario.offersOnlyNews ? nil : ["api"]
         }
         let profile = try? await withCredential("GET /users/self (privileges)", credential) {
             try await UserAPI.usersIdGet(id: .me).data
@@ -227,6 +230,7 @@ public final class APIClient {
 
     public func fetchOwnProfile(_ credential: EventCredential) async throws -> UsersIdGet200ResponseData {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return DemoData.ownProfile
         }
@@ -244,6 +248,7 @@ public final class APIClient {
     /// user specifically.
     public func fetchUsers(_ credential: EventCredential) async throws -> [Reference] {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return DemoData.users
         }
@@ -284,6 +289,7 @@ public final class APIClient {
     /// — `GET /messages/{id}`, where `id` is the *other user's* id (not a message id).
     public func fetchConversation(otherUserID: Int, _ credential: EventCredential) async throws -> [Message] {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return await DemoData.conversation(otherUserID: otherUserID)
         }
@@ -299,6 +305,7 @@ public final class APIClient {
     /// created `Message` on success.
     public func sendMessage(to otherUserID: Int, text: String, _ credential: EventCredential) async throws -> Message {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return await DemoData.sendMessage(to: otherUserID, text: text)
         }
@@ -314,6 +321,7 @@ public final class APIClient {
     /// on success, `403` if it isn't yours (surfaced as `APIError.forbidden`).
     public func deleteMessage(id: Int, _ credential: EventCredential) async throws {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             await DemoData.deleteMessage(id: id)
             return
@@ -329,6 +337,7 @@ public final class APIClient {
     /// messages read when it's opened (`ConversationDetailViewModel`).
     public func setMessageRead(id: Int, read: Bool, _ credential: EventCredential) async throws -> Message {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             guard let updated = await DemoData.setMessageRead(id: id, read: read) else {
                 throw APIError.notFound

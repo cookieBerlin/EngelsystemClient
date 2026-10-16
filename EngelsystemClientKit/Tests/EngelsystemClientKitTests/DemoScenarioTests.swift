@@ -95,4 +95,35 @@ struct DemoScenarioTests {
         // The literal host "unknown" is not a way to the placeholder data set either.
         #expect(DemoScenario(baseURL: "demo://unknown") == nil)
     }
+
+    /// The News-only demo server hands out no data at all: every query is refused, empty, or the one hint post.
+    /// A new query that forgets its guard has to be listed here and fails this test.
+    @Test func theNewsOnlyDemoServerHasNoDataButTheHint() async throws {
+        let unknown = EventCredential(baseURL: "demo://nothing.local/api/v0-beta", apiKey: "demo")
+        let client = APIClient.shared
+        func refused<T>(_ call: () async throws -> T) async -> Bool {
+            do { _ = try await call(); return false } catch APIError.notFound { return true } catch { return false }
+        }
+        #expect(await refused { try await client.fetchOwnProfile(unknown) })
+        #expect(await refused { try await client.fetchUsers(unknown) })
+        #expect(await refused { try await client.fetchAngelTypes(unknown) })
+        #expect(await refused { try await client.fetchOwnAngelTypes(unknown) })
+        #expect(await refused { try await client.fetchShiftTypes(unknown) })
+        #expect(await refused { try await client.fetchShifts(unknown) })
+        #expect(await refused { try await client.fetchShift(id: 1, unknown) })
+        #expect(await refused { try await client.fetchLocations(unknown) })
+        #expect(await refused { try await client.fetchLocation(id: 1, unknown) })
+        #expect(await refused { try await client.fetchWorklogs(unknown) })
+        #expect(await refused { try await client.fetchConversations(unknown) })
+        #expect(await refused { try await client.fetchConversation(otherUserID: 1, unknown) })
+        #expect(await refused { try await client.sendMessage(to: 1, text: "x", unknown) })
+        #expect(await refused { try await client.deleteMessage(id: 1, unknown) })
+        #expect(await refused { try await client.setMessageRead(id: 1, read: true, unknown) })
+        #expect(await client.ownPrivileges(unknown) == nil)
+
+        let info = try await client.fetchInfo(unknown)
+        #expect(info.url.isEmpty && info.spec.isEmpty)
+        #expect(info.event.start == info.event.end)
+        #expect(try await client.fetchNews(unknown).count == 1)
+    }
 }
