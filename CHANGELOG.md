@@ -27,7 +27,8 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 - The sync banner shows every event on its own line with the area it is working on, a thin progress line and "n/5" steps. An
   event that does not answer for 30 seconds turns orange, one that makes no progress for a minute is stopped so the others can
-  continue. **Stop sync** (with a confirmation, and **Skip <event>** when several events sync) ends a sync that hangs.
+  continue. Active events are now refreshed at the same time; **Parallel Syncs** (Settings › Instances, also on the Watch) limits how many
+  at once. **Stop sync** (with a confirmation, and **Skip <event>** when several events sync) ends a sync that hangs.
 
 ### Removed
 - The “Open on Website” button on the location screen.

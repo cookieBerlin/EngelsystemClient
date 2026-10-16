@@ -95,6 +95,7 @@ struct InstancesSettingsView: View {
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var multiInstanceDisplayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
     @State private var isPresentingSetup = false
+    @AppStorage(ParallelSyncSetting.userDefaultsKey) private var parallelSyncs = 0
 
     let instances: [Instance]
     var onActivated: (Instance) -> Void = { _ in }
@@ -117,6 +118,15 @@ struct InstancesSettingsView: View {
                         instanceRow(for: instance)
                     }
                 }
+            }
+
+            Section {
+                Stepper(value: $parallelSyncs, in: ParallelSyncSetting.range) {
+                    LabeledContent("Parallel Syncs", value: ParallelSyncSetting.title(for: parallelSyncs))
+                }
+                .accessibilityIdentifier("parallelSyncsStepper")
+            } footer: {
+                Text("How many instances are synced at the same time. Unlimited syncs all at once. Applies to this device only.")
             }
 
             Section {

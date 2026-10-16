@@ -364,6 +364,17 @@ final class EngelsystemClientUITests: XCTestCase {
         app.navigationBars.firstMatch.tap()
         openSettingsPage("Instances", in: app)
 
+        // The per-device "Parallel Syncs" stepper: Unlimited -> 1 at a time -> back to Unlimited.
+        let parallel = app.steppers["parallelSyncsStepper"]
+        XCTAssertTrue(parallel.waitForExistence(timeout: 5))
+        // The stepper reads as one element: its text (label or value) names the current limit.
+        func parallelText() -> String { "\(parallel.label) \(parallel.value as? String ?? "")" }
+        XCTAssertTrue(parallelText().contains("Unlimited"), parallelText())
+        parallel.buttons.element(boundBy: 1).tap()
+        XCTAssertTrue(parallelText().contains("1 at a time"), parallelText())
+        parallel.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(parallelText().contains("Unlimited"), parallelText())
+
         let activeToggle = app.switches["Demo Active"]
         XCTAssertTrue(activeToggle.waitForExistence(timeout: 5))
         XCTAssertEqual(activeToggle.value as? String, "1")

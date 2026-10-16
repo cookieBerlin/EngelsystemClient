@@ -24,6 +24,7 @@ struct WatchSettingsView: View {
     private var syncOnAppStart: Bool = true
 
     @State private var isPresentingSetup = false
+    @AppStorage(ParallelSyncSetting.userDefaultsKey) private var parallelSyncs = 0
     @State private var cloudSyncStatus: CloudSyncStatus = .checking
 
     /// See the iOS `SettingsView`'s matching properties for why this is a `@Query`
@@ -63,6 +64,20 @@ struct WatchSettingsView: View {
                 } label: {
                     Label("Add Instance", systemImage: "plus")
                 }
+            }
+
+            Section {
+                Stepper(value: $parallelSyncs, in: ParallelSyncSetting.range) {
+                    VStack(alignment: .leading) {
+                        Text("Parallel Syncs")
+                        Text(ParallelSyncSetting.title(for: parallelSyncs))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } footer: {
+                Text("How many instances are synced at the same time. Applies to this device only.")
+                    .font(.caption2)
             }
 
             Section {

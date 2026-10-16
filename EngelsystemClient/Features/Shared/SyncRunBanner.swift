@@ -37,10 +37,11 @@ struct SyncRunBanner: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("syncProgressBanner")
         .confirmationDialog("Stop sync?", isPresented: $isConfirmingStop, titleVisibility: .visible) {
-            // The instance that is busy right now (or the first one still waiting) can be skipped alone.
-            if model.showsNames, let busy = model.rows.first(where: { $0.status == .running })
-                ?? model.rows.first(where: { $0.status == .waiting }) {
-                Button("Skip \(busy.name)") { onSkip(busy.id) }
+            // Every instance that is busy or still waiting can be skipped alone.
+            if model.showsNames {
+                ForEach(model.rows.filter { [.running, .waiting].contains($0.status) }) { row in
+                    Button("Skip \(row.name)") { onSkip(row.id) }
+                }
             }
             Button("Stop Sync", role: .destructive, action: onStop)
             Button("Keep Waiting", role: .cancel) {}

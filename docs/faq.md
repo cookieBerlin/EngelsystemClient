@@ -90,6 +90,8 @@ While a sync runs, the banner at the top shows every event with what it is doing
 for 30 seconds, and an event that makes no progress for a minute is stopped (“timed out”) so the others can continue. Tap **Stop sync**
 in the banner to end the whole sync, or choose **Skip <event>** to leave out just the one that hangs. Data that was already loaded is kept.
 
+Events are refreshed at the same time by default. If that is too much for a weak connection, lower **Settings → Instances → Parallel Syncs** (the Watch has the same setting).
+
 ### How do I remove an event and its data?
 
 **Settings →** tap the event **→ Remove Instance**. This deletes the saved API key and everything cached for that event on this

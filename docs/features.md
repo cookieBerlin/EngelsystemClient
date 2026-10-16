@@ -438,6 +438,11 @@ exists without reading the whole diff history.
   (“Partially failed: Congress (timed out)”). `AppSyncCoordinator` reports `SyncEvent`s, `SyncRunModel` (Kit, tested) turns
   them into the rows. The single-area pull-to-refresh of Shifts/News/Profile keeps the simple banner (no stop button).
   A cancelled URLSession request counts as a cancellation, never as a network failure.
+  **Parallel syncs** (2026-10-16): `AppSyncCoordinator` syncs up to N instances at the same time (`maxConcurrentInstances`,
+  default from the per-device `ParallelSyncSetting`: 0 = all at once, 1 = one after the other, 0…10); the next one starts as soon
+  as one finishes. iPhone (Settings › Instances) and Watch (Settings) each show the setting as a stepper ("Unlimited", "3 at a
+  time"). `SyncControl` keeps a worker and a no-progress timer per instance, so a hanging instance does not hold the others
+  back, and the Stop dialog offers "Skip <instance>" for every running or waiting instance.
 
 - **Shifts** (`Features/Shifts`): lists the signed-in user's shifts
   aggregated across every active instance (see "Multi-instance concept"
