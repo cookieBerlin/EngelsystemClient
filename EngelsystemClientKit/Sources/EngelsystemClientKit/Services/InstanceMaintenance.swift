@@ -17,6 +17,15 @@ public extension Instance {
     }
 }
 
+public extension Instance {
+    /// Sets the instance's color (nil = Auto) and saves; the color syncs to the other devices via iCloud.
+    func setColor(_ color: InstancePalette?, in modelContext: ModelContext) {
+        colorKey = color?.rawValue
+        touch()
+        try? modelContext.save()
+    }
+}
+
 public extension NotificationLeadTimeSettings {
     /// A platform's reminder lead times, sorted ascending purely for a stable display
     /// order, falling back to the defaults when that platform has no row yet.

@@ -42,6 +42,10 @@ public final class Instance {
     // to keep that flow simple; the periodic re-check is enough to pick up a server that
     // gains support later.
     public var messagesSupported: Bool = false
+    // The color the user picked for this instance (`InstancePalette` raw value), CloudKit-synced so every
+    // device shows the same. nil is "Auto": `InstancePalette.assignments(for:)` spreads the colors evenly.
+    // A new optional attribute is a lightweight change for the CloudKit schema; older app versions ignore it.
+    public var colorKey: String?
 
     // No relationships to the Cached* models: they live in a separate, local-only
     // ModelConfiguration (see the app targets' ModelContainer setup), and SwiftData

@@ -40,6 +40,17 @@ struct InstanceMaintenanceTests {
         #expect(instance.setActive(true, in: context) == false) // already on: nothing to refresh
     }
 
+    @Test func setColorStoresTheChoiceAndAutoClearsIt() throws {
+        let context = try makeContext()
+        let instance = Instance(name: "I", baseURL: "https://x.test", apiKeyKeychainRef: "r")
+        context.insert(instance)
+        #expect(instance.colorKey == nil)
+        instance.setColor(.purple, in: context)
+        #expect(instance.colorKey == "purple")
+        instance.setColor(nil, in: context)
+        #expect(instance.colorKey == nil)
+    }
+
     @Test func leadTimesAreSortedAndFallBackToTheDefaults() {
         let ios = NotificationLeadTimeSettings(platform: "ios", leadTimesMinutesRaw: "60,15,30")
         #expect(NotificationLeadTimeSettings.leadTimes(for: "ios", in: [ios]) == [15, 30, 60])
