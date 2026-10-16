@@ -418,6 +418,16 @@ exists without reading the whole diff history.
   never signs out. Pull to refresh uses `GET /shifts/{id}` (COMPAT(#1724): 404/403 ⇒ cached shift, no
   error). The detail fields are display-only cache fields on `CachedShift` (the team as one encoded field)
   and never count as a change for the Watch. The Watch is unchanged.
+- **One editable instance page** (2026-10-16): the page of an instance (Settings › Instances › [instance]; same on the Watch) is the
+  only place to edit it — name, server URL and API key are fields on the page (the key blank means "keep the saved key"),
+  followed by Test Connection (optional), status and color, Features, Last Synced and Remove Instance. The former "Edit Instance"
+  sheet is gone. **Save** and **Discard** appear when name, server or key differ from the saved instance; Discard asks for
+  confirmation, and the back button and swipe are blocked until the edits are saved or discarded. Saving does not need a successful
+  test (`InstanceSetupService.applyChanges`); a changed server or key refreshes the instance afterwards. Rules in
+  `InstanceForm` (Kit). A `demo://` address needs no API key: the field is greyed out ("Not needed for demo addresses"), the demo
+  key is stored. In Add Instance "Try Demo Mode" is the first section; saving a new instance still needs a successful test
+  (except demo addresses).
+
 - **Several demo instances** (2026-10-16): any `demo://<host>` address is a demo instance and the host picks the data
   (`DemoScenario`): `demo://engelsystem.local` is the classic data, `demo://congress.local` a second event with its own
   info, shifts, locations and news. Two demo instances with the same host count as one server (two accounts) and are

@@ -105,7 +105,7 @@ there you can also sort **Latest First**. The choice is remembered on this devic
 
 ### Can I try several instances in Demo Mode?
 
-Yes. Add instances with the server address `demo://engelsystem.local` or `demo://congress.local` (any name, any API key). The same address
+Yes. Add instances with the server address `demo://engelsystem.local` or `demo://congress.local` (any name; no API key is needed). The same address
 counts as one server, so shared locations and news are shown once; a different address is a different server. Any other `demo://` address plays a server that offers only News
 and shows one post that lists the addresses that work; every other area stays hidden.
 

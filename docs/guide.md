@@ -25,7 +25,7 @@ account with the app's developer and no tracking (see the [Privacy Policy](priva
 
 ## Try it without an account: Demo Mode
 
-On the first screen tap **Try Demo Mode**. The app fills itself with sample data (shifts, news, a few messages) and makes no
+On the first screen tap **Try Demo Mode** (it is the first block of the form). The app fills itself with sample data (shifts, news, a few messages) and makes no
 network requests. You can leave Demo Mode on, or switch it off and add a real server later in **Settings**.
 
 ## Connect your Engelsystem server
@@ -36,6 +36,8 @@ network requests. You can leave Demo Mode on, or switch it off and add a real se
 2. In the app, on the first screen (or **Settings → Add Instance**), enter a **Name** (anything you like), the **Server**
    address (for example `https://engel.example.org`) and your **API key**.
 3. Tap **Test Connection**. When it says the connection is verified, tap **Save**.
+
+A server address that starts with `demo://` (for example `demo://engelsystem.local`) is a demo instance: it needs no API key, the key field is greyed out.
 
 The API key is stored in the iOS Keychain (synced through iCloud Keychain if you use it) and is only ever sent to the server
 you entered.
@@ -104,8 +106,8 @@ simply not offering it yet (it needs the open Engelsystem change
 
 Settings is a short list of pages; each row shows a summary of its current state.
 
-- **Instances**: all your instances. Use the switch to turn an instance on or off (switching one on refreshes its data right away); tap one to edit its name, server or API key, or to
-  remove it (this also removes the data cached for it). **Multiple Active Instances** chooses how Shifts, News and Profile show
+- **Instances**: all your instances. Use the switch to turn an instance on or off (switching one on refreshes its data right away); tap one to open its page: there you change its name, server or API key right on the page — **Save** and **Discard** (which asks first) appear as soon as
+  something changed, and saving does not need a successful connection test (**Test Connection** is optional) — or remove it (this also removes the data cached for it). **Multiple Active Instances** chooses how Shifts, News and Profile show
   more than one active instance: **Merged** (one list, labeled by instance), **Switcher** (one instance at a time via a control at the
   top) or **Sectioned** (one section per instance, each under a colored band you can tap to fold away). Every instance has a **color** (**Settings → Instances →** the instance → **Color**; "Auto" spreads the colors evenly, a picked color is kept on all your devices). **Parallel Syncs** sets how many instances are refreshed at the same time (Unlimited by default,
   "1 at a time" syncs one after the other); the setting belongs to this device, and the Watch has its own.

@@ -51,6 +51,11 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Messages of several instances in the merged list no longer show the same conversation twice, and keep the instance's badge and
   color edge when only one of the active instances offers Messages.
 
+- An instance has one page for everything: name, server and API key are edited right on it (the separate "Edit Instance" screen
+  is gone). **Save** and **Discard** (with a confirmation) appear once something changed; saving works without a successful
+  connection test. The same on the Apple Watch.
+- Demo addresses (`demo://…`) need no API key any more, and "Try Demo Mode" is the first block when adding an instance.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's
