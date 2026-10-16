@@ -31,11 +31,6 @@ the W tasks alongside, the R tasks when the owner reports a merge.
       `Scripts/screenshots.sh manual` and an extended `Scripts/publish-guide-images.sh` copy them as small PNGs to
       `docs/assets/guide/`; `docs/guide.md` embeds each screen at its place. A checklist in `docs/testing.md` ("new screen =
       new scene") keeps the set complete. Replaces the scenes listed in W-05. Decided 2026-10-16: iPhone and Watch only (iPad only for a screen whose layout differs), English only.
-- [ ] **W-09** Owner action: enable *Private vulnerability reporting* in the repository settings (Settings › Security; `SECURITY.md`
-      and the issue form's security link point at it). Checked 2026-10-16 and deliberately **not** added: `dependabot.yml` (no
-      Swift packages and no GitHub Actions to keep current — add it together with the first of either), `.github/release.yml`
-      (release notes come from `CHANGELOG.md` via `gh release create --notes-file`, see `docs/release.md`) and `CODEOWNERS`
-      (a single contributor). Remove this item once the setting is on.
 - [ ] **W-06** After each R task: delete that PR's row from the compatibility table; at R-13 remove the section (the
       privilege explanation stays).
 
