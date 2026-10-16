@@ -589,22 +589,7 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         openSettingsPage("Instances", in: app)
 
-        // A second (demo) instance.
-        app.buttons["Add Instance"].tap()
-        let name = app.textFields["Name (e.g. 42C3)"]
-        XCTAssertTrue(name.waitForExistence(timeout: 5))
-        name.tap()
-        name.typeText("Second")
-        let server = app.textFields["https://engelsystem.example.org"]
-        server.tap()
-        server.typeText("demo://engelsystem.local")
-        let key = app.secureTextFields["API Key"]
-        key.tap()
-        key.typeText("demo")
-        app.buttons["Test Connection"].tap()
-        XCTAssertTrue(app.staticTexts["Connection Verified"].waitForExistence(timeout: 10))
-        app.buttons["Save"].tap()
-        XCTAssertTrue(app.navigationBars["Instances"].waitForExistence(timeout: 10))
+        addDemoInstance(named: "Second", address: "demo://engelsystem.local", in: app)
 
         // Back to the main list (Instances -> Settings hub -> main list), one tap per level.
         for _ in 0..<3 {
