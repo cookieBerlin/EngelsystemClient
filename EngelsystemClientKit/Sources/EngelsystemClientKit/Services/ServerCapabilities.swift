@@ -204,6 +204,13 @@ public final class ServerCapabilities {
         }
     }
 
+    /// The demo instance has no server to ask: every listed function works there.
+    public func recordDemoInstance(_ instanceID: UUID, now: Date = Date()) {
+        for feature in ServerFeature.listed {
+            record(feature, state: .available, evidence: .probe, for: instanceID, now: now)
+        }
+    }
+
     /// "5 of 8 features available" — the one-line summary shown after "Test Connection".
     public static func summaryText(available: Int, total: Int) -> String {
         "\(available) of \(total) features available"

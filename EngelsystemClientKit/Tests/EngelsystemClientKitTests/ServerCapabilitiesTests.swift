@@ -32,6 +32,13 @@ struct ServerCapabilitiesStoreTests {
         }
     }
 
+    @Test func theDemoInstanceHasEveryListedFunction() {
+        let capabilities = ServerCapabilities(defaults: freshDefaults())
+        let id = UUID()
+        capabilities.recordDemoInstance(id)
+        #expect(capabilities.summary(for: id) == (ServerFeature.listed.count, ServerFeature.listed.count))
+    }
+
     @Test func recordedValuesAreRememberedPerInstanceAndFeature() {
         let capabilities = ServerCapabilities(defaults: freshDefaults())
         let a = UUID(), b = UUID()

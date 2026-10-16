@@ -117,6 +117,23 @@ extension StubbedNetworkTests {
             #expect(viewModel.featureSummary?.hasSuffix("features available") == true)
         }
 
+        @Test @MainActor func verifyFeedsTheInstanceFeatureListOnlyForTheSameServer() async throws {
+            let key = "verify-\(UUID().uuidString)"
+            try LocalKeychainStore().save(apiKey: "demo", for: key)
+            defer { try? LocalKeychainStore().deleteAPIKey(for: key) }
+            let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: key)
+            let capabilities = ServerCapabilities(defaults: UserDefaults(suiteName: "verify-\(UUID().uuidString)")!)
+            let viewModel = EditInstanceViewModel(instance: instance, capabilities: capabilities)
+
+            viewModel.baseURL = Instance.demoBaseURL + "/other"
+            await viewModel.testConnection(for: instance)
+            #expect(capabilities.status(.messages, for: instance.id).state == .unknown)
+
+            viewModel.baseURL = Instance.demoBaseURL
+            await viewModel.testConnection(for: instance)
+            #expect(capabilities.status(.messages, for: instance.id).state == .available)
+        }
+
         @Test @MainActor func editingCanTestOnlyWithAServerURLAndNotWhileTesting() {
             let instance = Instance(name: "I", baseURL: "https://stub.test", apiKeyKeychainRef: "r")
             let viewModel = EditInstanceViewModel(instance: instance)

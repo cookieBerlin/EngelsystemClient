@@ -39,6 +39,8 @@ versioning: [Semantic Versioning](https://semver.org/).
   the Locations area are hidden when a server does not provide them, and shift reminders no longer depend on News or Profile
   syncing successfully.
 - "Test Connection" now also checks a real data request and warns when the account is not allowed to use the API (403).
+- The Features list of the demo instance no longer shows “Not checked yet” for every entry, and “Verify” in Edit Instance
+  now also updates that list with what it found.
 
 ## [0.1.0] - 2026-10-12
 

@@ -42,13 +42,16 @@ final class EditInstanceViewModel {
     private let apiClient: APIClient
     private let setupService: InstanceSetupService
     private let credentialResolver: InstanceCredentialResolver
+    private let capabilities: ServerCapabilities
 
     init(
         instance: Instance,
         apiClient: APIClient = .shared,
         setupService: InstanceSetupService = InstanceSetupService(),
-        credentialResolver: InstanceCredentialResolver = InstanceCredentialResolver()
+        credentialResolver: InstanceCredentialResolver = InstanceCredentialResolver(),
+        capabilities: ServerCapabilities = .shared
     ) {
+        self.capabilities = capabilities
         self.name = instance.name
         self.baseURL = instance.normalizedBaseURL
         self.apiClient = apiClient
@@ -86,7 +89,12 @@ final class EditInstanceViewModel {
                 apiKey: effectiveAPIKey
             )
             _ = try await apiClient.fetchInfo(credential)
-            featureSummary = ServerCapabilities.featureSummary(privileges: await apiClient.ownPrivileges(credential))
+            let privileges = await apiClient.ownPrivileges(credential)
+            featureSummary = ServerCapabilities.featureSummary(privileges: privileges)
+            // The same finding feeds the instance's Features list, as long as it is still the same server.
+            if credential.baseURL == Instance.apiBasePath(for: instance.normalizedBaseURL) {
+                capabilities.applyPrivileges(privileges, for: instance.id)
+            }
             connectionTested = true
         } catch {
             connectionTested = false

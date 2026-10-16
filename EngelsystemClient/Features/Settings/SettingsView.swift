@@ -267,6 +267,9 @@ private struct InstanceDetailView: View {
             }
         }
         .navigationTitle(instance.name)
+        .task {
+            if instance.isDemo { capabilities.recordDemoInstance(instance.id) }
+        }
         .sheet(isPresented: $isPresentingEdit) {
             EditInstanceView(instance: instance)
         }
