@@ -76,3 +76,40 @@ struct InstancePaletteTests {
         #expect(InstancePalette.assignments(for: []).isEmpty)
     }
 }
+
+@MainActor
+struct MergedLocationTests {
+    private func location(_ id: Int, name: String, instance: Instance) -> CachedLocation {
+        CachedLocation(serverID: id, instanceID: instance.id, name: name, locationDescription: "", url: "https://x.test/\(id)")
+    }
+
+    @Test func sameServerAndIDIsOneLocationWithEveryInstanceName() {
+        let a = Instance(name: "Account A", baseURL: "https://one.test/", apiKeyKeychainRef: "a")
+        let b = Instance(name: "Account B", baseURL: "https://one.test", apiKeyKeychainRef: "b")
+        let other = Instance(name: "Other", baseURL: "https://two.test", apiKeyKeychainRef: "o")
+        let locations = [
+            location(1, name: "Heaven", instance: a), location(1, name: "Heaven", instance: b),
+            location(2, name: "Foodcourt", instance: a), location(1, name: "Heaven (other)", instance: other),
+        ]
+        let merged = CachedLocation.mergedAcrossServers(locations, instances: [a, b, other])
+        #expect(merged.map(\.location.name) == ["Heaven", "Foodcourt", "Heaven (other)"])
+        #expect(merged[0].instanceNames == ["Account A", "Account B"])
+        #expect(merged[1].instanceNames == ["Account A"])
+        #expect(merged[2].instanceNames == ["Other"])
+        #expect(merged[0].id == locations[0].uid)
+    }
+
+    @Test func aLocationOfAnUnknownInstanceStaysAloneWithoutAName() {
+        let known = Instance(name: "Known", baseURL: "https://one.test", apiKeyKeychainRef: "k")
+        let stray = CachedLocation(serverID: 1, instanceID: UUID(), name: "Stray", locationDescription: "", url: "u")
+        let merged = CachedLocation.mergedAcrossServers([stray], instances: [known])
+        #expect(merged.count == 1)
+        #expect(merged[0].instanceNames.isEmpty)
+    }
+
+    @Test func theEdgeBelongsToTheOnlyInstanceOfAnEntry() {
+        #expect(InstanceEdge.name(for: ["Home"]) == "Home")
+        #expect(InstanceEdge.name(for: ["Home", "Congress"]) == nil)
+        #expect(InstanceEdge.name(for: []) == nil)
+    }
+}

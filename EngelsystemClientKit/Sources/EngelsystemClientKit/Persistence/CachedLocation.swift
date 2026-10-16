@@ -82,3 +82,46 @@ public extension CachedLocation {
         locations.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 }
+
+// MARK: - Merging across instances
+
+public extension CachedLocation {
+    /// One location that survived `mergedAcrossServers`, with the name of every instance whose own cached copy
+    /// contributed to it.
+    struct MergedItem: Identifiable {
+        public let location: CachedLocation
+        public let instanceNames: [String]
+        public var id: String { location.uid }
+    }
+
+    /// Collapses locations that came from different instances pointing at the same server (two accounts of
+    /// one Engelsystem): they are the same room. The key is the pair (server base URL, `serverID`); the
+    /// first occurrence per key survives, so callers sort first; `instanceNames` collects every instance.
+    static func mergedAcrossServers(_ locations: [CachedLocation], instances: [Instance]) -> [MergedItem] {
+        let baseURLByInstanceID = Dictionary(uniqueKeysWithValues: instances.map { ($0.id, $0.normalizedBaseURL) })
+        let nameByInstanceID = Dictionary(uniqueKeysWithValues: instances.map { ($0.id, $0.name) })
+
+        var order: [String] = []
+        var groupedByKey: [String: [CachedLocation]] = [:]
+        for location in locations {
+            let baseURL = baseURLByInstanceID[location.instanceID] ?? location.instanceID.uuidString
+            let key = "\(baseURL)#\(location.serverID)"
+            if groupedByKey[key] == nil { order.append(key) }
+            groupedByKey[key, default: []].append(location)
+        }
+
+        return order.compactMap { key in
+            guard let group = groupedByKey[key], let representative = group.first else { return nil }
+            let names = group.map { nameByInstanceID[$0.instanceID] ?? "" }.filter { !$0.isEmpty }
+            return MergedItem(location: representative, instanceNames: names)
+        }
+    }
+}
+
+/// The left color edge of a merged row: only when exactly one instance owns the entry. An entry that several
+/// instances share (a merged news post or location) gets no edge, just a badge per instance.
+public enum InstanceEdge {
+    public static func name(for instanceNames: [String]) -> String? {
+        instanceNames.count == 1 ? instanceNames.first : nil
+    }
+}
