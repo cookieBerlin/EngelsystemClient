@@ -35,6 +35,11 @@ the Engelsystem REST API v0-beta.
 Use "Try Demo Mode" on the first screen — it works entirely with
 sample data, no server or account needed.
 
+**An area (Messages, Locations, news comments) is missing.**
+Your server or your account does not offer it (yet); the app hides what is not available. **Settings → Instances →** your
+instance → **Features** shows why. See the [FAQ](faq.md#why-do-i-not-see-comments-locations-or-messages) and the
+[User Guide](guide.md#what-your-instance-offers-the-features-list).
+
 ## Privacy
 
 See the [Privacy Policy](privacy.md) for what data the app handles and

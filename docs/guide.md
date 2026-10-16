@@ -37,6 +37,8 @@ network requests. You can leave Demo Mode on, or switch it off and add a real se
    address (for example `https://engel.example.org`) and your **API key**.
 3. Tap **Test Connection**. When it says the connection is verified, tap **Save**.
 
+![Add Instance](assets/guide/screens/add-instance.png){: width="200"}
+
 A server address that starts with `demo://` (for example `demo://engelsystem.local`) is a demo instance: it needs no API key, the key field is greyed out.
 
 The API key is stored in the iOS Keychain (synced through iCloud Keychain if you use it) and is only ever sent to the server
@@ -51,9 +53,16 @@ syncing — with several active instances one line per instance, each with its s
 ends the sync (after a confirmation) and **Skip** leaves out just that instance. The line at the bottom of the list shows how old each instance's data is
 (tap it to refresh). The gear button opens **Settings**.
 
+![Main screen](assets/guide/screens/main-page.png){: width="200"}
+![Main screen with two instances](assets/guide/screens/main-page-two-instances.png){: width="200"}
+
 ### Shifts
 
 ![Shifts](assets/guide/shifts.png){: width="240"}
+
+![Filter and sort menu](assets/guide/screens/shifts-filter-and-sort-menu.png){: width="200"}
+![Shift details](assets/guide/screens/shift-detail.png){: width="200"}
+![Location opened from a shift](assets/guide/screens/location-detail-from-shift.png){: width="200"}
 
 Your shifts, grouped by day ("Today", "Tomorrow", …). Each shift shows its time and location; tap the location to read its
 description. Pull down to refresh. A small badge shows which instance a shift belongs to when you use several.
@@ -72,6 +81,9 @@ shift.
 
 ![News](assets/guide/news.png){: width="240"}
 
+![Expanded news post](assets/guide/screens/news-expanded.png){: width="200"}
+![News comments](assets/guide/screens/news-comments.png){: width="200"}
+
 Announcements from the instance. Pinned posts come first. Tap **Read More** to expand long posts and the **comments** link to
 read the discussion. The filter button at the top shows only **Meetings** or only other posts.
 
@@ -87,6 +99,8 @@ added by hand; hours from your shifts are not part of that list.
 
 ![Locations](assets/guide/locations.png){: width="240"}
 
+![Location details](assets/guide/screens/location-detail.png){: width="200"}
+
 All rooms and places of the instance with their descriptions. Tap one for details such as a DECT number and a link to the map. The map page is shown right inside the location screen (almost full screen, loaded fresh each time) with an **Open Map in Browser**
 button. The map page's cookies (for example your consent) stay on your device; the app deletes them every 30 days by default (or keeps them only until you quit the app, if you choose that); in **Settings › Privacy** you can change that, delete them yourself or
 switch to a plain link.
@@ -94,6 +108,9 @@ switch to a plain link.
 ### Messages
 
 ![Messages](assets/guide/messages.png){: width="240"}
+
+![A conversation](assets/guide/screens/conversation.png){: width="200"}
+![New message](assets/guide/screens/new-message.png){: width="200"}
 
 Private messages with other helpers. Tap the compose button to start a conversation, tap a conversation to read and reply.
 The **Messages** area only appears if at least one of your active servers supports it; if you do not see it, your server is
@@ -106,11 +123,30 @@ simply not offering it yet (it needs the open Engelsystem change
 
 Settings is a short list of pages; each row shows a summary of its current state.
 
+![Instances](assets/guide/screens/settings-instances.png){: width="160"}
+![An instance](assets/guide/screens/instance-page.png){: width="160"}
+![An instance's Features list](assets/guide/screens/instance-features.png){: width="160"}
+![Notifications](assets/guide/screens/settings-notifications.png){: width="160"}
+![Sync](assets/guide/screens/settings-sync.png){: width="160"}
+![Phone Numbers](assets/guide/screens/settings-phone-numbers.png){: width="160"}
+![Privacy](assets/guide/screens/settings-privacy.png){: width="160"}
+![Diagnostics](assets/guide/screens/settings-diagnostics.png){: width="160"}
+![Export Diagnostics](assets/guide/screens/export-diagnostics.png){: width="160"}
+![Debug Log](assets/guide/screens/debug-log.png){: width="160"}
+![About](assets/guide/screens/settings-about.png){: width="160"}
+
 - **Instances**: all your instances. Use the switch to turn an instance on or off (switching one on refreshes its data right away); tap one to open its page: there you change its name, server or API key right on the page — **Save** and **Discard** (which asks first) appear as soon as
   something changed, and saving does not need a successful connection test (**Test Connection** is optional) — or remove it (this also removes the data cached for it). **Multiple Active Instances** chooses how Shifts, News and Profile show
   more than one active instance: **Merged** (one list, labeled by instance), **Switcher** (one instance at a time via a control at the
   top) or **Sectioned** (one section per instance, each under a colored band you can tap to fold away). Every instance has a **color** (**Settings → Instances →** the instance → **Color**; "Auto" spreads the colors evenly, a picked color is kept on all your devices). **Parallel Syncs** sets how many instances are refreshed at the same time (Unlimited by default,
   "1 at a time" syncs one after the other); the setting belongs to this device, and the Watch has its own.
+
+![Two instances](assets/guide/screens/settings-instances-two.png){: width="160"}
+![Shifts, sectioned](assets/guide/screens/shifts-sectioned.png){: width="160"}
+![Shifts, merged](assets/guide/screens/shifts-merged.png){: width="160"}
+![Locations, merged](assets/guide/screens/locations-merged.png){: width="160"}
+![News, sectioned](assets/guide/screens/news-sectioned.png){: width="160"}
+![Locations, sectioned](assets/guide/screens/locations-sectioned.png){: width="160"}
 - **Notifications**: the reminder times before each shift ("15 min", …). **Add Reminder** adds more, the red button removes
   one. **Notify on New News** posts a notification when a background sync finds new announcements. **Apple Watch Reminders**
   is the same for your Watch, independently of the iPhone list.
@@ -131,13 +167,37 @@ Settings is a short list of pages; each row shows a summary of its current state
 
 ![Next Shift on Apple Watch](assets/guide/watch-next-shift.png){: width="160"}
 ![Watch settings](assets/guide/watch-settings.png){: width="160"}
+![Watch: Instances](assets/guide/screens/watch-settings-instances.png){: width="140"}
+![Watch: Notifications](assets/guide/screens/watch-settings-notifications.png){: width="140"}
+![Watch: Sync](assets/guide/screens/watch-settings-sync.png){: width="140"}
+![Watch: Diagnostics](assets/guide/screens/watch-settings-diagnostics.png){: width="140"}
+![Watch: About](assets/guide/screens/watch-settings-about.png){: width="140"}
 
 The Watch app shows only your **next shift** (name, time, location) and works on its own, without the iPhone nearby. Its
-**Settings** let you switch instances on or off, add an instance directly on the Watch, and set the Watch's reminder times.
+**Settings** are a list of pages like the iPhone's: **Instances** (switch instances on or off, add one directly on the Watch, Parallel Syncs), **Notifications** (the Watch's own reminder times), **Sync**, **Diagnostics** (its own debug logging switch and **Send Log to iPhone**) and **About**.
 Your instances are shared between iPhone and Watch through iCloud.
 
 To add the **complication**: on the Watch, touch and hold the watch face, tap **Edit**, choose a complication slot and pick
 **Next Shift** (circular, rectangular and inline styles are available).
+
+## What your instance offers: the Features list
+
+Not every Engelsystem server and not every account can use everything. The app finds out for each instance and keeps a **Features
+list**: **Settings → Instances →** the instance → **Features**. Every row is one function (Shifts, News, News comments, Locations,
+Location details, Messages, Work logs, Angel types, and the extra details of shifts) with one of three states:
+
+- **Available** — the server offers it and your account may use it.
+- **Not allowed for your account** — the server offers it but your account lacks a privilege; the row names the privilege when the
+  server tells (for example `locations.view`). Ask the people who run your instance, or see [Server compatibility](#server-compatibility).
+- **Not offered by the server** — the server does not have the function (yet).
+
+Each row also says when it was checked. The list is learned from the server's answers during every sync and by **Test Connection**; it
+belongs to this device and is not synced. While everything works the list is folded to one line ("11 of 11 features available"; tap it
+to open it); as soon as something is missing it opens by itself, problems first. Areas that are not available are **hidden quietly**:
+no error, no empty screens. Demo Mode offers everything, except the `demo://` address that only has News on purpose. See also the
+[FAQ](faq.md#where-can-i-see-what-my-account-may-use).
+
+![An instance's Features list](assets/guide/screens/instance-features.png){: width="200"}
 
 ## Server compatibility
 

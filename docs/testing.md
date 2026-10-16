@@ -152,6 +152,14 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
 - **`-skipNotificationPrompt YES`** (Debug builds only, honoured by `NotificationScheduler`): skips the notification permission
   prompt; used for the Watch screenshot. **`ScreenshotTests`** is not a regression test — run it through
   `Scripts/screenshots.sh` (see `app-store.md`).
+- **`ManualScreenshotTests`** (2026-10-16) is the second screenshot class: every iPhone screen once for the guide
+  (`Scripts/screenshots.sh manual` → `Screenshots/manual/iphone/en/NN-<name>.png`, plus the Watch's Settings pages via the
+  Debug-only `-open-settings -open-settings-page <Instances|Notifications|Sync|Diagnostics|About>` arguments into
+  `Screenshots/manual/watch/en/`; `Scripts/publish-guide-images.sh` turns them into `docs/assets/guide/screens/`). **A new
+  screen needs a new scene in `ManualScreenshotTests` and its image in `guide.md`.** A scene whose screen cannot be reached is
+  skipped, so after a run check the count and look at the images. The test passes `-reset-instances` (earlier runs leave a
+  second instance behind) and waits for the first sync. Not captured: the open color menu of an instance (system menus are not
+  in the accessibility tree here), the Watch's instance page.
 
 ## Compatibility matrix (ADR 0015)
 

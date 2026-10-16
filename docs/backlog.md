@@ -17,20 +17,6 @@ the W tasks alongside, the R tasks when the owner reports a merge.
 
 ### Website (GitHub Pages; each step its own commit)
 
-- [ ] **W-03** With K-11: "Instance features" in the guide, FAQ entries ("Why is an area missing?", "What may my account
-      do?"), privacy and support pages.
-- [ ] **W-05** Screenshots: new scenes (main screen with groups, shift detail, settings hub, features list) in
-      `ScreenshotTests`/`Scripts/screenshots.sh`/`Scripts/publish-guide-images.sh`; refresh `docs/assets/guide/`. The main
-      screen and settings first (after W-02), shift detail after S-04, features list after K-11.
-- [ ] **W-07** Manual screenshots of **every screen** (planned 2026-10-16), separate from the App Store set: a second UI test
-      `ManualScreenshotTests` (demo data, same simulator preparation) walks every screen — main page, each area (shifts incl.
-      filter/sort menu and shift detail, news incl. article and comments, profile, locations incl. detail, messages list,
-      conversation and new message), Settings hub and every sub-page (Instances, instance page incl. Features list, Add Instance,
-      Notifications, Sync, Phone Numbers, Privacy, Diagnostics incl. Watch logs, About), the multi-instance views (sectioned/
-      merged, color picker) and the Watch (next shift, settings hub and sub-pages). Output `Screenshots/manual/<device>/NN-<name>.png`;
-      `Scripts/screenshots.sh manual` and an extended `Scripts/publish-guide-images.sh` copy them as small PNGs to
-      `docs/assets/guide/`; `docs/guide.md` embeds each screen at its place. A checklist in `docs/testing.md` ("new screen =
-      new scene") keeps the set complete. Replaces the scenes listed in W-05. Decided 2026-10-16: iPhone and Watch only (iPad only for a screen whose layout differs), English only.
 - [ ] **W-06** After each R task: delete that PR's row from the compatibility table; at R-13 remove the section (the
       privilege explanation stays).
 

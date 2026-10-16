@@ -44,6 +44,10 @@ profile, or any other data you access through the app.
   removed together with the instance. The “Sign out in browser” button
   only opens the shift's page in your default browser — the app does
   not sign you out itself.
+- **What your account may use**: the app asks your server which privileges your account has (the list the server returns with
+  your own user data) and notes, per instance, which functions are available. This result stays on the device where it was
+  determined (it is not synced and not sent anywhere except by asking that same server again on the next sync); it is shown in
+  Settings → Instances → your instance → Features.
 - **Private messages** (on servers that support this feature): fetched
   live from the Engelsystem server each time you open a conversation —
   not cached or stored by the app at all.

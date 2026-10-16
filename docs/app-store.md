@@ -157,7 +157,7 @@ both added via the `xcodeproj` Ruby gem, not by hand-editing
 
 ## Screenshots
 
-`Scripts/screenshots.sh [iphone|ipad|watch|all]` generates every App Store screenshot from Demo Mode into
+`Scripts/screenshots.sh [iphone|ipad|watch|all|manual]` (`manual` = every screen for the guide, see `testing.md`) generates every App Store screenshot from Demo Mode into
 `Screenshots/<device>/en/NN-<scene>.png` (git-ignored); design and rationale in
 [ADR 0011](adr/0011-native-tooling-for-app-store-screenshots.md). It creates and uses its own simulators, sets English (US),
 light appearance and the 9:41 status bar, runs the scenes on a fresh install, verifies the exact pixel size and fails if a
@@ -177,7 +177,7 @@ Sizes checked against App Store Connect's "Screenshot specifications" on 2026-10
   `simctl io screenshot`. Both launch arguments do nothing in Release builds.
 - **Guide images**: `Scripts/publish-guide-images.sh` copies small versions of these screenshots into `docs/assets/guide/` for the
   published [user guide](guide.md); rerun it (after `Scripts/screenshots.sh`) whenever the UI or the demo data changes visibly and
-  commit the result.
+  commit the result. It also publishes the manual set (every screen, `Screenshots/manual/`) as `docs/assets/guide/screens/`.
 - **Known cosmetics**: the Watch shows the real time; the iPad shows its windowing chrome (app name in the status bar, a
   window handle in the lower right corner); some screens show "Last Synced: …".
 - **Gotchas**: build with normal simulator signing (never `CODE_SIGNING_ALLOWED=NO`); the first sync's notification prompt only

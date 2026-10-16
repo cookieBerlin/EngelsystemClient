@@ -1288,3 +1288,10 @@ Details and the full register: [`architecture.md`](architecture.md#compatibility
 - **Log on Apple Watch**: the wish travels in the application context (merged `WatchContextState`, so shift nudges, requests and the switch do not
   overwrite each other); the newer change wins (`DebugLog.apply`), the Watch reports its state back (`WatchLogReport`) and the status line compares
   wish and report (`WatchLoggingStatus`).
+
+## Screenshots of every screen (2026-10-16)
+- `ManualScreenshotTests` (iPhone, Demo Mode, English) captures every screen once — main page, each area with its detail
+  pages, the Settings hub and every page, Add Instance, the multi-instance views (Sectioned, Merged) — and the Watch's Settings
+  pages are captured through the Debug-only `-open-settings-page` launch argument (`DemoSeeding.settingsPage`).
+  `Scripts/screenshots.sh manual` writes `Screenshots/manual/`, `Scripts/publish-guide-images.sh` copies small versions to
+  `docs/assets/guide/screens/`, and `docs/guide.md` embeds them next to the text. Shared helpers: `ScreenshotTestCase`.
