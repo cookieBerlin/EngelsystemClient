@@ -74,7 +74,8 @@ final class ScreenshotTests: XCTestCase {
         XCTAssertTrue(settingsButton.waitForExistence(timeout: 10))
         settingsButton.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Demo"].firstMatch.waitForExistence(timeout: 10))
+        // Settings is a hub of topics (Instances, Notifications, …), each with a summary line.
+        XCTAssertTrue(app.staticTexts["Instances"].firstMatch.waitForExistence(timeout: 10))
         capture("06-settings")
     }
 
