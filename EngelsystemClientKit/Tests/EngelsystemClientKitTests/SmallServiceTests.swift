@@ -29,6 +29,17 @@ struct APIErrorTests {
         #expect(APIError.decoding("bad").userMessage.contains("bad"))
     }
 
+    @Test func decodingFailuresNameTheFieldButNeverTheData() {
+        func context(_ path: [CodingKey] = []) -> DecodingError.Context { .init(codingPath: path, debugDescription: "secret") }
+        let mismatch = APIError.describe(.typeMismatch(Int.self, context([AnyKey("data"), AnyKey("id")])))
+        #expect(mismatch == "wrong type at data.id (expected Int)")
+        #expect(APIError.describe(.valueNotFound(String.self, context([AnyKey(2)]))) == "empty value at [2] (expected String)")
+        #expect(APIError.describe(.keyNotFound(AnyKey("a"), context())) == "missing field “a” at the response")
+        let corrupted = APIError.describe(.dataCorrupted(context()))
+        #expect(corrupted.hasPrefix("invalid data"))
+        #expect(!corrupted.contains("secret"))
+    }
+
     @Test func initializerMapsErrorResponsesAndOtherErrors() {
         func response(_ code: Int, underlying: Error = Other()) -> Error {
             ErrorResponse.error(code, nil, nil, underlying)
@@ -39,8 +50,9 @@ struct APIErrorTests {
         #expect(APIError(response(403)) == .forbidden)
         #expect(APIError(response(404)) == .notFound)
         #expect(APIError(response(500)) == .server(statusCode: 500))
-        let decoding = DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "x"))
-        #expect(APIError(response(200, underlying: decoding)) == .decoding(decoding.localizedDescription))
+        let decoding = DecodingError.keyNotFound(
+            AnyKey("url"), .init(codingPath: [AnyKey("data"), AnyKey(0), AnyKey("location")], debugDescription: "x"))
+        #expect(APIError(response(200, underlying: decoding)) == .decoding("missing field “url” at data[0].location"))
         if case .network = APIError(Other()) {} else { Issue.record("expected .network") }
     }
 }
@@ -149,4 +161,13 @@ struct LocationSyncRefreshTests {
         #expect(again.uid == inserted.uid)
         #expect(try context.fetch(FetchDescriptor<CachedLocation>()).count == 1)
     }
+}
+
+private struct AnyKey: CodingKey {
+    var stringValue: String
+    var intValue: Int?
+    init(_ string: String) { stringValue = string }
+    init(_ int: Int) { stringValue = "\(int)"; intValue = int }
+    init?(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { self.init(intValue) }
 }

@@ -356,7 +356,7 @@ components:
           # COMPAT(#1722): local divergence — new optional field.
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/Reference'
         talk_url:
           # COMPAT(#1722): local divergence — new optional field.
           type: string

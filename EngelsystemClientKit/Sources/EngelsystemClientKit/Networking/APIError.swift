@@ -79,12 +79,33 @@ extension APIError {
             case 404:
                 self = .notFound
             default:
-                if underlying is DecodingError {
-                    self = .decoding(underlying.localizedDescription)
+                if let decodingError = underlying as? DecodingError {
+                    self = .decoding(Self.describe(decodingError))
                 } else {
                     self = .server(statusCode: statusCode)
                 }
             }
+        }
+    }
+}
+
+extension APIError {
+    /// Where a response did not match the schema — the coding path and kind only, never the data
+    /// itself, so it is safe to log and show.
+    static func describe(_ error: DecodingError) -> String {
+        func path(_ context: DecodingError.Context) -> String {
+            let text = context.codingPath.map { $0.intValue.map { "[\($0)]" } ?? ".\($0.stringValue)" }.joined()
+            return text.isEmpty ? "the response" : String(text.drop(while: { $0 == "." }))
+        }
+        switch error {
+        case let .keyNotFound(key, context):
+            return "missing field “\(key.stringValue)” at \(path(context))"
+        case let .typeMismatch(type, context):
+            return "wrong type at \(path(context)) (expected \(type))"
+        case let .valueNotFound(type, context):
+            return "empty value at \(path(context)) (expected \(type))"
+        default:
+            return "invalid data (\(error.localizedDescription))"
         }
     }
 }

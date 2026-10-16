@@ -100,7 +100,7 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
             id: 7, name: "Desk", description: "Help", startsAt: start, endsAt: start.addingTimeInterval(3600),
             location: Reference(id: 1, name: "Heaven"),
             shiftType: ShiftTypeReference(id: 2, name: "Info Desk", description: description),
-            signOutUntil: until, signupAvailableFrom: nil, tags: ["quiet"], talkUrl: "https://talk.test/1",
+            signOutUntil: until, signupAvailableFrom: nil, tags: [Reference(id: 1, name: "quiet")], talkUrl: "https://talk.test/1",
             nightShift: true, scheduleGuid: nil, createdAt: nil, updatedAt: nil, neededAngelTypes: team,
             url: "https://example.org/shifts/7")
     }

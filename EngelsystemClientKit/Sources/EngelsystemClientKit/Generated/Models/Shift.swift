@@ -27,7 +27,7 @@ public struct Shift: Codable, JSONEncodable, Hashable {
     public var signOutUntil: Date?
     /** DateTime in ISO-8601 format */
     public var signupAvailableFrom: Date?
-    public var tags: [String]?
+    public var tags: [Reference]?
     public var talkUrl: String?
     public var nightShift: Bool?
     /** schedule.xml event guid */
@@ -41,7 +41,7 @@ public struct Shift: Codable, JSONEncodable, Hashable {
     /** Direct link to the shift */
     public var url: String
 
-    public init(id: Int, name: String, description: String, startsAt: Date, endsAt: Date, location: Reference, shiftType: ShiftTypeReference, signOutUntil: Date? = nil, signupAvailableFrom: Date? = nil, tags: [String]? = nil, talkUrl: String? = nil, nightShift: Bool? = nil, scheduleGuid: UUID?, createdAt: Date?, updatedAt: Date?, neededAngelTypes: [NeededAngelType], url: String) {
+    public init(id: Int, name: String, description: String, startsAt: Date, endsAt: Date, location: Reference, shiftType: ShiftTypeReference, signOutUntil: Date? = nil, signupAvailableFrom: Date? = nil, tags: [Reference]? = nil, talkUrl: String? = nil, nightShift: Bool? = nil, scheduleGuid: UUID?, createdAt: Date?, updatedAt: Date?, neededAngelTypes: [NeededAngelType], url: String) {
         self.id = id
         self.name = name
         self.description = description

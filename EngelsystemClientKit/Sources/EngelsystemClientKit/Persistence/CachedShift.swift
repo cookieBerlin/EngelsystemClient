@@ -115,7 +115,7 @@ public extension CachedShift {
             shiftTypeDescription: shift.shiftType.description,
             signOutUntil: shift.signOutUntil,
             signupAvailableFrom: shift.signupAvailableFrom,
-            tags: shift.tags ?? [],
+            tags: shift.tags?.compactMap(\.name) ?? [],
             talkURL: shift.talkUrl,
             nightShift: shift.nightShift,
             teamData: Self.encodeTeam(shift.neededAngelTypes)
@@ -161,7 +161,7 @@ public extension CachedShift {
         shiftTypeDescription = shift.shiftType.description
         signOutUntil = shift.signOutUntil
         signupAvailableFrom = shift.signupAvailableFrom
-        tags = shift.tags ?? []
+        tags = shift.tags?.compactMap(\.name) ?? []
         talkURL = shift.talkUrl
         nightShift = shift.nightShift
         teamData = Self.encodeTeam(shift.neededAngelTypes)

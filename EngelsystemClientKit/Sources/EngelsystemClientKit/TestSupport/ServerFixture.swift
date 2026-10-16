@@ -148,7 +148,7 @@ public struct ServerFixture: Sendable {
                 type["description"] = "What this shift is about."
                 shift["sign_out_until"] = "2026-12-27T08:00:00+01:00"
                 shift["signup_available_from"] = NSNull()
-                shift["tags"] = [String]()
+                shift["tags"] = [["id": 1, "name": "TestTag"]]
                 shift["talk_url"] = NSNull()
                 shift["night_shift"] = false
             } else {
