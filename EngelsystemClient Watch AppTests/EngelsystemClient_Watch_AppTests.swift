@@ -126,6 +126,18 @@ struct WatchShiftsSyncCoordinatorTests {
         #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 7)
     }
 
+    /// A freshly activated instance is refreshed alone, but the reminders and the complication
+    /// are computed over every active instance.
+    @Test @MainActor func refreshOfOneInstanceCanPlanOverAllActiveInstances() async throws {
+        let context = try makeInMemoryContext()
+        let instance = try seedDemoInstance(in: context)
+        let coordinator = makeTestCoordinator()
+
+        await coordinator.refresh(instances: [instance], in: context, handleNotifications: false, allActive: [instance])
+
+        #expect(try context.fetch(FetchDescriptor<CachedShift>()).count == 7)
+    }
+
     @Test @MainActor func refreshDoesNothingWhenInstancesIsEmpty() async throws {
         let context = try makeInMemoryContext()
         let coordinator = makeTestCoordinator()

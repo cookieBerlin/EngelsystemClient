@@ -99,7 +99,7 @@ simply not offering it yet (it needs the open Engelsystem change
 
 Settings is a short list of pages; each row shows a summary of its current state.
 
-- **Instances**: all your events. Use the switch to turn an event on or off; tap one to edit its name, server or API key, or to
+- **Instances**: all your events. Use the switch to turn an event on or off (switching one on refreshes its data right away); tap one to edit its name, server or API key, or to
   remove it (this also removes the data cached for it). **Multiple Active Instances** chooses how Shifts, News and Profile show
   more than one active event: **Merged** (one list, labeled by event), **Switcher** (one event at a time via a control at the
   top) or **Sectioned** (one section per event).

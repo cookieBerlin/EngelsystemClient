@@ -53,7 +53,12 @@ final class WatchShiftsSyncCoordinator {
     /// tests that inject a fake notification center (see that parameter's doc comment on
     /// `AppSyncCoordinator` for why no fake can honestly stand in for
     /// `UNUserNotificationCenter.notificationSettings()`).
-    func refresh(instances: [Instance], in modelContext: ModelContext, handleNotifications: Bool = true) async {
+    /// `allActive`: when only some instances are refreshed (one just switched on), the reminders and
+    /// the complication are still computed over all active instances.
+    func refresh(
+        instances: [Instance], in modelContext: ModelContext, handleNotifications: Bool = true,
+        allActive: [Instance]? = nil
+    ) async {
         guard !instances.isEmpty else { return }
         guard !isRefreshing else {
             DebugLog.log("WatchShiftsSyncCoordinator: refresh already in flight — skipping")
@@ -67,10 +72,11 @@ final class WatchShiftsSyncCoordinator {
             instances: instances,
             in: modelContext,
             shiftsOnly: true,
-            handleNotifications: handleNotifications
+            handleNotifications: handleNotifications,
+            reminderInstances: allActive
         )
 
-        let instanceIDs = Set(instances.map(\.id))
+        let instanceIDs = Set((allActive ?? instances).map(\.id))
         let allShifts = [try? modelContext.fetch(FetchDescriptor<CachedShift>())].compactMap { $0 }.flatMap { $0 }
             .filter { instanceIDs.contains($0.instanceID) }
         WatchComplicationUpdater.refresh(shifts: allShifts, store: snapshotStore)

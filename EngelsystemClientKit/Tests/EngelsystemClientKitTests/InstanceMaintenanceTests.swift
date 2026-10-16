@@ -33,10 +33,11 @@ struct InstanceMaintenanceTests {
         let context = try makeContext()
         let instance = Instance(name: "I", baseURL: "https://x.test", apiKeyKeychainRef: "r")
         context.insert(instance)
-        instance.setActive(false, in: context)
+        #expect(instance.setActive(false, in: context) == false)
         #expect(!instance.isActive)
-        instance.setActive(true, in: context)
+        #expect(instance.setActive(true, in: context)) // switched on: the caller refreshes it
         #expect(instance.isActive)
+        #expect(instance.setActive(true, in: context) == false) // already on: nothing to refresh
     }
 
     @Test func leadTimesAreSortedAndFallBackToTheDefaults() {

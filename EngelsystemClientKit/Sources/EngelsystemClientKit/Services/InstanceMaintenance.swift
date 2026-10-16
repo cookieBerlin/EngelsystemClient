@@ -4,11 +4,16 @@ import SwiftData
 /// Instance bookkeeping that the Settings screens (iOS and Watch) used to do inline in
 /// their views — extracted so it is shared between both and covered by unit tests.
 public extension Instance {
-    /// Activates/deactivates this instance and saves immediately (no connection test).
-    func setActive(_ isActive: Bool, in modelContext: ModelContext) {
+    /// Activates/deactivates this instance and saves immediately (no connection test). Returns
+    /// whether the instance was just switched **on** — the caller then refreshes it, because its
+    /// cache may be old.
+    @discardableResult
+    func setActive(_ isActive: Bool, in modelContext: ModelContext) -> Bool {
+        let wasActive = self.isActive
         self.isActive = isActive
         touch()
         try? modelContext.save()
+        return isActive && !wasActive
     }
 }
 

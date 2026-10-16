@@ -35,6 +35,8 @@ struct MainView: View {
     @State private var selection: Section?
     @Environment(\.modelContext) private var modelContext
     @State private var syncStatus = MainSyncStatus()
+    /// Syncs of freshly activated instances and of tapped footer rows run one after the other.
+    @State private var instanceSyncQueue = InstanceSyncQueue()
 
     init(instances: [Instance]) {
         self.instances = instances
@@ -231,6 +233,11 @@ struct MainView: View {
                             }
                         }
                     }
+                    // How old each active instance's data is; a tap refreshes that instance.
+                    SwiftUI.Section {
+                    } footer: {
+                        InstanceFreshnessFooter(instances: activeInstances, onRefresh: syncInstance)
+                    }
                 }
             }
             .navigationTitle(Self.navigationTitle(forActiveInstances: activeInstances))
@@ -265,7 +272,7 @@ struct MainView: View {
                         // COMPAT(#1720)
                         MessagesView(instances: activeInstances.filter(\.messagesSupported), syncStatus: syncStatus, onUnauthorized: goToSettings)
                     case .settings:
-                        SettingsView(instances: instances)
+                        SettingsView(instances: instances, onInstanceActivated: syncInstance)
                     }
                 } else {
                     // Nothing chosen, or the chosen section is not available (iPad/Mac-style wide
@@ -324,6 +331,21 @@ struct MainView: View {
                 in: modelContext,
                 onProgress: onProgress
             )
+        }
+    }
+
+    /// Refreshes one instance with the same banner as every other full sync — after it was switched on
+    /// in Settings (its cache may be old) or when its row in the footer was tapped.
+    private func syncInstance(_ instance: Instance) {
+        instanceSyncQueue.enqueue(instance) { instance in
+            await syncStatus.runCoordinated { onProgress in
+                await AppSyncCoordinator().syncEverything(
+                    instances: [instance],
+                    in: modelContext,
+                    reminderInstances: activeInstances,
+                    onProgress: onProgress
+                )
+            }
         }
     }
 

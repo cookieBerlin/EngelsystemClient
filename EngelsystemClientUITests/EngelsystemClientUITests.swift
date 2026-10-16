@@ -388,6 +388,11 @@ final class EngelsystemClientUITests: XCTestCase {
             reactivateToggle.tap()
             XCTAssertEqual(reactivateToggle.value as? String, "1")
         }
+
+        // The main page's footer shows how fresh the instance's data is, and the switch refreshed it.
+        goBack(app) // Settings hub
+        goBack(app) // sidebar
+        XCTAssertTrue(app.buttons["freshness-Demo"].waitForExistence(timeout: 10))
     }
 
     /// 2026-09-22, user-reported (twice): tapping "Read More" on a News row was also

@@ -156,6 +156,29 @@ extension StubbedNetworkTests {
             #expect(!center.added.isEmpty)
         }
 
+        /// Syncing just one instance (one switched on in Settings) must not cancel the others' reminders.
+        @Test func syncingOneInstanceKeepsTheRemindersOfTheOthers() async throws {
+            try StubURLProtocol.route("GET \(prefix)/users/self/shifts", data: DemoData.shifts)
+            let context = try makeContext()
+            let first = stubInstance()
+            let second = stubInstance()
+            context.insert(first)
+            context.insert(second)
+            let coordinator = coordinator()
+
+            await coordinator.syncEverything(instances: [first, second], in: context, shiftsOnly: true)
+            let both = center.added.count
+            #expect(both > 0)
+
+            await coordinator.syncEverything(
+                instances: [first], in: context, shiftsOnly: true, reminderInstances: [first, second])
+            #expect(center.added.count == both)
+
+            // Without the hint only the synced instance's shifts are planned, as before.
+            await coordinator.syncEverything(instances: [first], in: context, shiftsOnly: true)
+            #expect(center.added.count < both)
+        }
+
         @Test func aCancelledSyncDoesNotCountAsAFailure() async throws {
             let context = try makeContext()
             let instance = stubInstance()

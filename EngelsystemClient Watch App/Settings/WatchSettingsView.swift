@@ -165,7 +165,9 @@ struct WatchSettingsView: View {
     }
 
     private func setActive(_ instance: Instance, isActive: Bool) {
-        instance.setActive(isActive, in: modelContext)
+        // A freshly activated instance may have an old cache: refresh it right away.
+        guard instance.setActive(isActive, in: modelContext) else { return }
+        Task { await WatchShiftsSyncCoordinator.shared.refresh(instances: [instance], in: modelContext, allActive: instances.filter(\.isActive)) }
     }
 
     private func delete(_ instance: Instance) {

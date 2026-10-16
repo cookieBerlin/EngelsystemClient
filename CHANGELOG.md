@@ -20,6 +20,11 @@ versioning: [Semantic Versioning](https://semver.org/).
   link. The map page's cookies, such as a consent, are kept on the device apart from Safari; They are deleted automatically every 30 days
   (changeable, or kept only until the app quits) and Settings › Privacy › Delete Map Website Data removes them at once.
 
+- The main list shows at the bottom how old each active event's data is (grey below 12 hours, an orange warning from 12 hours, red when
+  nothing was loaded yet); tap a line to refresh that event.
+- Switching an event on in Settings now refreshes it right away (on the iPhone and on the Watch), instead of showing old data until
+  the next sync.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's

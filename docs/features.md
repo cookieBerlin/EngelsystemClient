@@ -418,6 +418,16 @@ exists without reading the whole diff history.
   never signs out. Pull to refresh uses `GET /shifts/{id}` (COMPAT(#1724): 404/403 ⇒ cached shift, no
   error). The detail fields are display-only cache fields on `CachedShift` (the team as one encoded field)
   and never count as a change for the Watch. The Watch is unchanged.
+- **Instance freshness and refresh on activation** (2026-10-16): the footer of the main list
+  (`InstanceFreshnessFooter`) shows per active instance how old its cached data is — grey with a check mark below 12 hours,
+  orange with a warning triangle from 12 hours on, red with a warning triangle when nothing was ever synced; the instance's name
+  leads the text only when several instances are active. Tapping a row refreshes that instance (full sync with the progress
+  banner). Switching an instance **on** in Settings refreshes it right away (iOS: full sync; Watch: shifts), because its cache
+  may be old; syncs queued this way run one after the other (`InstanceSyncQueue`). Reminders and the complication are planned
+  over all active instances' cached shifts (`reminderInstances` / `allActive`), so refreshing one instance never cancels the
+  others'. A change made on the other device reaches the Watch through the existing CloudKit remote-change refresh. Logic and
+  texts: `InstanceFreshness` and `Instance.setActive` (returns whether it was just switched on) in the Kit.
+
 - **Shifts** (`Features/Shifts`): lists the signed-in user's shifts
   aggregated across every active instance (see "Multi-instance concept"
   above for `MultiInstanceDisplayMode`). `ShiftsViewModel.refresh(instances:

@@ -78,6 +78,12 @@ version (see the **Features** list of the instance).
 
 Use the back button at the top left of any screen. The app starts on the main list, or on the last area you used.
 
+### What does the line at the bottom of the main list mean?
+
+It shows how old the saved data of each active event is. Grey with a check mark means less than 12 hours; orange with a warning triangle
+means 12 hours or more; red means nothing was loaded yet. Tap a line to refresh that event. Switching an event on in Settings refreshes it
+automatically, so you do not see old data for long.
+
 ### How do I remove an event and its data?
 
 **Settings →** tap the event **→ Remove Instance**. This deletes the saved API key and everything cached for that event on this

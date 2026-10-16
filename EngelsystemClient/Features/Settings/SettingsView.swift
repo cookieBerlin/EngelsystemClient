@@ -8,6 +8,8 @@ import EngelsystemClientKit
 /// `MainView`'s `NavigationSplitView`/`NavigationStack`, so it is a plain pushed list.
 struct SettingsView: View {
     let instances: [Instance]
+    /// Called when an instance was switched on, so the caller can refresh its (possibly old) cache.
+    var onInstanceActivated: (Instance) -> Void = { _ in }
 
     @AppStorage(DeviceSyncPreferences.pollingIntervalUserDefaultsKey)
     private var pollingIntervalMinutes: Int = PollingInterval.manual.rawValue
@@ -20,7 +22,7 @@ struct SettingsView: View {
     var body: some View {
         List {
             NavigationLink {
-                InstancesSettingsView(instances: instances)
+                InstancesSettingsView(instances: instances, onActivated: onInstanceActivated)
             } label: {
                 SettingsRowLabel(title: "Instances", systemImage: "server.rack",
                                  summary: SettingsSummary.instances(active: instances.filter(\.isActive).count, total: instances.count))
@@ -95,6 +97,7 @@ struct InstancesSettingsView: View {
     @State private var isPresentingSetup = false
 
     let instances: [Instance]
+    var onActivated: (Instance) -> Void = { _ in }
 
     private var multiInstanceDisplayMode: Binding<MultiInstanceDisplayMode> {
         Binding(
@@ -178,7 +181,7 @@ struct InstancesSettingsView: View {
     }
 
     private func setActive(_ instance: Instance, isActive: Bool) {
-        instance.setActive(isActive, in: modelContext)
+        if instance.setActive(isActive, in: modelContext) { onActivated(instance) }
     }
 
     private func delete(_ instance: Instance) {

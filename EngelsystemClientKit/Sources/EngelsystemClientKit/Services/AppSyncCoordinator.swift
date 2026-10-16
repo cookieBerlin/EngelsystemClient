@@ -77,6 +77,9 @@ public struct AppSyncCoordinator {
     /// `completed` always reaches `total` by the end regardless of errors — a caller
     /// driving a progress bar from this doesn't need its own separate "did it finish"
     /// bookkeeping.
+    /// `reminderInstances`: when only some instances are synced (one freshly switched on), the shift
+    /// reminders must still be planned over **all** active instances' cached shifts — planning over
+    /// the synced ones alone would cancel the others' reminders. `nil` plans over what was synced.
     /// `handleNotifications: false` skips all notification work (shift reminders and the
     /// new-news announcement). Always `true` in production; the app targets' view-model
     /// tests pass `false` so they don't depend on a notification center at all.
@@ -87,6 +90,7 @@ public struct AppSyncCoordinator {
         shiftsOnly: Bool = false,
         notifyOnNewNews: Bool = false,
         handleNotifications: Bool = true,
+        reminderInstances: [Instance]? = nil,
         onProgress: (Progress) -> Void = { _ in }
     ) async -> Bool {
         let stepsPerInstance = shiftsOnly ? 1 : 5
@@ -228,7 +232,8 @@ public struct AppSyncCoordinator {
 
         if handleNotifications, allShiftsSucceeded, await notificationScheduler.requestAuthorizationIfNeeded() {
             let leadTimes = NotificationLeadTimeSettings.resolve(in: modelContext).leadTimesMinutes
-            await notificationScheduler.syncNotifications(for: allShifts, leadTimes: leadTimes)
+            let reminderShifts = reminderInstances.map { Self.cachedShifts(of: $0, in: modelContext) } ?? allShifts
+            await notificationScheduler.syncNotifications(for: reminderShifts, leadTimes: leadTimes)
         }
 
         if handleNotifications, notifyOnNewNews, !newNewsByInstance.isEmpty, await notificationScheduler.requestAuthorizationIfNeeded() {
@@ -239,5 +244,13 @@ public struct AppSyncCoordinator {
 
         DebugLog.log("AppSyncCoordinator finished (allSucceeded: \(allSucceeded))", level: allSucceeded ? .info : .warning)
         return allSucceeded
+    }
+
+    /// Every cached shift of the given instances.
+    static func cachedShifts(of instances: [Instance], in modelContext: ModelContext) -> [CachedShift] {
+        let ids = Set(instances.map(\.id))
+        // A failed fetch yields nothing (no `?? []` so there is no never-taken autoclosure to cover).
+        return [try? modelContext.fetch(FetchDescriptor<CachedShift>())].compactMap { $0 }.flatMap { $0 }
+            .filter { ids.contains($0.instanceID) }
     }
 }
