@@ -418,6 +418,10 @@ exists without reading the whole diff history.
   never signs out. Pull to refresh uses `GET /shifts/{id}` (COMPAT(#1724): 404/403 ⇒ cached shift, no
   error). The detail fields are display-only cache fields on `CachedShift` (the team as one encoded field)
   and never count as a change for the Watch. The Watch is unchanged.
+- **Several demo instances** (2026-10-16): any `demo://<host>` address is a demo instance and the host picks the data
+  (`DemoScenario`): `demo://engelsystem.local` is the classic data, `demo://congress.local` a second event with its own
+  info, shifts, locations and news. Two demo instances with the same host count as one server (two accounts) and are
+  merged where the real server would be; different hosts are different servers..
 - **Merged locations and edges** (2026-10-16): in the merged mode the locations of instances on the same server collapse to
   one entry (`CachedLocation.mergedAcrossServers`, like news) with a badge per instance. The colored left edge belongs to an
   entry only when exactly one instance owns it (`InstanceEdge`); shared entries show just the badges. The Profile band no

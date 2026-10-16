@@ -103,6 +103,11 @@ Instances are refreshed at the same time by default. If that is too much for a w
 The Shifts screen lists upcoming and running shifts by default. Open the filter menu at the top right and choose **Past** (or **Today**, **All**);
 there you can also sort **Latest First**. The choice is remembered on this device.
 
+### Can I try several instances in Demo Mode?
+
+Yes. Add instances with the server address `demo://engelsystem.local` or `demo://congress.local` (any name, any API key). The same address
+counts as one server, so shared locations and news are shown once; a different address is a different server.
+
 ### How do I remove an instance and its data?
 
 **Settings →** tap the instance **→ Remove Instance**. This deletes the saved API key and everything cached for that instance on this
