@@ -16,7 +16,7 @@ struct InstanceSetupView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Event") {
+                Section("Instance") {
                     TextField("Name (e.g. 42C3)", text: $viewModel.name)
                         .textInputAutocapitalization(.words)
                 }

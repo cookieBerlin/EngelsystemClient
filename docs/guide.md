@@ -6,7 +6,7 @@ title: User Guide
 
 Engelsystem Client is an unofficial companion app for
 [Engelsystem](https://github.com/engelsystem/engelsystem/), the volunteer-management system used by events like the
-Chaos Communication Congress. It connects directly to your event's Engelsystem server with your own API key; there is no
+Chaos Communication Congress. It connects directly to your instance's Engelsystem server with your own API key; there is no
 account with the app's developer and no tracking (see the [Privacy Policy](privacy.md)). Questions? See the
 [FAQ](faq.md) or [Support](support.md).
 
@@ -16,10 +16,10 @@ account with the app's developer and no tracking (see the [Privacy Policy](priva
 
 ## What the app does (and does not)
 
-- Shows **your own shifts**, the **news**, your **profile** (angel types, work logs), the event's **locations**, and — on
+- Shows **your own shifts**, the **news**, your **profile** (angel types, work logs), the instance's **locations**, and — on
   servers that support it — your **private messages**.
 - Reminds you **before a shift starts** with local notifications.
-- Works with **several events at once**, and has an **Apple Watch** app that shows your next shift.
+- Works with **several instances at once**, and has an **Apple Watch** app that shows your next shift.
 - It is **read-only for shifts**: you cannot sign up for or change shifts in the app. That needs support in the Engelsystem
   server first.
 
@@ -30,7 +30,7 @@ network requests. You can leave Demo Mode on, or switch it off and add a real se
 
 ## Connect your Engelsystem server
 
-1. In a browser, sign in on your event's Engelsystem website and open `/settings/api` (for example
+1. In a browser, sign in on your instance's Engelsystem website and open `/settings/api` (for example
    `https://engel.example.org/settings/api`). Press **Show API key** and copy the key. The app currently uses Engelsystem's
    REST API **v0-beta**.
 2. In the app, on the first screen (or **Settings → Add Instance**), enter a **Name** (anything you like), the **Server**
@@ -45,8 +45,8 @@ you entered.
 The main screen is a list of areas in three groups: **Communication** (News, Messages), **Event** (Shifts, Locations) and
 **Account** (Profile). Messages and Locations only appear if your server offers them. When the app starts, or an area is no
 longer available, you always land on this list. Pull down to refresh everything at once; the banner at the top shows what is
-syncing — with several active events one line per event, each with its steps ("2/5"). If an event does not answer, its line turns orange; **Stop sync**
-ends the sync (after a confirmation) and **Skip** leaves out just that event. The line at the bottom of the list shows how old each event's data is
+syncing — with several active instances one line per instance, each with its steps ("2/5"). If an instance does not answer, its line turns orange; **Stop sync**
+ends the sync (after a confirmation) and **Skip** leaves out just that instance. The line at the bottom of the list shows how old each instance's data is
 (tap it to refresh). The gear button opens **Settings**.
 
 ### Shifts
@@ -70,7 +70,7 @@ shift.
 
 ![News](assets/guide/news.png){: width="240"}
 
-Announcements from the event. Pinned posts come first. Tap **Read More** to expand long posts and the **comments** link to
+Announcements from the instance. Pinned posts come first. Tap **Read More** to expand long posts and the **comments** link to
 read the discussion. The filter button at the top shows only **Meetings** or only other posts.
 
 ### Profile
@@ -85,7 +85,7 @@ added by hand; hours from your shifts are not part of that list.
 
 ![Locations](assets/guide/locations.png){: width="240"}
 
-All rooms and places of the event with their descriptions. Tap one for details such as a DECT number and a link to the map. The map page is shown right inside the location screen (almost full screen, loaded fresh each time) with an **Open Map in Browser**
+All rooms and places of the instance with their descriptions. Tap one for details such as a DECT number and a link to the map. The map page is shown right inside the location screen (almost full screen, loaded fresh each time) with an **Open Map in Browser**
 button. The map page's cookies (for example your consent) stay on your device; the app deletes them every 30 days by default (or keeps them only until you quit the app, if you choose that); in **Settings › Privacy** you can change that, delete them yourself or
 switch to a plain link.
 
@@ -104,10 +104,10 @@ simply not offering it yet (it needs the open Engelsystem change
 
 Settings is a short list of pages; each row shows a summary of its current state.
 
-- **Instances**: all your events. Use the switch to turn an event on or off (switching one on refreshes its data right away); tap one to edit its name, server or API key, or to
+- **Instances**: all your instances. Use the switch to turn an instance on or off (switching one on refreshes its data right away); tap one to edit its name, server or API key, or to
   remove it (this also removes the data cached for it). **Multiple Active Instances** chooses how Shifts, News and Profile show
-  more than one active event: **Merged** (one list, labeled by event), **Switcher** (one event at a time via a control at the
-  top) or **Sectioned** (one section per event, each under a colored band you can tap to fold away). Every event has a **color** (**Settings → Instances →** the event → **Color**; "Auto" spreads the colors evenly, a picked color is kept on all your devices). **Parallel Syncs** sets how many events are refreshed at the same time (Unlimited by default,
+  more than one active instance: **Merged** (one list, labeled by instance), **Switcher** (one instance at a time via a control at the
+  top) or **Sectioned** (one section per instance, each under a colored band you can tap to fold away). Every instance has a **color** (**Settings → Instances →** the instance → **Color**; "Auto" spreads the colors evenly, a picked color is kept on all your devices). **Parallel Syncs** sets how many instances are refreshed at the same time (Unlimited by default,
   "1 at a time" syncs one after the other); the setting belongs to this device, and the Watch has its own.
 - **Notifications**: the reminder times before each shift ("15 min", …). **Add Reminder** adds more, the red button removes
   one. **Notify on New News** posts a notification when a background sync finds new announcements. **Apple Watch Reminders**
@@ -128,7 +128,7 @@ Settings is a short list of pages; each row shows a summary of its current state
 ![Watch settings](assets/guide/watch-settings.png){: width="160"}
 
 The Watch app shows only your **next shift** (name, time, location) and works on its own, without the iPhone nearby. Its
-**Settings** let you switch events on or off, add an instance directly on the Watch, and set the Watch's reminder times.
+**Settings** let you switch instances on or off, add an instance directly on the Watch, and set the Watch's reminder times.
 Your instances are shared between iPhone and Watch through iCloud.
 
 To add the **complication**: on the Watch, touch and hold the watch face, tap **Edit**, choose a complication slot and pick
@@ -138,7 +138,7 @@ To add the **complication**: on the Watch, touch and hold the watch face, tap **
 
 The app uses Engelsystem's REST API **v0-beta** and works with the Engelsystem of today. Several improvements it can show are
 still **open pull requests** at [engelsystem/engelsystem](https://github.com/engelsystem/engelsystem/pulls) (status
-2026-10-15). Until they are merged **and** your event runs a server version that includes them, the app keeps working and
+2026-10-15). Until they are merged **and** your instance runs a server version that includes them, the app keeps working and
 simply hides what is missing:
 
 | Pull request | Status | Without it |

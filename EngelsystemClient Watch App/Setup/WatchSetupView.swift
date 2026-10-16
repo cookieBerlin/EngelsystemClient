@@ -8,7 +8,7 @@ struct WatchSetupView: View {
 
     var body: some View {
         Form {
-            Section("Event") {
+            Section("Instance") {
                 TextField("Name", text: $viewModel.name)
             }
 

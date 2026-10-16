@@ -19,7 +19,7 @@ official REST API of the respective Engelsystem instance.
 - View profile, angel types, worklogs
 - Local reminders (UserNotifications) before shift start, generated from the
   loaded shift data — **no** server push, since the API doesn't support that
-- Multi-instance capable (multiple events/servers manageable at the same
+- Multi-instance capable (multiple instances manageable at the same
   time, switching in Settings)
 - Watch app: standalone (its own network call — WatchConnectivity, added
   2026-09-23, is only an optional fast-path nudge, never a data relay; see

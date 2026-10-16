@@ -73,7 +73,7 @@ whenever the UI or the demo data changes visibly.
 - **Beta App Description**: "Engelsystem Client is an unofficial companion app for the
   Engelsystem volunteer-management system used by events like the Chaos Communication
   Congress. See your own shifts, news, locations and messages, get local reminders before a
-  shift, and glance at your next shift on Apple Watch. Please test: adding your event's
+  shift, and glance at your next shift on Apple Watch. Please test: adding your instance's
   server with an API key, shift reminders, the Watch app and complication, and pull-to-refresh.
   No server? Tap 'Try Demo Mode' on the first screen."
 - **What to Test** (per build): "First TestFlight build: setup and Demo Mode, Shifts/News/Profile/

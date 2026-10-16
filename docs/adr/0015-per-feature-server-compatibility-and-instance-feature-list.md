@@ -8,7 +8,7 @@
 Engelsystem's REST API is changing through a stack of open upstream pull requests: #1709 (access concept; `GET /users/self`
 gains `groups` and `privileges`), #1710 (news comments), #1711 (location detail), #1720 (messages), #1721 (shift types),
 #1722 (shift lists and details), #1723 (shift entry details), #1724 (`GET /shifts/{id}`), #1725 (angel types) and #1726
-(users/profiles). Event servers will run any mix of "current upstream `main`" and servers that include some or all of them,
+(users/profiles). Servers will run any mix of "current upstream `main`" and servers that include some or all of them,
 and an account may lack a web privilege (`news`, `locations.view`, `user_shifts`, `angeltypes.view`, `user_messages`, …).
 ADR 0013 handled three PRs with a temporary capability store; the owner now wants maximum compatibility for the whole set
 and no errors for missing rights.
@@ -29,7 +29,7 @@ and no errors for missing rights.
    Sections without any available instance disappear from the sidebar completely.
 4. **Fallbacks are temporary, the list is permanent.** Every fallback that exists only because a PR is not merged is tagged
    `COMPAT(#<PR>)`, registered in `docs/architecture.md`, and removed by its own R task once the owner reports that the PR is
-   merged **and** the event servers run it. The privilege-based part of the feature list stays for good, because an account
+   merged **and** the servers run it. The privilege-based part of the feature list stays for good, because an account
    can always lack a privilege.
 5. **Tests as a matrix.** Fixtures describe "upstream main today", each PR's additions, the stacked chains (#1722 → #1723 →
    #1724) and "all PRs". Every feature has a test per state; removing a PR removes its fixture state.

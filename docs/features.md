@@ -564,7 +564,7 @@ exists without reading the whole diff history.
   `apply(_:)` with the new raw version anyway.
   **`.merged` display mode deduplicates across same-server instances**
   (2026-09-22, user-reported): two active `Instance`s pointing at the
-  same actual server (e.g. two different user accounts for one event)
+  same actual server (e.g. two different user accounts for one server)
   each sync and cache their own copy of every news post — `CachedNews
   .uid` includes `instanceID`, so it's a genuinely separate row per
   instance, not a natural duplicate SwiftData would already collapse.
@@ -1227,7 +1227,7 @@ exists without reading the whole diff history.
 
 
 See [`architecture.md`](architecture.md) for CloudKit sync of `Instance` metadata.
-- **Richer demo data (2026-10-12)**: Demo Mode now shows a livelier event for screenshots and trials — 7 shifts over four
+- **Richer demo data (2026-10-12)**: Demo Mode now shows a livelier demo instance for screenshots and trials — 7 shifts over four
   days at 4 locations (Heaven, Chill Space, Workshop Room A, Foodcourt) with 6 shift types, 5 news posts (a pinned
   welcome, a highlighted one with a comment, a Markdown list, two meetings), 3 worklogs, 3 angel types (own memberships:
   confirmed, supporter, unconfirmed) and 3 conversations (Helper Angel unread, Another Angel with the demo user's own reply

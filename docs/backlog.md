@@ -30,7 +30,7 @@ the W tasks alongside, the R tasks when the owner reports a merge.
 **Fallbacks are temporary.** Every code path, comment and test that exists only because a PR is not merged is tagged
 `COMPAT(#<PR>)` (greppable), lives in clearly separated code/test files where possible and is listed in the register in
 `docs/architecture.md`. Each R task is its own commit; all gates, both app builds and the UI tests stay green. **Start
-condition for every R task:** the owner reports that the PR is merged **and** the event servers run it (merged is not
+condition for every R task:** the owner reports that the PR is merged **and** the servers run it (merged is not
 deployed). Afterwards the feature is assumed to exist: a failure shows a normal error again where the privilege list does not
 explain it, the fixture state of that PR is deleted and the tests are simplified, its row leaves the website table
 (W-06) and the register. The privilege-based part of the feature list (K-10 – K-12) stays for good.

@@ -25,7 +25,7 @@ messages), and the app adapts: areas a server does not support are simply not sh
 
 ### Where do I find my API key?
 
-Sign in on your event's Engelsystem website and open the page `/settings/api` (for example
+Sign in on your instance's Engelsystem website and open the page `/settings/api` (for example
 `https://engel.example.org/settings/api`). Press the **Show API key** button and copy the key into the app. Treat it like a
 password; if it ever leaks, reset it on the same page.
 
@@ -46,7 +46,7 @@ Nothing is wrong with the app — the area appears automatically after a sync on
 
 ### Where can I see what my account may use?
 
-Open **Settings → Instances →** your event. The **Features** list shows for every area whether it is available, not allowed
+Open **Settings → Instances →** your instance. The **Features** list shows for every area whether it is available, not allowed
 for your account (with the privilege it needs, when the server tells) or not offered by the server, and when it was checked.
 The list is folded away while everything works (tap the summary line to open it) and opens by itself, problems first, as soon as
 something is missing. Missing areas are hidden quietly — the app does not show errors for them. After **Test Connection** a server with the newer
@@ -65,10 +65,10 @@ Mode always has it.
 **Settings → Instances →** tap the instance **→ Color**. "Auto" gives every instance its own color; pick one yourself and it is kept, also on your other devices.
 Tap the colored band of an instance in the "Sectioned" view to fold its entries away.
 
-### What happens when I activate several events?
+### What happens when I activate several instances?
 
-Shifts, News and Profile show data from all active events. **Settings → Instances → Multiple Active Instances** chooses between one merged
-list, a switcher, or one section per event. Each row shows a small badge with its event.
+Shifts, News and Profile show data from all active instances. **Settings → Instances → Multiple Active Instances** chooses between one merged
+list, a switcher, or one section per instance. Each row shows a small badge with its instance.
 
 ### Can I sign up for or swap shifts?
 
@@ -86,26 +86,26 @@ Use the back button at the top left of any screen. The app starts on the main li
 
 ### What does the line at the bottom of the main list mean?
 
-It shows how old the saved data of each active event is. Grey with a check mark means less than 12 hours; orange with a warning triangle
-means 12 hours or more; red means nothing was loaded yet. Tap a line to refresh that event. Switching an event on in Settings refreshes it
+It shows how old the saved data of each active instance is. Grey with a check mark means less than 12 hours; orange with a warning triangle
+means 12 hours or more; red means nothing was loaded yet. Tap a line to refresh that instance. Switching an instance on in Settings refreshes it
 automatically, so you do not see old data for long.
 
 ### The sync seems stuck. What can I do?
 
-While a sync runs, the banner at the top shows every event with what it is doing. A line turns orange when a step has not answered
-for 30 seconds, and an event that makes no progress for a minute is stopped (“timed out”) so the others can continue. Tap **Stop sync**
-in the banner to end the whole sync, or choose **Skip <event>** to leave out just the one that hangs. Data that was already loaded is kept.
+While a sync runs, the banner at the top shows every instance with what it is doing. A line turns orange when a step has not answered
+for 30 seconds, and an instance that makes no progress for a minute is stopped (“timed out”) so the others can continue. Tap **Stop sync**
+in the banner to end the whole sync, or choose **Skip <instance>** to leave out just the one that hangs. Data that was already loaded is kept.
 
-Events are refreshed at the same time by default. If that is too much for a weak connection, lower **Settings → Instances → Parallel Syncs** (the Watch has the same setting).
+Instances are refreshed at the same time by default. If that is too much for a weak connection, lower **Settings → Instances → Parallel Syncs** (the Watch has the same setting).
 
 ### Where are my past shifts?
 
 The Shifts screen lists upcoming and running shifts by default. Open the filter menu at the top right and choose **Past** (or **Today**, **All**);
 there you can also sort **Latest First**. The choice is remembered on this device.
 
-### How do I remove an event and its data?
+### How do I remove an instance and its data?
 
-**Settings →** tap the event **→ Remove Instance**. This deletes the saved API key and everything cached for that event on this
+**Settings →** tap the instance **→ Remove Instance**. This deletes the saved API key and everything cached for that instance on this
 device.
 
 ## Notifications
@@ -122,7 +122,7 @@ device.
 
 ### The Watch shows no shift.
 
-The Watch app syncs on its own with the same server. Make sure the event is **active** in the Watch app's **Settings**, give it a
+The Watch app syncs on its own with the same server. Make sure the instance is **active** in the Watch app's **Settings**, give it a
 moment after opening, and check that iCloud is signed in on both devices (instances are shared through iCloud). If you
 do not use iCloud, add the instance directly in the Watch app (**Settings → Add Instance**).
 

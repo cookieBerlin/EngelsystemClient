@@ -19,7 +19,7 @@ no server-side changes required.
 - Browse locations/rooms, linked from each shift
 - Send and receive private messages (on instances whose server supports it)
 - Local reminders before your shifts start (no server push involved)
-- Manage multiple Engelsystem instances/events at once
+- Manage multiple Engelsystem instances/instances at once
 - A companion Apple Watch app showing just your next shift, plus a
   complication
 - A demo mode to try the app without a real server or API key

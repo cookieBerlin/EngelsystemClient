@@ -20,15 +20,15 @@ versioning: [Semantic Versioning](https://semver.org/).
   link. The map page's cookies, such as a consent, are kept on the device apart from Safari; They are deleted automatically every 30 days
   (changeable, or kept only until the app quits) and Settings › Privacy › Delete Map Website Data removes them at once.
 
-- The main list shows at the bottom how old each active event's data is (grey below 12 hours, an orange warning from 12 hours, red when
-  nothing was loaded yet); tap a line to refresh that event.
-- Switching an event on in Settings now refreshes it right away (on the iPhone and on the Watch), instead of showing old data until
+- The main list shows at the bottom how old each active instance's data is (grey below 12 hours, an orange warning from 12 hours, red when
+  nothing was loaded yet); tap a line to refresh that instance.
+- Switching an instance on in Settings now refreshes it right away (on the iPhone and on the Watch), instead of showing old data until
   the next sync.
 
-- The sync banner shows every event on its own line with the area it is working on, a thin progress line and "n/5" steps. An
-  event that does not answer for 30 seconds turns orange, one that makes no progress for a minute is stopped so the others can
-  continue. Active events are now refreshed at the same time; **Parallel Syncs** (Settings › Instances, also on the Watch) limits how many
-  at once. **Stop sync** (with a confirmation, and **Skip <event>** when several events sync) ends a sync that hangs.
+- The sync banner shows every instance on its own line with the area it is working on, a thin progress line and "n/5" steps. An
+  instance that does not answer for 30 seconds turns orange, one that makes no progress for a minute is stopped so the others can
+  continue. Active instances are now refreshed at the same time; **Parallel Syncs** (Settings › Instances, also on the Watch) limits how many
+  at once. **Stop sync** (with a confirmation, and **Skip <instance>** when several instances sync) ends a sync that hangs.
 
 - The Features list of an instance is folded away while everything works (tap the summary to open it) and opens by itself, with the
   problems first, as soon as something is missing.

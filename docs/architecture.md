@@ -276,7 +276,7 @@ Profile, Locations or Messages failing.
 `Instance` could be "active" at a time (a single `@AppStorage` ID picked
 which instance's data Shifts/News/Profile showed). The user asked for
 **multiple instances to be active simultaneously** (e.g. helping at more
-than one event at once) plus a simpler per-instance settings dialog.
+than one instance at once) plus a simpler per-instance settings dialog.
 Binding design, now shipped:
 
 - `Instance` SwiftData model: `id`, `name`, `baseURL`,
