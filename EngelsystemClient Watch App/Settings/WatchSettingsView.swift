@@ -67,13 +67,18 @@ struct WatchSettingsView: View {
             }
 
             Section {
-                Stepper(value: $parallelSyncs, in: ParallelSyncSetting.range) {
-                    VStack(alignment: .leading) {
-                        Text("Parallel Syncs")
-                        Text(ParallelSyncSetting.title(for: parallelSyncs))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                // Title and value above the -/+ buttons: beside them the title is squeezed by the buttons.
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Parallel Syncs")
+                        .font(.caption)
+                    Text(ParallelSyncSetting.title(for: parallelSyncs))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Stepper(value: $parallelSyncs, in: ParallelSyncSetting.range) {
+                        EmptyView()
                     }
+                    .labelsHidden()
+                    .accessibilityLabel("Parallel Syncs, \(ParallelSyncSetting.title(for: parallelSyncs))")
                 }
             } footer: {
                 Text("How many instances are synced at the same time. Applies to this device only.")
