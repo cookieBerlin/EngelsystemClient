@@ -104,7 +104,7 @@ public final class DebugLog {
     // trigger a reload directly, without a race against `log`'s fire-and-forget
     // `Task` hop — see `DebugLogTests` for why that would otherwise be awkward to
     // test through the public `log(...)` entry point alone.
-    static let fileURL: URL = {
+    nonisolated static let fileURL: URL = {
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         return caches.appendingPathComponent("debug-log.txt")
     }()

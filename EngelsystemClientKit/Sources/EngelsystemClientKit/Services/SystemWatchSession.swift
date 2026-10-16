@@ -15,21 +15,28 @@ struct SystemWatchSession: WatchSessionControlling {
     var isActivated: Bool { WCSession.default.activationState == .activated }
     var isPaired: Bool { WCSession.default.isPaired }
     var isWatchAppInstalled: Bool { WCSession.default.isWatchAppInstalled }
+    var isReachable: Bool { WCSession.default.isReachable }
 
     func activate() {
         WCSession.default.delegate = IOSSessionDelegate.shared
         WCSession.default.activate()
     }
 
-    func sendShiftsChanged(at timestamp: TimeInterval) throws {
-        try WCSession.default.updateApplicationContext(["shiftsChangedAt": timestamp])
+    func updateContext(_ context: [String: Any]) throws {
+        try WCSession.default.updateApplicationContext(context)
+    }
+
+    func sendMessage(_ message: [String: Any]) {
+        WCSession.default.sendMessage(message, replyHandler: nil) { error in
+            DebugLog.log("WatchConnectivityBridge: live message failed: \(error)", level: .warning)
+        }
     }
 }
 
-/// Minimal delegate purely to satisfy `WCSession`'s activation requirement — this
-/// feature doesn't need iOS to react to anything incoming. `sessionDidDeactivate`
-/// re-activates per Apple's documented pattern for switching between multiple paired
-/// Watches.
+/// The iPhone's session delegate: activation, and the Watch's debug logs (2026-10-16) — a received file is stored
+/// (the system deletes it when the callback returns, so it is moved right here) and the Watch's reports are
+/// remembered. `sessionDidDeactivate` re-activates per Apple's documented pattern for switching between multiple
+/// paired Watches.
 private final class IOSSessionDelegate: NSObject, WCSessionDelegate {
     static let shared = IOSSessionDelegate()
 
@@ -40,6 +47,15 @@ private final class IOSSessionDelegate: NSObject, WCSessionDelegate {
             DebugLog.log("WatchConnectivityBridge: activated (state: \(activationState.rawValue), paired: \(session.isPaired), watchAppInstalled: \(session.isWatchAppInstalled))")
         }
     }
+    func session(_ session: WCSession, didReceive file: WCSessionFile) {
+        let stored = WatchLogInbox().receiveFile(at: file.fileURL)
+        DebugLog.log("WatchConnectivityBridge: received a Watch log (stored: \(stored))")
+    }
+
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        WatchLogInbox().receiveReport(applicationContext)
+    }
+
     func sessionDidBecomeInactive(_ session: WCSession) {}
     func sessionDidDeactivate(_ session: WCSession) {
         session.activate()
@@ -51,8 +67,10 @@ struct SystemWatchSession: WatchSessionControlling {
     var isActivated: Bool { false }
     var isPaired: Bool { false }
     var isWatchAppInstalled: Bool { false }
+    var isReachable: Bool { false }
     func activate() {}
-    func sendShiftsChanged(at timestamp: TimeInterval) throws {}
+    func updateContext(_ context: [String: Any]) throws {}
+    func sendMessage(_ message: [String: Any]) {}
 }
 #endif
 
@@ -67,5 +85,16 @@ public extension WatchConnectivityBridge {
 
     static func notifyShiftsChanged() {
         notifyShiftsChanged(using: SystemWatchSession(), now: Date())
+    }
+
+    /// Asks the paired Watch for its debug log (see `requestWatchLog(using:id:state:)`).
+    static func requestWatchLog() -> WatchLogRequestOutcome {
+        requestWatchLog(using: SystemWatchSession())
+    }
+
+    /// Switches the Watch's debug logging from the iPhone.
+    @discardableResult
+    static func setWatchLogging(_ isOn: Bool) -> Bool {
+        setWatchLogging(isOn, using: SystemWatchSession())
     }
 }
