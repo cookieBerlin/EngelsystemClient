@@ -12,6 +12,17 @@ import SwiftData
 /// the per-screen ViewModels have — a 401 here doesn't navigate anywhere (there's no
 /// screen the user is looking at to navigate *from*), it just leaves that instance's
 /// data as it was; the per-screen ViewModels still own that behavior for pull-to-refresh.
+/// The counters of one `syncEverything` run, shared by the per-instance tasks.
+@MainActor
+private final class RunState {
+    var failures = 0
+    /// Every shift sync succeeded (reminders are only planned then).
+    var shiftsOK = true
+    var completed = 0
+    var allShifts: [CachedShift] = []
+    var newNews: [(item: CachedNews, instanceName: String)] = []
+}
+
 @MainActor
 public struct AppSyncCoordinator {
     public struct Progress: Equatable, Sendable {
@@ -91,19 +102,24 @@ public struct AppSyncCoordinator {
         notifyOnNewNews: Bool = false,
         handleNotifications: Bool = true,
         reminderInstances: [Instance]? = nil,
-        onProgress: (Progress) -> Void = { _ in }
+        control: SyncControl? = nil,
+        onEvent: @escaping (SyncEvent) -> Void = { _ in },
+        onProgress: @escaping (Progress) -> Void = { _ in }
     ) async -> Bool {
-        let stepsPerInstance = shiftsOnly ? 1 : 5
-        let total = max(instances.count * stepsPerInstance, 1)
-        var completed = 0
-        var allSucceeded = true
+        let control = control ?? SyncControl()
+        let state = RunState()
+        let total = max(instances.count * (shiftsOnly ? 1 : 5), 1)
         // Shift reminders only depend on the *shift* syncs of every instance — a failing News,
-        // Profile, Locations or Messages step must not suppress them.
-        var allShiftsSucceeded = true
+        // Profile, Locations or Messages step must not suppress them (`state.shiftsOK`).
 
-        func reportStep(_ description: String) {
-            completed += 1
-            onProgress(Progress(completed: completed, total: total, description: description))
+        /// One step is done: counts it, reports it and — if another follows — announces that one. Also
+        /// restarts the no-progress timer.
+        func finishStep(_ instance: Instance, _ area: String, next: String?) {
+            state.completed += 1
+            onProgress(Progress(completed: state.completed, total: total, description: "\(area) – \(instance.name)"))
+            onEvent(.stepFinished(id: instance.id, area: area))
+            if let next { onEvent(.stepStarted(id: instance.id, area: next)) }
+            control.progressMade()
         }
 
         // 2026-09-23, user-requested "check the data flow for logging gaps": this
@@ -113,21 +129,19 @@ public struct AppSyncCoordinator {
         // it logged nothing at all, making those three triggers completely invisible.
         DebugLog.log("AppSyncCoordinator starting sync of \(instances.count) instance(s) (shiftsOnly: \(shiftsOnly))")
 
-        var allShifts: [CachedShift] = []
-        var newNewsByInstance: [(item: CachedNews, instanceName: String)] = []
-
-        for instance in instances {
+        /// Syncs one instance; runs as its own task so it can be cancelled (timeout, skip, stop).
+        func runInstance(_ instance: Instance) async {
             let credential = try? credentialResolver.credential(for: instance)
             if credential == nil {
-                allSucceeded = false
-                allShiftsSucceeded = false
+                state.failures += 1
+                state.shiftsOK = false
                 DebugLog.log("AppSyncCoordinator: no credential for '\(instance.name)' — skipping", level: .error)
             }
 
             if let credential {
                 do {
                     let result = try await shiftSyncService.sync(instance: instance, credential: credential, in: modelContext)
-                    allShifts.append(contentsOf: result.shifts)
+                    state.allShifts.append(contentsOf: result.shifts)
                     DebugLog.log("AppSyncCoordinator: synced \(result.shifts.count) shift(s) for '\(instance.name)'")
                     capabilities.record(.shifts, state: .available, evidence: .probe, for: instance.id)
                     // 2026-09-23, "keep the Watch fresh" feature: bump the CloudKit-synced
@@ -142,34 +156,36 @@ public struct AppSyncCoordinator {
                         WatchConnectivityBridge.notifyShiftsChanged()
                     }
                 } catch {
-                    guard !(error is CancellationError) else { continue }
+                    guard !(error is CancellationError) else { return }
                     // A 403/404 is "not allowed"/"not offered", not a failure to report (ADR 0015); the
                     // reminders are still left alone because no shift list was received.
                     capabilities.record(.shifts, afterError: error, for: instance.id)
-                    allSucceeded = false
-                    allShiftsSucceeded = false
+                    state.failures += 1
+                    state.shiftsOK = false
                     DebugLog.log("AppSyncCoordinator: Shifts failed for '\(instance.name)': \(error)", level: .error)
                 }
             }
-            reportStep("Shifts – \(instance.name)")
+            finishStep(instance, "Shifts", next: "News")
+            if Task.isCancelled { return }
 
             if !shiftsOnly {
                 if let credential {
                     do {
                         let result = try await newsSyncService.sync(instance: instance, credential: credential, in: modelContext)
-                        newNewsByInstance.append(contentsOf: result.insertedItems.map { (item: $0, instanceName: instance.name) })
+                        state.newNews.append(contentsOf: result.insertedItems.map { (item: $0, instanceName: instance.name) })
                         DebugLog.log("AppSyncCoordinator: synced \(result.items.count) news item(s), \(result.insertedItems.count) new, for '\(instance.name)'")
                         capabilities.record(.news, state: .available, evidence: .probe, for: instance.id)
                     } catch {
                         if !(error is CancellationError) {
                             if !capabilities.record(.news, afterError: error, for: instance.id) {
-                                allSucceeded = false
+                                state.failures += 1
                             }
                             DebugLog.log("AppSyncCoordinator: News failed for '\(instance.name)': \(error)", level: .error)
                         }
                     }
                 }
-                reportStep("News – \(instance.name)")
+                finishStep(instance, "News", next: "Profile")
+                if Task.isCancelled { return }
 
                 if let credential {
                     do {
@@ -189,12 +205,13 @@ public struct AppSyncCoordinator {
                         DebugLog.log("AppSyncCoordinator: synced Profile for '\(instance.name)'")
                     } catch {
                         if !(error is CancellationError) {
-                            allSucceeded = false
+                            state.failures += 1
                             DebugLog.log("AppSyncCoordinator: Profile failed for '\(instance.name)': \(error)", level: .error)
                         }
                     }
                 }
-                reportStep("Profile – \(instance.name)")
+                finishStep(instance, "Profile", next: "Locations")
+                if Task.isCancelled { return }
 
                 if let credential {
                     do {
@@ -202,12 +219,13 @@ public struct AppSyncCoordinator {
                         DebugLog.log("AppSyncCoordinator: synced \(locations.count) location(s) for '\(instance.name)'")
                     } catch {
                         if !(error is CancellationError) {
-                            allSucceeded = false
+                            state.failures += 1
                             DebugLog.log("AppSyncCoordinator: Locations failed for '\(instance.name)': \(error)", level: .error)
                         }
                     }
                 }
-                reportStep("Locations – \(instance.name)")
+                finishStep(instance, "Locations", next: "Messages")
+                if Task.isCancelled { return }
 
                 if let credential {
                     // COMPAT(#1720), 2026-09-23, Messages feature: a lightweight capability re-check, not
@@ -226,22 +244,68 @@ public struct AppSyncCoordinator {
                         try? modelContext.save()
                     }
                 }
-                reportStep("Messages – \(instance.name)")
+                finishStep(instance, "Messages", next: nil)
+                if Task.isCancelled { return }
             }
+    
         }
 
-        if handleNotifications, allShiftsSucceeded, await notificationScheduler.requestAuthorizationIfNeeded() {
+        let stepsPerInstance = shiftsOnly ? 1 : 5
+        onEvent(.planned(instances.map { SyncPlannedInstance(id: $0.id, name: $0.name, totalSteps: stepsPerInstance) }))
+
+        for (index, instance) in instances.enumerated() {
+            if Task.isCancelled { break }
+            let expectedCompleted = (index + 1) * stepsPerInstance
+            if control.consumeSkip(instance.id) {
+                state.failures += 1
+                state.shiftsOK = false
+                state.completed = expectedCompleted
+                onProgress(Progress(completed: state.completed, total: total, description: "Skipped – \(instance.name)"))
+                onEvent(.instanceFinished(id: instance.id, outcome: .skipped))
+                continue
+            }
+            onEvent(.instanceStarted(id: instance.id))
+            onEvent(.stepStarted(id: instance.id, area: "Shifts"))
+            let failuresBefore = state.failures
+            let worker = Task { @MainActor in await runInstance(instance) }
+            control.begin(instance.id, worker: worker)
+            await withTaskCancellationHandler { await worker.value } onCancel: { worker.cancel() }
+            let end = control.end()
+
+            let outcome: SyncInstanceOutcome
+            if end.timedOut {
+                outcome = .timedOut
+            } else if end.skipped {
+                outcome = .skipped
+            } else {
+                outcome = state.failures > failuresBefore ? .failed : .succeeded
+            }
+            if outcome == .timedOut || outcome == .skipped {
+                state.failures += 1
+                state.shiftsOK = false
+                DebugLog.log("AppSyncCoordinator: '\(instance.name)' \(outcome == .timedOut ? "made no progress for too long" : "was skipped")", level: .warning)
+            }
+            // A cancelled instance reports fewer steps; `completed` still reaches the instance's share of `total`.
+            if state.completed < expectedCompleted, !Task.isCancelled {
+                state.completed = expectedCompleted
+                onProgress(Progress(completed: state.completed, total: total, description: "\(outcome) – \(instance.name)"))
+            }
+            onEvent(.instanceFinished(id: instance.id, outcome: outcome))
+        }
+
+        if handleNotifications, state.shiftsOK, !Task.isCancelled, await notificationScheduler.requestAuthorizationIfNeeded() {
             let leadTimes = NotificationLeadTimeSettings.resolve(in: modelContext).leadTimesMinutes
-            let reminderShifts = reminderInstances.map { Self.cachedShifts(of: $0, in: modelContext) } ?? allShifts
+            let reminderShifts = reminderInstances.map { Self.cachedShifts(of: $0, in: modelContext) } ?? state.allShifts
             await notificationScheduler.syncNotifications(for: reminderShifts, leadTimes: leadTimes)
         }
 
-        if handleNotifications, notifyOnNewNews, !newNewsByInstance.isEmpty, await notificationScheduler.requestAuthorizationIfNeeded() {
-            let newItems = newNewsByInstance.map(\.item)
-            let instanceName = newNewsByInstance.count == 1 ? newNewsByInstance.first?.instanceName : nil
+        if handleNotifications, notifyOnNewNews, !state.newNews.isEmpty, !Task.isCancelled, await notificationScheduler.requestAuthorizationIfNeeded() {
+            let newItems = state.newNews.map(\.item)
+            let instanceName = state.newNews.count == 1 ? state.newNews.first?.instanceName : nil
             await newsNotifier.notify(newItems: newItems, instanceName: instanceName)
         }
 
+        let allSucceeded = state.failures == 0
         DebugLog.log("AppSyncCoordinator finished (allSucceeded: \(allSucceeded))", level: allSucceeded ? .info : .warning)
         return allSucceeded
     }

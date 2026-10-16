@@ -179,6 +179,122 @@ extension StubbedNetworkTests {
             #expect(center.added.count < both)
         }
 
+        private func routeAllDomains() throws {
+            try StubURLProtocol.route("GET \(prefix)/users/self/shifts", data: DemoData.shifts)
+            try StubURLProtocol.route("GET \(prefix)/news", data: DemoData.news)
+            try StubURLProtocol.routeDemoOwnProfile("GET \(prefix)/users/self")
+            try StubURLProtocol.route("GET \(prefix)/users/self/worklogs", data: DemoData.worklogs)
+            try StubURLProtocol.route("GET \(prefix)/users/self/angeltypes", data: DemoData.ownAngelTypes)
+            try StubURLProtocol.route("GET \(prefix)/locations", data: DemoData.locations)
+            try StubURLProtocol.route("GET \(prefix)/messages", data: [Conversation]())
+        }
+
+        @Test func aRunReportsItsInstancesAndSteps() async throws {
+            try routeAllDomains()
+            let context = try makeContext()
+            let instance = stubInstance()
+            context.insert(instance)
+            var events: [SyncEvent] = []
+
+            let succeeded = await coordinator().syncEverything(
+                instances: [instance], in: context, onEvent: { events.append($0) })
+            #expect(succeeded)
+            #expect(events.first == .planned([SyncPlannedInstance(id: instance.id, name: "Stub", totalSteps: 5)]))
+            #expect(events.contains(.instanceStarted(id: instance.id)))
+            #expect(events.contains(.stepStarted(id: instance.id, area: "Shifts")))
+            #expect(events.contains(.stepStarted(id: instance.id, area: "Messages")))
+            #expect(events.filter { if case .stepFinished = $0 { return true } else { return false } }.count == 5)
+            #expect(events.last == .instanceFinished(id: instance.id, outcome: .succeeded))
+        }
+
+        @Test func anInstanceThatMakesNoProgressTimesOutAndTheNextOneStillRuns() async throws {
+            let context = try makeContext()
+            let slow = stubInstance()
+            context.insert(slow)
+            StubURLProtocol.route("GET \(prefix)/users/self/shifts", delay: 1.0)
+            var events: [SyncEvent] = []
+            var progress: [AppSyncCoordinator.Progress] = []
+
+            let succeeded = await coordinator().syncEverything(
+                instances: [slow], in: context, shiftsOnly: true, control: SyncControl(stepTimeout: 0.2),
+                onEvent: { events.append($0) }, onProgress: { progress.append($0) })
+            #expect(!succeeded)
+            #expect(events.last == .instanceFinished(id: slow.id, outcome: .timedOut))
+            #expect(progress.last?.completed == progress.last?.total)
+            #expect(center.added.isEmpty) // no reminders from a sync that did not finish
+        }
+
+        @Test func aSkippedInstanceIsPassedOverAndTheOthersAreSynced() async throws {
+            try routeAllDomains()
+            let context = try makeContext()
+            let first = stubInstance()
+            let second = stubInstance()
+            context.insert(first)
+            context.insert(second)
+            let control = SyncControl()
+            control.skip(second.id)
+            var events: [SyncEvent] = []
+
+            let succeeded = await coordinator().syncEverything(
+                instances: [first, second], in: context, shiftsOnly: true, control: control,
+                onEvent: { events.append($0) })
+            #expect(!succeeded)
+            #expect(events.contains(.instanceFinished(id: first.id, outcome: .succeeded)))
+            #expect(events.last == .instanceFinished(id: second.id, outcome: .skipped))
+            #expect(!events.contains(.instanceStarted(id: second.id)))
+        }
+
+        @Test func skippingTheRunningInstanceStopsItsRemainingSteps() async throws {
+            try routeAllDomains()
+            let context = try makeContext()
+            let instance = stubInstance()
+            context.insert(instance)
+            let control = SyncControl()
+            var events: [SyncEvent] = []
+
+            let succeeded = await coordinator().syncEverything(
+                instances: [instance], in: context, control: control,
+                onEvent: { event in
+                    events.append(event)
+                    if event == .stepFinished(id: instance.id, area: "Shifts") { control.skip(instance.id) }
+                })
+            #expect(!succeeded)
+            #expect(events.last == .instanceFinished(id: instance.id, outcome: .skipped))
+            #expect(!events.contains(.stepStarted(id: instance.id, area: "Messages")))
+        }
+
+        /// "Stop sync": cancelling the whole run while an instance is busy ends it without a failure.
+        @Test func stoppingTheRunCancelsTheBusyInstanceWithoutCountingAFailure() async throws {
+            try routeAllDomains()
+            StubURLProtocol.route("GET \(prefix)/users/self/shifts", delay: 0.4)
+            let context = try makeContext()
+            let instance = stubInstance()
+            context.insert(instance)
+            let coordinator = coordinator()
+            var events: [SyncEvent] = []
+
+            let run = Task { @MainActor in
+                await coordinator.syncEverything(instances: [instance], in: context, onEvent: { events.append($0) })
+            }
+            try await Task.sleep(for: .milliseconds(100))
+            run.cancel()
+            #expect(await run.value)
+            #expect(!events.contains(.stepStarted(id: instance.id, area: "Messages")))
+        }
+
+        @Test func aFailingInstanceIsReportedAsFailed() async throws {
+            for path in ["/users/self/shifts", "/news", "/users/self", "/locations"] {
+                StubURLProtocol.route("GET \(prefix)\(path)", status: 500)
+            }
+            let context = try makeContext()
+            let instance = stubInstance()
+            context.insert(instance)
+            var events: [SyncEvent] = []
+
+            _ = await coordinator().syncEverything(instances: [instance], in: context, onEvent: { events.append($0) })
+            #expect(events.last == .instanceFinished(id: instance.id, outcome: .failed))
+        }
+
         @Test func aCancelledSyncDoesNotCountAsAFailure() async throws {
             let context = try makeContext()
             let instance = stubInstance()

@@ -427,8 +427,10 @@ public final class APIClient {
             // than disguising it as `APIError.network(...)`, so callers can tell the two
             // apart and skip showing a "Connection failed" error for it. Not logged as a
             // failure for the same reason — it isn't one.
-            if error is CancellationError {
-                throw error
+            // A cancelled URLSession request fails with `URLError.cancelled`, not a `CancellationError`:
+            // a cancelled task (Stop sync, skip, timeout) counts as cancellation either way.
+            if error is CancellationError || Task.isCancelled {
+                throw CancellationError()
             }
             let apiError = APIError(error)
             // For a list endpoint's 404 specifically, `withCredentialList` above logs
