@@ -421,7 +421,8 @@ exists without reading the whole diff history.
 - **Several demo instances** (2026-10-16): any `demo://<host>` address is a demo instance and the host picks the data
   (`DemoScenario`): `demo://engelsystem.local` is the classic data, `demo://congress.local` a second event with its own
   info, shifts, locations and news. Two demo instances with the same host count as one server (two accounts) and are
-  merged where the real server would be; different hosts are different servers..
+  merged where the real server would be; different hosts are different servers. Any other `demo://` host is an instance
+  with a single pinned news post that names the addresses that work.
 - **Merged locations and edges** (2026-10-16): in the merged mode the locations of instances on the same server collapse to
   one entry (`CachedLocation.mergedAcrossServers`, like news) with a badge per instance. The colored left edge belongs to an
   entry only when exactly one instance owns it (`InstanceEdge`); shared entries show just the badges. The Profile band no

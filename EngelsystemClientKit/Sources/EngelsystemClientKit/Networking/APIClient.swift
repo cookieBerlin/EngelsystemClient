@@ -40,8 +40,8 @@ public struct EventCredential: Sendable {
     /// The demo data set of this address; nil for a `demo://` address with an unknown host.
     var demoScenario: DemoScenario? { DemoScenario(baseURL: baseURL) }
 
-    /// The data set to serve; an unknown demo host gets the classic one (only `/info` refuses it).
-    var scenario: DemoScenario { demoScenario ?? .main }
+    /// The data set to serve; an unknown demo host gets the instance that names the addresses that work.
+    var scenario: DemoScenario { demoScenario ?? .unknown }
 }
 
 public final class APIClient {
@@ -54,9 +54,7 @@ public final class APIClient {
     public func fetchInfo(_ credential: EventCredential) async throws -> EventInfo {
         if credential.isDemo {
             await DemoData.simulateLatency()
-            // An unknown demo host is a server that does not exist.
-            guard let scenario = credential.demoScenario else { throw APIError.notFound }
-            return DemoData.info(for: scenario)
+            return DemoData.info(for: credential.scenario)
         }
         return try await withCredential("GET /info", credential) {
             guard let data = try await EventAPI.infoGet().data else {

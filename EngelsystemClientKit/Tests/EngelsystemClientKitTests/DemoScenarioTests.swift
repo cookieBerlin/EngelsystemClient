@@ -21,7 +21,7 @@ struct DemoScenarioTests {
         let credential = EventCredential(baseURL: "demo://nowhere.local/api/v0-beta", apiKey: "demo")
         #expect(credential.isDemo)
         #expect(credential.demoScenario == nil)
-        #expect(credential.scenario == .main)
+        #expect(credential.scenario == .unknown)
         #expect(EventCredential(baseURL: "demo://congress.local/api/v0-beta", apiKey: "k").scenario == .congress)
     }
 
@@ -55,9 +55,23 @@ struct DemoScenarioTests {
         await #expect(throws: APIError.notFound) { _ = try await client.fetchNewsDetail(id: 9999, congress) }
     }
 
-    @Test func anUnknownDemoHostIsRefusedByInfoButOtherwiseServesTheClassicData() async throws {
+    @Test func anUnknownDemoAddressIsAnInstanceThatNamesTheAddressesThatWork() async throws {
         let unknown = EventCredential(baseURL: "demo://unknown.local/api/v0-beta", apiKey: "demo")
-        await #expect(throws: APIError.notFound) { _ = try await APIClient.shared.fetchInfo(unknown) }
-        #expect(try await APIClient.shared.fetchLocations(unknown).map(\.name).contains("Heaven"))
+        let client = APIClient.shared
+        #expect(try await client.fetchInfo(unknown).name == "Unknown demo address")
+        #expect(try await client.fetchLocations(unknown).isEmpty)
+        #expect(try await client.fetchShifts(unknown).isEmpty)
+
+        let news = try await client.fetchNews(unknown)
+        #expect(news.count == 1)
+        #expect(news[0].text.contains("demo://engelsystem.local"))
+        #expect(news[0].text.contains("demo://congress.local"))
+        #expect(!news[0].text.contains("unknown"))
+        let detail = try await client.fetchNewsDetail(id: news[0].id, unknown)
+        #expect(detail.text == news[0].text)
+        await #expect(throws: APIError.notFound) { _ = try await client.fetchNewsDetail(id: 2, unknown) }
+        #expect(DemoScenario.supportedAddresses == ["demo://engelsystem.local", "demo://congress.local"])
+        // The literal host "unknown" is not a way to the placeholder data set either.
+        #expect(DemoScenario(baseURL: "demo://unknown") == nil)
     }
 }

@@ -14,32 +14,65 @@ extension DemoData {
                  contact: ContactDect(dect: "2004"), url: "https://congress.demo.engelsystem.local/locations/4"),
     ]
 
+    /// What an unknown demo address shows: one news post naming the addresses that work.
+    static var unknownAddressText: String {
+        "This demo address is not known. Use one of these instead: "
+            + DemoScenario.supportedAddresses.joined(separator: ", ") + "."
+    }
+
+    private static var unknownAddressNews: NewsDetail {
+        let now = Date()
+        return NewsDetail(
+            id: 1, name: "Unknown demo address", text: unknownAddressText, isMeeting: false, isPinned: true,
+            isHighlighted: true, createdAt: now, updatedAt: nil,
+            url: "https://demo.engelsystem.local/news/1", commentsCount: 0, comments: [])
+    }
+
     static func info(for scenario: DemoScenario) -> EventInfo {
         var result = info
-        if scenario == .congress {
+        switch scenario {
+        case .main: break
+        case .congress:
             result.name = "Demo Congress 2"
             result.url = "https://congress.demo.engelsystem.local"
+        case .unknown:
+            result.name = "Unknown demo address"
         }
         return result
     }
 
     static func news(for scenario: DemoScenario) -> [News] {
-        guard scenario == .congress else { return news }
-        return news.map { item in
-            var copy = item
-            copy.name = "Congress: " + item.name
-            return copy
+        switch scenario {
+        case .main:
+            return news
+        case .congress:
+            return news.map { item in
+                var copy = item
+                copy.name = "Congress: " + item.name
+                return copy
+            }
+        case .unknown:
+            let post = unknownAddressNews
+            return [News(
+                id: post.id, name: post.name, text: post.text, isMeeting: post.isMeeting, isPinned: post.isPinned,
+                isHighlighted: post.isHighlighted, createdAt: post.createdAt, updatedAt: post.updatedAt,
+                url: post.url, commentsCount: post.commentsCount)]
         }
     }
 
     static func newsDetail(id: Int, for scenario: DemoScenario) -> NewsDetail? {
+        if scenario == .unknown { return id == unknownAddressNews.id ? unknownAddressNews : nil }
         guard var detail = newsDetail(id: id) else { return nil }
         if scenario == .congress { detail.name = "Congress: " + detail.name }
         return detail
     }
 
     static func locations(for scenario: DemoScenario) -> [Location] {
-        scenario == .congress ? congressLocations : locations
+        switch scenario {
+        case .main: return locations
+        case .congress: return congressLocations
+        case .unknown: return []
+        }
     }
 
     static func location(id: Int, for scenario: DemoScenario) -> Location? {
@@ -47,6 +80,7 @@ extension DemoData {
     }
 
     static func shifts(for scenario: DemoScenario) -> [Shift] {
+        if scenario == .unknown { return [] }
         guard scenario == .congress else { return shifts }
         return shifts.map { shift in
             var copy = shift
