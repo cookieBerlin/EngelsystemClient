@@ -25,7 +25,7 @@ extension DemoData {
         return NewsDetail(
             id: 1, name: "Unknown demo address", text: unknownAddressText, isMeeting: false, isPinned: true,
             isHighlighted: true, createdAt: now, updatedAt: nil,
-            url: "https://demo.engelsystem.local/news/1", commentsCount: 0, comments: [])
+            url: "https://demo.engelsystem.local/news/1", commentsCount: nil, comments: [])
     }
 
     static func info(for scenario: DemoScenario) -> EventInfo {

@@ -172,8 +172,7 @@ public struct AppSyncCoordinator {
                     guard !(error is CancellationError) else { return }
                     // A 403/404 is "not allowed"/"not offered", not a failure to report (ADR 0015); the
                     // reminders are still left alone because no shift list was received.
-                    capabilities.record(.shifts, afterError: error, for: instance.id)
-                    fail(instance)
+                    if !capabilities.record(.shifts, afterError: error, for: instance.id) { fail(instance) }
                     state.shiftsOK = false
                     DebugLog.log("AppSyncCoordinator: Shifts failed for '\(instance.name)': \(error)", level: .error)
                 }

@@ -19,10 +19,11 @@ public struct LocationSyncService {
         let locations: [Location]
         do {
             locations = try await apiClient.fetchLocations(credential)
-        } catch APIError.forbidden {
-            // COMPAT(#1711): without that PR only the `api` group may read locations — not an
-            // error for the app, the Locations area is simply hidden for this instance.
-            capabilities.record(.locationsList, afterFailure: .forbidden, for: instance.id)
+        } catch let error as APIError where error == .forbidden || error == .notFound {
+            // COMPAT(#1711): without that PR only the `api` group may read locations (403); a server
+            // without the route answers 404 — not an error for the app, the Locations area is simply
+            // hidden for this instance.
+            capabilities.record(.locationsList, afterFailure: error, for: instance.id)
             return []
         }
         capabilities.record(.locationsList, state: .available, evidence: .probe, for: instance.id)

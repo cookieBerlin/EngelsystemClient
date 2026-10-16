@@ -42,6 +42,11 @@ public struct EventCredential: Sendable {
 
     /// The data set to serve; an unknown demo host gets the instance that names the addresses that work.
     var scenario: DemoScenario { demoScenario ?? .unknown }
+
+    /// A demo server that only offers News answers everything else like a missing route.
+    func requireDemoFeature() throws {
+        if scenario.offersOnlyNews { throw APIError.notFound }
+    }
 }
 
 public final class APIClient {
@@ -108,6 +113,7 @@ public final class APIClient {
     /// not to be confused with `fetchAngelTypes`, which lists the instance-wide catalog.
     public func fetchOwnAngelTypes(_ credential: EventCredential) async throws -> [UserAngelType] {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return DemoData.ownAngelTypes
         }
@@ -118,6 +124,7 @@ public final class APIClient {
 
     public func fetchLocations(_ credential: EventCredential) async throws -> [Location] {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return DemoData.locations(for: credential.scenario)
         }
@@ -131,6 +138,7 @@ public final class APIClient {
     /// finding for the caller, not an empty result.
     public func fetchShift(id: Int, _ credential: EventCredential) async throws -> Shift {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             guard let shift = DemoData.shifts(for: credential.scenario).first(where: { $0.id == id }) else { throw APIError.notFound }
             return shift
@@ -157,6 +165,7 @@ public final class APIClient {
     /// unaffected either way.
     public func fetchLocation(id: Int, _ credential: EventCredential) async throws -> Location {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             guard let location = DemoData.location(id: id, for: credential.scenario) else {
                 throw APIError.notFound
@@ -183,6 +192,7 @@ public final class APIClient {
 
     public func fetchShifts(_ credential: EventCredential) async throws -> [Shift] {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return DemoData.shifts(for: credential.scenario)
         }
@@ -193,6 +203,7 @@ public final class APIClient {
 
     public func fetchWorklogs(_ credential: EventCredential) async throws -> [Worklog] {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return DemoData.worklogs
         }
@@ -260,6 +271,7 @@ public final class APIClient {
     /// `withCredentialList`, matching `fetchNewsDetail`/`fetchLocation`.
     public func fetchConversations(_ credential: EventCredential) async throws -> [Conversation] {
         if credential.isDemo {
+            try credential.requireDemoFeature()
             await DemoData.simulateLatency()
             return await DemoData.conversations()
         }
@@ -349,7 +361,7 @@ public final class APIClient {
     /// Like `messagesSupported(_:)`, but tells a route the account may not use (403) from a usable
     /// one: `.available`, `.notAllowed` (route exists, 403) or `.notOffered` (route missing).
     public func messagesState(_ credential: EventCredential) async -> FeatureState {
-        if credential.isDemo { return .available }
+        if credential.isDemo { return credential.scenario.offersOnlyNews ? .notOffered : .available }
         guard !credential.baseURL.isEmpty, URL(string: credential.baseURL) != nil else { return .available }
         do {
             _ = try await withLockedCredential(credential) {

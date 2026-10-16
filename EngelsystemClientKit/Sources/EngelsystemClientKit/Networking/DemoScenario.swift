@@ -23,6 +23,9 @@ public enum DemoScenario: String, CaseIterable, Sendable {
         self = scenario
     }
 
+    /// The unknown address plays a server that offers only News: every other function answers "not found".
+    public var offersOnlyNews: Bool { self == .unknown }
+
     /// The addresses with real demo data.
     public static var supportedAddresses: [String] {
         allCases.filter { $0 != .unknown }.map(\.baseURL)

@@ -43,7 +43,7 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Merged lists: the same location on several instances of one server is shown once with a badge per instance, entries that
   several instances share carry no color edge, and Locations get the badge and edge like the other lists. The Profile band no longer shows a count.
 - Demo Mode can have several instances: `demo://engelsystem.local` (as before) and `demo://congress.local`; any other `demo://`
-  address shows a single news post that lists the addresses that work.
+  address plays a server that offers only News, with one post that lists the addresses that work.
 
 ### Removed
 - The “Open on Website” button on the location screen.

@@ -347,6 +347,25 @@ extension StubbedNetworkTests {
             #expect(progress.last?.completed == progress.last?.total)
         }
 
+        /// The demo server for an unknown address offers only News: everything else counts as not offered, silently.
+        @Test func aNewsOnlyDemoServerHidesEverythingElseWithoutErrors() async throws {
+            let context = try makeContext()
+            let instance = Instance(name: "Only News", baseURL: "demo://nothing.local", apiKeyKeychainRef: "ref")
+            context.insert(instance)
+            let capabilities = freshCapabilities()
+            var events: [SyncEvent] = []
+
+            let succeeded = await coordinator(capabilities: capabilities).syncEverything(
+                instances: [instance], in: context, onEvent: { events.append($0) })
+            #expect(succeeded)
+            #expect(events.last == .instanceFinished(id: instance.id, outcome: .succeeded))
+            #expect(capabilities.status(.news, for: instance.id).state == .available)
+            for feature in [ServerFeature.shifts, .locationsList, .messages, .profileWorklogs, .profileAngelTypes] {
+                #expect(capabilities.status(feature, for: instance.id).state == .notOffered, "\(feature)")
+            }
+            #expect(!instance.messagesSupported)
+        }
+
         @Test func aFailingInstanceIsReportedAsFailed() async throws {
             for path in ["/users/self/shifts", "/news", "/users/self", "/locations"] {
                 StubURLProtocol.route("GET \(prefix)\(path)", status: 500)

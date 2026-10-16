@@ -59,18 +59,28 @@ struct DemoScenarioTests {
         let unknown = EventCredential(baseURL: "demo://unknown.local/api/v0-beta", apiKey: "demo")
         let client = APIClient.shared
         #expect(try await client.fetchInfo(unknown).name == "Unknown demo address")
-        #expect(try await client.fetchLocations(unknown).isEmpty)
-        #expect(try await client.fetchShifts(unknown).isEmpty)
+        await #expect(throws: APIError.notFound) { _ = try await client.fetchLocations(unknown) }
+        await #expect(throws: APIError.notFound) { _ = try await client.fetchShifts(unknown) }
 
         let news = try await client.fetchNews(unknown)
         #expect(news.count == 1)
         #expect(news[0].text.contains("demo://engelsystem.local"))
         #expect(news[0].text.contains("demo://congress.local"))
         #expect(!news[0].text.contains("unknown"))
+        #expect(news[0].commentsCount == nil)
         let detail = try await client.fetchNewsDetail(id: news[0].id, unknown)
         #expect(detail.text == news[0].text)
         await #expect(throws: APIError.notFound) { _ = try await client.fetchNewsDetail(id: 2, unknown) }
         #expect(DemoScenario.supportedAddresses == ["demo://engelsystem.local", "demo://congress.local"])
+        // Everything but News answers like a missing route.
+        await #expect(throws: APIError.notFound) { _ = try await client.fetchWorklogs(unknown) }
+        await #expect(throws: APIError.notFound) { _ = try await client.fetchOwnAngelTypes(unknown) }
+        await #expect(throws: APIError.notFound) { _ = try await client.fetchShift(id: 1, unknown) }
+        await #expect(throws: APIError.notFound) { _ = try await client.fetchLocation(id: 1, unknown) }
+        await #expect(throws: APIError.notFound) { _ = try await client.fetchConversations(unknown) }
+        #expect(await client.messagesState(unknown) == .notOffered)
+        #expect(await client.messagesState(EventCredential(baseURL: "demo://engelsystem.local/api/v0-beta", apiKey: "k")) == .available)
+        #expect(DemoScenario.unknown.offersOnlyNews && !DemoScenario.main.offersOnlyNews)
         // The literal host "unknown" is not a way to the placeholder data set either.
         #expect(DemoScenario(baseURL: "demo://unknown") == nil)
     }
