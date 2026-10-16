@@ -58,6 +58,9 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 - The colors in the instance's color picker are shown in their own color instead of black.
 
+- Apple Watch logs: the Watch's Diagnostics page has its own **Debug Logging** switch and **Send Log to iPhone** (only when you tap). On the
+  iPhone, Diagnostics has two sections — **This iPhone** and **Logs received from Apple Watch** — to view, share all together, delete,
+  **Request Log from Apple Watch**, and switch **Log on Apple Watch** (with an honest "Waiting for Apple Watch" status until the Watch confirms).
 - Debug logging is on by default in the beta versions (iPhone; Watch follows), so a bug report always has a log. The privacy policy now describes exactly what the log contains and how it leaves the device.
 
 ### Removed

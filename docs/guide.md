@@ -120,8 +120,11 @@ Settings is a short list of pages; each row shows a summary of its current state
 - **Phone Numbers**: which app opens internal and other numbers (see "Phone numbers" above).
 - **Privacy**: **Map Links** (a plain link or the map inside the location screen), automatic deletion of the map page's data and
   **Delete Map Website Data**, plus a link to the privacy policy.
-- **Diagnostics**: **Debug Logging** (on by default in the beta), **View Debug Log** and **Export Diagnostics** for bug reports — see the
-  [FAQ](faq.md#something-is-wrong-how-do-i-report-it).
+- **Diagnostics**: **This iPhone** — **Debug Logging** (on by default in the beta), **View Debug Log** and **Export Diagnostics** for bug
+  reports (see the [FAQ](faq.md#something-is-wrong-how-do-i-report-it)). **Logs received from Apple Watch** — the logs the Watch sent,
+  to view, **Share All**, swipe to delete or **Delete All**; **Request Log from Apple Watch** asks the Watch to send its log, and
+  **Log on Apple Watch** switches the Watch's logging (it shows "Waiting for Apple Watch" until the Watch confirms). On the Watch:
+  **Settings → Diagnostics → Send Log to iPhone**. Nothing is sent unless you tap or request it.
 - **About**: version and build, and links to the guide, support, privacy policy and the source code.
 
 ## Apple Watch

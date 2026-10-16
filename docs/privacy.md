@@ -53,7 +53,7 @@ profile, or any other data you access through the app.
   else for this.
 - **Debug log** (on by default in the current beta versions; a switch in
   Settings → Diagnostics turns it off, and the Apple Watch app has its
-  own switch): the app records its own internal activity on the device
+  own switch; the iPhone can switch the Watch's too): the app records its own internal activity on the device
   where it runs, for troubleshooting.
   - *What it contains:* the time and kind of each event (for example
     "sync started/finished"), error codes, the names you gave your

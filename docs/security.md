@@ -31,7 +31,8 @@ logging. Hard constraints are mirrored in [`CLAUDE.md`](../CLAUDE.md).
   `Instance` metadata (not the key) syncs via CloudKit.
 - Private messages are live-only: no local cache, no CloudKit.
 - Diagnostics (`MetricKitReporter`, `DebugLog`) stay on the device (the debug log is on by default in the beta — see `docs/privacy.md` and the release checklist) and
-  leave it only when the user exports them manually.
+  leave it only when the user exports them manually. The Watch's log reaches the iPhone only over the user's own paired
+  WatchConnectivity link, on the user's tap or request; it is stored in the iPhone's caches (20 files at most, excluded from backup).
 
 ## Repository hygiene
 

@@ -154,4 +154,5 @@ Use TestFlight's **Send Beta Feedback** (screenshots welcome) or open an issue o
 [GitHub](https://github.com/cookieBerlin/EngelsystemClient/issues), or write to
 [EngelsystemClient@cuccato.net](mailto:EngelsystemClient@cuccato.net). Please include what you expected, what happened, your
 iOS version, and — if useful — the debug log (**Settings → Diagnostics → View Debug Log → Copy to Clipboard**) or an
-**Export Diagnostics** report.
+**Export Diagnostics** report. For the Apple Watch, tap **Settings → Diagnostics → Send Log to iPhone** on the Watch (or **Request Log from
+Apple Watch** on the iPhone); the log then appears under **Logs received from Apple Watch**, where you can share all of them at once.

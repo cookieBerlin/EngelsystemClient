@@ -1278,3 +1278,13 @@ Details and the full register: [`architecture.md`](architecture.md#compatibility
 - "Test Connection" probes a data endpoint and shows an orange warning on 403 (privilege/group wording, saving still allowed).
 - Shift reminders are planned whenever the shift syncs succeeded (permanent change, independent of News/Profile failures).
 
+## Watch debug logs (2026-10-16)
+- Watch Diagnostics: own **Debug Logging** switch (default on in the beta) and **Send Log to iPhone** (`WatchDiagnosticsViewModel` →
+  `WatchLogResponder.sendLog` → `WCSession.transferFile`); never automatic.
+- iPhone Diagnostics: **This iPhone** and **Logs received from Apple Watch** (`WatchLogsViewModel`, `ReceivedWatchLogs`: 20 files, newest first,
+  moved synchronously in the session delegate; viewer, Share All, swipe delete, Delete All with confirmation).
+- **Request Log from Apple Watch**: live `sendMessage` when reachable, always also queued in the application context with a request id; the Watch
+  answers each id once. The status text says which of the two happened or that no Watch is available.
+- **Log on Apple Watch**: the wish travels in the application context (merged `WatchContextState`, so shift nudges, requests and the switch do not
+  overwrite each other); the newer change wins (`DebugLog.apply`), the Watch reports its state back (`WatchLogReport`) and the status line compares
+  wish and report (`WatchLoggingStatus`).
