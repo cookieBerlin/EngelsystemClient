@@ -51,12 +51,25 @@ profile, or any other data you access through the app.
   entirely on your device. The app has no server-side push
   infrastructure — nothing is sent to Apple's push servers or anywhere
   else for this.
-- **Debug log** (off by default, toggled in Settings): if you turn it
-  on, the app records its own internal sync/notification activity on
-  your device, for troubleshooting. It never includes your API key or
-  any other secret. It stays on your device unless you explicitly copy
-  it (e.g. to attach to a support request) — the app never sends it
-  anywhere on its own.
+- **Debug log** (on by default in the current beta versions; a switch in
+  Settings → Diagnostics turns it off, and the Apple Watch app has its
+  own switch): the app records its own internal activity on the device
+  where it runs, for troubleshooting.
+  - *What it contains:* the time and kind of each event (for example
+    "sync started/finished"), error codes, the names you gave your
+    instances, the paths of API requests (such as `GET /users/self/shifts`)
+    and counts (for example the number of shifts loaded).
+  - *What it never contains:* your API key or any other secret, and none
+    of the content of your shifts, news, locations or messages.
+  - *Where it lives:* a plain text file in the app's cache folder on that
+    device, excluded from backups, limited to the most recent entries
+    (500 by default, 100–5000 selectable). Turning logging off stops new
+    entries; "Clear" in the log view deletes the entries.
+  - *How it leaves the device:* only when you do something. You can copy
+    it, share it, or — for the Apple Watch's log — send it from the Watch
+    to your own iPhone or request it from the iPhone. It then stays on
+    your iPhone until you delete it. The app never sends it to any server
+    and never uploads it on its own.
 - **Crash and performance diagnostics** (via Apple's MetricKit): the
   app subscribes to on-device crash, hang, and performance diagnostics
   that iOS collects about the app's own behavior. These stay on your

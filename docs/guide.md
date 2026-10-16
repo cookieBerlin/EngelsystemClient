@@ -120,7 +120,7 @@ Settings is a short list of pages; each row shows a summary of its current state
 - **Phone Numbers**: which app opens internal and other numbers (see "Phone numbers" above).
 - **Privacy**: **Map Links** (a plain link or the map inside the location screen), automatic deletion of the map page's data and
   **Delete Map Website Data**, plus a link to the privacy policy.
-- **Diagnostics**: **Debug Logging**, **View Debug Log** and **Export Diagnostics** for bug reports — see the
+- **Diagnostics**: **Debug Logging** (on by default in the beta), **View Debug Log** and **Export Diagnostics** for bug reports — see the
   [FAQ](faq.md#something-is-wrong-how-do-i-report-it).
 - **About**: version and build, and links to the guide, support, privacy policy and the source code.
 

@@ -30,7 +30,7 @@ logging. Hard constraints are mirrored in [`CLAUDE.md`](../CLAUDE.md).
 - Cached shifts/news/profile data lives in SwiftData on the device.
   `Instance` metadata (not the key) syncs via CloudKit.
 - Private messages are live-only: no local cache, no CloudKit.
-- Diagnostics (`MetricKitReporter`, `DebugLog`) stay on the device and
+- Diagnostics (`MetricKitReporter`, `DebugLog`) stay on the device (the debug log is on by default in the beta — see `docs/privacy.md` and the release checklist) and
   leave it only when the user exports them manually.
 
 ## Repository hygiene

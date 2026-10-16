@@ -10,7 +10,7 @@ private struct DiagnosticsExport: Identifiable {
 /// Settings page "Diagnostics": debug logging, the debug log and the MetricKit export.
 struct DiagnosticsSettingsView: View {
     @AppStorage(DebugLog.isEnabledUserDefaultsKey)
-    private var isDebugLoggingEnabled: Bool = false
+    private var isDebugLoggingEnabled: Bool = DebugLog.defaultEnabled
     @AppStorage(DebugLog.maxEntriesUserDefaultsKey)
     private var maxDebugLogEntries: Int = DebugLog.defaultMaxEntries
     @State private var diagnosticsToExport: DiagnosticsExport?
@@ -33,7 +33,7 @@ struct DiagnosticsSettingsView: View {
                     Label("Export Diagnostics", systemImage: "square.and.arrow.up")
                 }
             } footer: {
-                Text("Records internal sync and notification activity for troubleshooting. Never includes API keys or other secrets. Off by default; turning it off doesn't erase what's already logged — use \"Clear\" in the log view for that. \"Export Diagnostics\" shares crash/hang/performance data collected on-device by Apple's MetricKit — nothing is sent anywhere automatically, and you see what it contains before sharing.")
+                Text("Records internal sync and notification activity for troubleshooting. Never includes API keys or other secrets. On by default during the beta; turning it off doesn't erase what's already logged — use \"Clear\" in the log view for that. \"Export Diagnostics\" shares crash/hang/performance data collected on-device by Apple's MetricKit — nothing is sent anywhere automatically, and you see what it contains before sharing.")
             }
         }
         .navigationTitle("Diagnostics")

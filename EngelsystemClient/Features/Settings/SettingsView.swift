@@ -16,7 +16,7 @@ struct SettingsView: View {
     @AppStorage(MapLinkMode.userDefaultsKey)
     private var mapLinkModeRaw: String = MapLinkMode.embedded.rawValue
     @AppStorage(DebugLog.isEnabledUserDefaultsKey)
-    private var isDebugLoggingEnabled: Bool = false
+    private var isDebugLoggingEnabled: Bool = DebugLog.defaultEnabled
     @Query private var leadTimeSettingsRows: [NotificationLeadTimeSettings]
 
     var body: some View {

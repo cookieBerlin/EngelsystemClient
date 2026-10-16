@@ -4,6 +4,11 @@ Run top to bottom for every build. Identifiers and metadata:
 [`app-store.md`](app-store.md); policy pages: [`privacy.md`](privacy.md),
 [`support.md`](support.md).
 
+## Decide before the first App Store release
+
+- **Debug logging default**: it is **on** by default in the beta (`DebugLog.defaultEnabled`, `docs/privacy.md`). Decide again before the first
+  App Store release — probably **off** — and then change the one constant and the sentence in the privacy policy together.
+
 ## Before archiving
 
 1. Working tree clean, `main` up to date.

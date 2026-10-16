@@ -58,6 +58,8 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 - The colors in the instance's color picker are shown in their own color instead of black.
 
+- Debug logging is on by default in the beta versions (iPhone; Watch follows), so a bug report always has a log. The privacy policy now describes exactly what the log contains and how it leaves the device.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's

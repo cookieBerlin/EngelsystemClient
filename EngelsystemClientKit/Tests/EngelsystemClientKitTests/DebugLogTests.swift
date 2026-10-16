@@ -28,8 +28,12 @@ struct DebugLogTests {
         #expect(DebugLogEntry.parse(persistedLine: "") == nil)
     }
 
-    @Test func isEnabledDefaultsToFalseButRespectsAnExplicitValue() {
+    /// Beta: on until somebody switches it off (`DebugLog.defaultEnabled`); an explicit choice always wins.
+    @Test func isEnabledFollowsTheDefaultButRespectsAnExplicitValue() {
         let defaults = UserDefaults(suiteName: "DebugLogTests-\(UUID().uuidString)")!
+        #expect(DebugLog.isEnabled(in: defaults) == DebugLog.defaultEnabled)
+        #expect(DebugLog.defaultEnabled) // the beta default
+        defaults.set(false, forKey: DebugLog.isEnabledUserDefaultsKey)
         #expect(!DebugLog.isEnabled(in: defaults))
         defaults.set(true, forKey: DebugLog.isEnabledUserDefaultsKey)
         #expect(DebugLog.isEnabled(in: defaults))

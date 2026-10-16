@@ -82,8 +82,12 @@ public final class DebugLog {
     public nonisolated static let defaultMaxEntries = 500
     public nonisolated static let availableMaxEntryCounts = [100, 500, 1000, 5000]
 
+    /// Whether logging is on when nobody ever touched the switch. **On during the beta** so testers have data without
+    /// doing anything; to be decided again before the first App Store release (probably off — `docs/release.md`).
+    public nonisolated static let defaultEnabled = true
+
     public nonisolated static func isEnabled(in defaults: UserDefaults = .standard) -> Bool {
-        defaults.bool(forKey: isEnabledUserDefaultsKey)
+        (defaults.object(forKey: isEnabledUserDefaultsKey) as? Bool) ?? defaultEnabled
     }
 
     /// Falls back to `defaultMaxEntries` both when nothing's been chosen yet (`0`,
