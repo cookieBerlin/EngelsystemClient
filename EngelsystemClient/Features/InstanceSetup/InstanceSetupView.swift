@@ -16,6 +16,24 @@ struct InstanceSetupView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // Trying the app comes first: one tap, no server and no key.
+                Section {
+                    Button("Try Demo Mode") {
+                        Task {
+                            if await viewModel.useDemoInstance(in: modelContext) {
+                                onSaved?()
+                                dismiss()
+                            }
+                        }
+                    }
+                    .disabled(viewModel.isTesting)
+                    .accessibilityIdentifier("tryDemoModeButton")
+                } header: {
+                    Text("Just looking around?")
+                } footer: {
+                    Text("Adds a demo instance with sample data. No server or API key needed.")
+                }
+
                 Section("Instance") {
                     TextField("Name (e.g. 42C3)", text: $viewModel.name)
                         .textInputAutocapitalization(.words)
@@ -29,8 +47,17 @@ struct InstanceSetupView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
 
-                    SecureField("API Key", text: $viewModel.apiKey)
-                        .autocorrectionDisabled()
+                    if viewModel.requiresAPIKey {
+                        SecureField("API Key", text: $viewModel.apiKey)
+                            .autocorrectionDisabled()
+                    } else {
+                        // A demo address ignores the key: greyed out, with the reason.
+                        SecureField("API Key", text: .constant(""))
+                            .disabled(true)
+                        Text(InstanceForm.demoKeyHint)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section {
@@ -71,19 +98,6 @@ struct InstanceSetupView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section {
-                    Button("Try Demo Mode") {
-                        Task {
-                            if await viewModel.useDemoInstance(in: modelContext) {
-                                onSaved?()
-                                dismiss()
-                            }
-                        }
-                    }
-                    .disabled(viewModel.isTesting)
-                } footer: {
-                    Text("Explore the app with sample data — no real server or API key needed.")
-                }
             }
             .navigationTitle("Add Instance")
             #if os(iOS)

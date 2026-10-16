@@ -117,6 +117,24 @@ extension StubbedNetworkTests {
             #expect(viewModel.featureSummary?.hasSuffix("features available") == true)
         }
 
+        /// A demo address needs no API key; a real one still does.
+        @Test @MainActor func onlyRealAddressesNeedAnAPIKey() async {
+            let viewModel = InstanceSetupViewModel()
+            viewModel.name = "Demo"
+            viewModel.baseURL = "demo://congress.local"
+            #expect(!viewModel.requiresAPIKey)
+            #expect(viewModel.canTest) // no key typed
+            await viewModel.testConnection()
+            #expect(viewModel.connectionTested)
+            #expect(viewModel.canSubmit)
+
+            viewModel.baseURL = "https://real.test"
+            #expect(viewModel.requiresAPIKey)
+            #expect(!viewModel.canTest) // a real server needs its key
+            viewModel.apiKey = "k"
+            #expect(viewModel.canTest)
+        }
+
         /// A demo address needs no server: the summary names what that demo offers.
         @Test @MainActor func demoAddressesShowWhatTheDemoOffers() async {
             let total = ServerFeature.listed.count

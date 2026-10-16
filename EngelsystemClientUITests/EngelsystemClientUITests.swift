@@ -641,9 +641,8 @@ final class EngelsystemClientUITests: XCTestCase {
         let server = app.textFields["https://engelsystem.example.org"]
         server.tap()
         server.typeText(address)
-        let key = app.secureTextFields["API Key"]
-        key.tap()
-        key.typeText("demo")
+        // A demo address needs no API key: the field is greyed out and says why.
+        XCTAssertTrue(app.staticTexts["Not needed for demo addresses"].waitForExistence(timeout: 5))
         app.buttons["Test Connection"].tap()
         XCTAssertTrue(app.staticTexts["Connection Verified"].waitForExistence(timeout: 10))
         app.buttons["Save"].tap()
