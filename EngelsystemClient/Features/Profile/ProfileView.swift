@@ -209,7 +209,7 @@ struct ProfileView: View {
 
         InstanceSection(
             instance: instance,
-            countText: CountText.text(instanceWorklogs.count, singular: "worklog"),
+            countText: "",
             collapsed: $collapsedInstances
         ) {
             SubheadingRow(title: "Profile")

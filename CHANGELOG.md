@@ -40,6 +40,9 @@ versioning: [Semantic Versioning](https://semver.org/).
   instances the lists show them under a colored band that folds the entries away, merged lists mark the entries with a colored badge and edge,
   and the Profile screen shows the same three topics in every display mode.
 
+- Merged lists: the same location on several instances of one server is shown once with a badge per instance, entries that
+  several instances share carry no color edge, and Locations get the badge and edge like the other lists. The Profile band no longer shows a count.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's

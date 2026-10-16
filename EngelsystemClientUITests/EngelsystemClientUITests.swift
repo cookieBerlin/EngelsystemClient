@@ -632,6 +632,89 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(infoDesk.waitForExistence(timeout: 5))
     }
 
+    /// Adds a demo instance through Settings > Instances > Add Instance (the app must show the Instances page).
+    @MainActor
+    private func addDemoInstance(named name: String, address: String, in app: XCUIApplication) {
+        // The previous sheet must be gone before the button is tapped again.
+        XCTAssertTrue(app.textFields["Name (e.g. 42C3)"].waitForNonExistence(timeout: 5))
+        let add = app.buttons["Add Instance"]
+        XCTAssertTrue(add.waitForExistence(timeout: 5))
+        waitUntilHittable(add, in: app)
+        let nameField = app.textFields["Name (e.g. 42C3)"]
+        // A tap during the previous sheet's dismissal can be swallowed: try again.
+        for _ in 0..<3 {
+            add.tap()
+            if nameField.waitForExistence(timeout: 4) { break }
+        }
+        XCTAssertTrue(nameField.exists)
+        nameField.tap()
+        nameField.typeText(name)
+        let server = app.textFields["https://engelsystem.example.org"]
+        server.tap()
+        server.typeText(address)
+        let key = app.secureTextFields["API Key"]
+        key.tap()
+        key.typeText("demo")
+        app.buttons["Test Connection"].tap()
+        XCTAssertTrue(app.staticTexts["Connection Verified"].waitForExistence(timeout: 10))
+        app.buttons["Save"].tap()
+        XCTAssertTrue(app.navigationBars["Instances"].waitForExistence(timeout: 10))
+    }
+
+    /// Merged mode with three demo instances: two accounts on the same demo server share their locations (one
+    /// entry, both instances named), the other demo server brings its own.
+    @MainActor
+    func testSameServerLocationsAreMergedAndOtherServersAreNot() throws {
+        let app = XCUIApplication()
+        app.launchArguments += Self.freshStartArguments
+        app.launch()
+
+        let demoButton = app.buttons["Try Demo Mode"]
+        XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
+        waitUntilHittable(demoButton, in: app)
+        demoButton.tap()
+        let settingsButton = app.buttons["Settings"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 10))
+        settingsButton.tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        openSettingsPage("Instances", in: app)
+        addDemoInstance(named: "Second", address: "demo://engelsystem.local", in: app)
+        addDemoInstance(named: "Congress", address: "demo://congress.local", in: app)
+
+        for _ in 0..<3 {
+            let back = app.buttons["BackButton"].firstMatch
+            guard back.waitForExistence(timeout: 3) else { break }
+            back.tap()
+            if app.staticTexts["Locations"].waitForExistence(timeout: 3) { break }
+        }
+
+        // The new instances have not synced yet: refresh them from the freshness lines.
+        for name in ["Second", "Congress"] {
+            let line = app.buttons["freshness-\(name)"]
+            XCTAssertTrue(line.waitForExistence(timeout: 10))
+            line.tap()
+            let banner = app.otherElements["syncProgressBanner"]
+            if banner.waitForExistence(timeout: 3) { _ = banner.waitForNonExistence(timeout: 40) }
+        }
+
+        let locations = app.staticTexts["Locations"]
+        XCTAssertTrue(locations.waitForExistence(timeout: 10))
+        locations.tap()
+        XCTAssertTrue(app.navigationBars["Locations"].waitForExistence(timeout: 10))
+
+        func rows(_ title: String) -> XCUIElementQuery {
+            app.buttons.matching(NSPredicate(format: "label CONTAINS %@", title))
+        }
+        // "Heaven" exists on both accounts of the same server, but is listed once, with both names.
+        XCTAssertTrue(rows("Heaven").firstMatch.waitForExistence(timeout: 10))
+        XCTAssertEqual(rows("Heaven").count, 1)
+        let heaven = rows("Heaven").firstMatch.label
+        XCTAssertTrue(heaven.contains("Demo") && heaven.contains("Second"), heaven)
+        // The other demo server has its own rooms.
+        XCTAssertTrue(rows("Hall A").firstMatch.exists)
+        XCTAssertTrue(rows("Hall A").firstMatch.label.contains("Congress"))
+    }
+
     /// Tapping the freshness line starts a sync whose banner offers "Stop sync".
     @MainActor
     func testStopSyncAsksForConfirmation() throws {

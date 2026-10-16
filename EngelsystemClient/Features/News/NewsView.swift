@@ -151,7 +151,7 @@ struct NewsView: View {
         } else {
             ForEach(items) { merged in
                 NewsRow(item: merged.item, instance: instance(for: merged.item), instanceNames: merged.instanceNames)
-                    .instanceEdge(named: instances.count > 1 ? merged.instanceNames.first : nil, colors: instanceColors)
+                    .instanceEdge(named: instances.count > 1 ? InstanceEdge.name(for: merged.instanceNames) : nil, colors: instanceColors)
             }
         }
     }

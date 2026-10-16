@@ -16,6 +16,7 @@ struct LocationsView: View {
     @State private var viewModel = LocationsViewModel()
     @State private var selectedInstanceID: UUID?
     @State private var collapsedInstances: Set<UUID> = []
+    @Environment(\.instanceColors) private var instanceColors
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var displayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
     @Query private var allLocations: [CachedLocation]
@@ -56,7 +57,9 @@ struct LocationsView: View {
 
                     switch displayMode {
                     case .merged:
-                        locationRows(CachedLocation.sortedByName(activeInstanceLocations))
+                        // The same room of two accounts on one server is one entry listing both instances.
+                        mergedLocationRows(CachedLocation.mergedAcrossServers(
+                            CachedLocation.sortedByName(activeInstanceLocations), instances: instances))
                     case .switcher:
                         InstancePicker(instances: instances, selection: $selectedInstanceID)
                             .listRowSeparator(.hidden)
@@ -115,6 +118,21 @@ struct LocationsView: View {
         }
     }
 
+    @ViewBuilder
+    private func mergedLocationRows(_ items: [CachedLocation.MergedItem]) -> some View {
+        if items.isEmpty && !viewModel.isLoading {
+            emptyState
+        } else {
+            let showsInstances = instances.count > 1
+            ForEach(items) { item in
+                LocationRow(
+                    location: item.location, instance: instance(for: item.location),
+                    instanceNames: showsInstances ? item.instanceNames : [])
+                    .instanceEdge(named: showsInstances ? InstanceEdge.name(for: item.instanceNames) : nil, colors: instanceColors)
+            }
+        }
+    }
+
     private var emptyState: some View {
         ContentUnavailableView(
             "No Locations",
@@ -131,14 +149,24 @@ private struct LocationRow: View {
     /// currently active instance (e.g. a race with deactivation), in which case the
     /// row still navigates, just without a working pull-to-refresh on the detail screen.
     var instance: Instance?
+    /// The instances this location belongs to (merged mode with several instances); badges, one each.
+    var instanceNames: [String] = []
 
     var body: some View {
         NavigationLink {
             LocationDetailView(location: location, instance: instance)
         } label: {
             VStack(alignment: .leading, spacing: 2) {
-                Text(location.name)
-                    .font(.headline)
+                HStack {
+                    Text(location.name)
+                        .font(.headline)
+                    if !instanceNames.isEmpty {
+                        Spacer()
+                        ForEach(instanceNames, id: \.self) { name in
+                            InstanceBadge(name: name)
+                        }
+                    }
+                }
                 Text(location.locationDescription)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

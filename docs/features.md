@@ -418,6 +418,11 @@ exists without reading the whole diff history.
   never signs out. Pull to refresh uses `GET /shifts/{id}` (COMPAT(#1724): 404/403 ⇒ cached shift, no
   error). The detail fields are display-only cache fields on `CachedShift` (the team as one encoded field)
   and never count as a change for the Watch. The Watch is unchanged.
+- **Merged locations and edges** (2026-10-16): in the merged mode the locations of instances on the same server collapse to
+  one entry (`CachedLocation.mergedAcrossServers`, like news) with a badge per instance. The colored left edge belongs to an
+  entry only when exactly one instance owns it (`InstanceEdge`); shared entries show just the badges. The Profile band no
+  longer shows a count.
+
 - **Instance colors and sections** (2026-10-16): every instance has a color (`InstancePalette`, eight system colors).
   "Auto" (default) spreads the colors evenly over the instances in the order they were created and skips colors picked
   by hand; a hand-picked color is stored in the CloudKit-synced `Instance.colorKey` and so shows on every device. Settings ›
