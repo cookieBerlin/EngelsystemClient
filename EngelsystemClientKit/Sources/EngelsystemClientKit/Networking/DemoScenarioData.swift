@@ -1,0 +1,59 @@
+import Foundation
+
+/// The parts of the demo data that differ per `DemoScenario`: event info, news, locations and shifts. The
+/// classic scenario returns the original data unchanged.
+extension DemoData {
+    static let congressLocations: [Location] = [
+        Location(id: 1, name: "Hall A", description: "Main stage and keynotes", mapUrl: nil,
+                 contact: ContactDect(dect: "2001"), url: "https://congress.demo.engelsystem.local/locations/1"),
+        Location(id: 2, name: "Hall B", description: "Talks and panels", mapUrl: nil,
+                 contact: ContactDect(dect: nil), url: "https://congress.demo.engelsystem.local/locations/2"),
+        Location(id: 3, name: "Lounge", description: "Quiet corner with power outlets", mapUrl: nil,
+                 contact: ContactDect(dect: "2003"), url: "https://congress.demo.engelsystem.local/locations/3"),
+        Location(id: 4, name: "Kitchen", description: "Helper catering", mapUrl: nil,
+                 contact: ContactDect(dect: "2004"), url: "https://congress.demo.engelsystem.local/locations/4"),
+    ]
+
+    static func info(for scenario: DemoScenario) -> EventInfo {
+        var result = info
+        if scenario == .congress {
+            result.name = "Demo Congress 2"
+            result.url = "https://congress.demo.engelsystem.local"
+        }
+        return result
+    }
+
+    static func news(for scenario: DemoScenario) -> [News] {
+        guard scenario == .congress else { return news }
+        return news.map { item in
+            var copy = item
+            copy.name = "Congress: " + item.name
+            return copy
+        }
+    }
+
+    static func newsDetail(id: Int, for scenario: DemoScenario) -> NewsDetail? {
+        guard var detail = newsDetail(id: id) else { return nil }
+        if scenario == .congress { detail.name = "Congress: " + detail.name }
+        return detail
+    }
+
+    static func locations(for scenario: DemoScenario) -> [Location] {
+        scenario == .congress ? congressLocations : locations
+    }
+
+    static func location(id: Int, for scenario: DemoScenario) -> Location? {
+        locations(for: scenario).first { $0.id == id }
+    }
+
+    static func shifts(for scenario: DemoScenario) -> [Shift] {
+        guard scenario == .congress else { return shifts }
+        return shifts.map { shift in
+            var copy = shift
+            copy.name = "Congress: " + shift.name
+            // Keep the location's id, show the congress room of that id.
+            copy.location = Reference(id: shift.location.id, name: congressLocations.first { $0.id == shift.location.id }?.name)
+            return copy
+        }
+    }
+}

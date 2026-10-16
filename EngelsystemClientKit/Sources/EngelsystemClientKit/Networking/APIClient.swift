@@ -35,7 +35,13 @@ public struct EventCredential: Sendable {
 
     /// True for the sentinel demo instance (see `Instance.demoBaseURL`) — `APIClient`
     /// returns static mock data for these instead of making a real network request.
-    var isDemo: Bool { baseURL.hasPrefix(Instance.demoBaseURL) }
+    var isDemo: Bool { baseURL.hasPrefix(DemoScenario.scheme) }
+
+    /// The demo data set of this address; nil for a `demo://` address with an unknown host.
+    var demoScenario: DemoScenario? { DemoScenario(baseURL: baseURL) }
+
+    /// The data set to serve; an unknown demo host gets the classic one (only `/info` refuses it).
+    var scenario: DemoScenario { demoScenario ?? .main }
 }
 
 public final class APIClient {
@@ -48,7 +54,9 @@ public final class APIClient {
     public func fetchInfo(_ credential: EventCredential) async throws -> EventInfo {
         if credential.isDemo {
             await DemoData.simulateLatency()
-            return DemoData.info
+            // An unknown demo host is a server that does not exist.
+            guard let scenario = credential.demoScenario else { throw APIError.notFound }
+            return DemoData.info(for: scenario)
         }
         return try await withCredential("GET /info", credential) {
             guard let data = try await EventAPI.infoGet().data else {
@@ -61,7 +69,7 @@ public final class APIClient {
     public func fetchNews(_ credential: EventCredential) async throws -> [News] {
         if credential.isDemo {
             await DemoData.simulateLatency()
-            return DemoData.news
+            return DemoData.news(for: credential.scenario)
         }
         return try await withCredentialList("GET /news", credential) {
             try await NewsAPI.newsGet().data ?? []
@@ -75,7 +83,7 @@ public final class APIClient {
     public func fetchNewsDetail(id: Int, _ credential: EventCredential) async throws -> NewsDetail {
         if credential.isDemo {
             await DemoData.simulateLatency()
-            guard let detail = DemoData.newsDetail(id: id) else {
+            guard let detail = DemoData.newsDetail(id: id, for: credential.scenario) else {
                 throw APIError.notFound
             }
             return detail
@@ -113,7 +121,7 @@ public final class APIClient {
     public func fetchLocations(_ credential: EventCredential) async throws -> [Location] {
         if credential.isDemo {
             await DemoData.simulateLatency()
-            return DemoData.locations
+            return DemoData.locations(for: credential.scenario)
         }
         return try await withCredentialList("GET /locations", credential) {
             try await LocationAPI.locationsGet().data ?? []
@@ -126,7 +134,7 @@ public final class APIClient {
     public func fetchShift(id: Int, _ credential: EventCredential) async throws -> Shift {
         if credential.isDemo {
             await DemoData.simulateLatency()
-            guard let shift = DemoData.shifts.first(where: { $0.id == id }) else { throw APIError.notFound }
+            guard let shift = DemoData.shifts(for: credential.scenario).first(where: { $0.id == id }) else { throw APIError.notFound }
             return shift
         }
         return try await withCredential("GET /shifts/\(id)", credential) {
@@ -152,7 +160,7 @@ public final class APIClient {
     public func fetchLocation(id: Int, _ credential: EventCredential) async throws -> Location {
         if credential.isDemo {
             await DemoData.simulateLatency()
-            guard let location = DemoData.location(id: id) else {
+            guard let location = DemoData.location(id: id, for: credential.scenario) else {
                 throw APIError.notFound
             }
             return location
@@ -178,7 +186,7 @@ public final class APIClient {
     public func fetchShifts(_ credential: EventCredential) async throws -> [Shift] {
         if credential.isDemo {
             await DemoData.simulateLatency()
-            return DemoData.shifts
+            return DemoData.shifts(for: credential.scenario)
         }
         return try await withCredentialList("GET /users/self/shifts", credential) {
             try await ShiftAPI.usersIdShiftsGet(id: .me).data ?? []
