@@ -240,7 +240,7 @@ extension StubbedNetworkTests {
                 onEvent: { events.append($0) })
             #expect(!succeeded)
             #expect(events.contains(.instanceFinished(id: first.id, outcome: .succeeded)))
-            #expect(events.last == .instanceFinished(id: second.id, outcome: .skipped))
+            #expect(events.contains(.instanceFinished(id: second.id, outcome: .skipped)))
             #expect(!events.contains(.instanceStarted(id: second.id)))
         }
 
@@ -280,6 +280,71 @@ extension StubbedNetworkTests {
             run.cancel()
             #expect(await run.value)
             #expect(!events.contains(.stepStarted(id: instance.id, area: "Messages")))
+        }
+
+        /// How many instances are inside a step at the same moment, read from the event stream.
+        private func maxRunning(_ events: [SyncEvent]) -> Int {
+            var running: Set<UUID> = []
+            var peak = 0
+            for event in events {
+                switch event {
+                case let .instanceStarted(id): running.insert(id)
+                case let .instanceFinished(id, _): running.remove(id)
+                default: break
+                }
+                peak = max(peak, running.count)
+            }
+            return peak
+        }
+
+        @Test func instancesRunAtTheSameTimeUnlessLimitedToOne() async throws {
+            try routeAllDomains()
+            StubURLProtocol.route("GET \(prefix)/users/self/shifts", delay: 0.05)
+            let context = try makeContext()
+            let instances = [stubInstance(), stubInstance(), stubInstance()]
+            instances.forEach(context.insert)
+
+            var parallel: [SyncEvent] = []
+            #expect(await coordinator().syncEverything(
+                instances: instances, in: context, shiftsOnly: true, maxConcurrentInstances: 0,
+                onEvent: { parallel.append($0) }))
+            #expect(maxRunning(parallel) == 3)
+
+            var limited: [SyncEvent] = []
+            #expect(await coordinator().syncEverything(
+                instances: instances, in: context, shiftsOnly: true, maxConcurrentInstances: 2,
+                onEvent: { limited.append($0) }))
+            #expect(maxRunning(limited) == 2)
+
+            var sequential: [SyncEvent] = []
+            #expect(await coordinator().syncEverything(
+                instances: instances, in: context, shiftsOnly: true, maxConcurrentInstances: 1,
+                onEvent: { sequential.append($0) }))
+            #expect(maxRunning(sequential) == 1)
+            for id in instances.map(\.id) {
+                #expect(sequential.contains(.instanceFinished(id: id, outcome: .succeeded)))
+            }
+        }
+
+        /// Each running instance has its own no-progress timer: two hanging ones time out side by side.
+        @Test func everyRunningInstanceHasItsOwnTimeout() async throws {
+            let context = try makeContext()
+            let first = stubInstance()
+            let second = stubInstance()
+            context.insert(first)
+            context.insert(second)
+            StubURLProtocol.route("GET \(prefix)/users/self/shifts", delay: 0.8)
+            var events: [SyncEvent] = []
+            var progress: [AppSyncCoordinator.Progress] = []
+
+            let succeeded = await coordinator().syncEverything(
+                instances: [first, second], in: context, shiftsOnly: true, control: SyncControl(stepTimeout: 0.2),
+                maxConcurrentInstances: 0, onEvent: { events.append($0) }, onProgress: { progress.append($0) })
+            #expect(!succeeded)
+            #expect(events.contains(.instanceFinished(id: first.id, outcome: .timedOut)))
+            #expect(events.contains(.instanceFinished(id: second.id, outcome: .timedOut)))
+            #expect(maxRunning(events) == 2)
+            #expect(progress.last?.completed == progress.last?.total)
         }
 
         @Test func aFailingInstanceIsReportedAsFailed() async throws {

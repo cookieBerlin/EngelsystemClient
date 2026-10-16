@@ -33,8 +33,8 @@ public enum SyncInstanceOutcome: Equatable, Sendable {
     case skipped
 }
 
-/// Lets the user skip an instance and cancels one that stops making progress. The coordinator
-/// processes instances one after the other, so there is at most one running instance.
+/// Lets the user skip an instance and cancels one that stops making progress. Several instances can run
+/// at the same time, each with its own worker task and no-progress timer.
 @MainActor
 public final class SyncControl {
     /// An instance that makes no progress for this long is cancelled.
@@ -42,10 +42,9 @@ public final class SyncControl {
 
     private let stepTimeout: TimeInterval
     private let sleep: @Sendable (TimeInterval) async throws -> Void
-    private var worker: Task<Void, Never>?
-    private var runningID: UUID?
-    private var watchdog: Task<Void, Never>?
-    private var timedOut = false
+    private var workers: [UUID: Task<Void, Never>] = [:]
+    private var watchdogs: [UUID: Task<Void, Never>] = [:]
+    private var timedOut: Set<UUID> = []
     private var skipRequests: Set<UUID> = []
 
     public init(
@@ -56,49 +55,45 @@ public final class SyncControl {
         self.sleep = sleep
     }
 
-    /// Skips an instance: the running one is cancelled, a waiting one is passed over when its turn comes.
+    /// Skips an instance: a running one is cancelled, a waiting one is passed over when its turn comes.
     public func skip(_ id: UUID) {
         skipRequests.insert(id)
-        if runningID == id { worker?.cancel() }
+        workers[id]?.cancel()
     }
 
+    /// Whether a waiting instance was skipped (and forgets the request).
     public func consumeSkip(_ id: UUID) -> Bool {
         skipRequests.remove(id) != nil
     }
 
     func begin(_ id: UUID, worker: Task<Void, Never>) {
-        self.worker = worker
-        runningID = id
-        timedOut = false
-        armWatchdog()
+        workers[id] = worker
+        timedOut.remove(id)
+        armWatchdog(id)
     }
 
-    /// The running instance made progress: the no-progress timer starts over.
-    func progressMade() {
-        guard runningID != nil else { return }
-        armWatchdog()
+    /// The instance made progress: its no-progress timer starts over.
+    func progressMade(_ id: UUID) {
+        guard workers[id] != nil else { return }
+        armWatchdog(id)
     }
 
-    /// Ends the running instance and tells whether it was cancelled for lack of progress or skipped.
-    func end() -> (timedOut: Bool, skipped: Bool) {
-        let id = runningID
-        watchdog?.cancel()
-        watchdog = nil
-        worker = nil
-        runningID = nil
-        let skipped = id.map { skipRequests.remove($0) != nil } ?? false
-        return (timedOut, skipped)
+    /// Ends an instance and tells whether it was cancelled for lack of progress or skipped.
+    func end(_ id: UUID) -> (timedOut: Bool, skipped: Bool) {
+        watchdogs.removeValue(forKey: id)?.cancel()
+        workers.removeValue(forKey: id)
+        return (timedOut.remove(id) != nil, skipRequests.remove(id) != nil)
     }
 
-    private func armWatchdog() {
-        watchdog?.cancel()
+    private func armWatchdog(_ id: UUID) {
+        watchdogs[id]?.cancel()
         let sleep = self.sleep
         let timeout = stepTimeout
-        watchdog = Task { @MainActor [weak self] in
+        watchdogs[id] = Task { @MainActor [weak self] in
             // A cancelled watchdog (progress was made, or the instance ended) must not fire.
             guard (try? await sleep(timeout)) != nil, !Task.isCancelled, let self else { return }
-            timedOut = true
-            worker?.cancel()
+            timedOut.insert(id)
+            workers[id]?.cancel()
         }
     }
 }

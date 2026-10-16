@@ -118,47 +118,77 @@ struct SyncControlTests {
 
     @Test func progressMadeIsIgnoredWithoutARunningInstance() {
         let control = SyncControl()
-        control.progressMade()
-        let result = control.end()
+        let id = UUID()
+        control.progressMade(id)
+        let result = control.end(id)
         #expect(!result.timedOut && !result.skipped)
     }
 
-    @Test func theWatchdogCancelsTheWorkerOfAnInstanceWithoutProgress() async {
+    @Test func theWatchdogCancelsOnlyTheInstanceWithoutProgress() async {
         let control = SyncControl(stepTimeout: 0.05)
-        let worker = Task { @MainActor in
+        let stuck = UUID()
+        let busy = UUID()
+        let stuckWorker = Task { @MainActor in
             while !Task.isCancelled { await Task.yield() }
         }
-        control.begin(UUID(), worker: worker)
-        await worker.value
-        #expect(control.end().timedOut)
-    }
-
-    @Test func progressKeepsTheWatchdogFromFiring() async throws {
-        let control = SyncControl(stepTimeout: 0.2)
-        let worker = Task { @MainActor in
-            for _ in 0..<4 {
-                try? await Task.sleep(for: .milliseconds(100))
-                control.progressMade()
+        let busyWorker = Task { @MainActor in
+            for _ in 0..<10 {
+                try? await Task.sleep(for: .milliseconds(20))
+                control.progressMade(busy)
             }
         }
-        control.begin(UUID(), worker: worker)
-        await worker.value
-        let result = control.end()
-        #expect(!result.timedOut)
-        #expect(!worker.isCancelled)
+        control.begin(stuck, worker: stuckWorker)
+        control.begin(busy, worker: busyWorker)
+        await stuckWorker.value
+        await busyWorker.value
+        #expect(control.end(stuck).timedOut)
+        #expect(!control.end(busy).timedOut)
+        #expect(!busyWorker.isCancelled)
     }
 
     @Test func skippingTheRunningInstanceCancelsItAndIsReported() async {
         let control = SyncControl()
         let id = UUID()
+        let other = UUID()
         let worker = Task { @MainActor in
             while !Task.isCancelled { await Task.yield() }
         }
+        let otherWorker = Task { @MainActor in }
         control.begin(id, worker: worker)
+        control.begin(other, worker: otherWorker)
         control.skip(id)
         await worker.value
-        let result = control.end()
+        let result = control.end(id)
         #expect(result.skipped)
         #expect(!result.timedOut)
+        #expect(!control.end(other).skipped)
+    }
+}
+
+struct ParallelSyncSettingTests {
+    private func defaults() -> UserDefaults { UserDefaults(suiteName: "ParallelSync-\(UUID().uuidString)")! }
+
+    @Test func valuesStayInsideTheRange() {
+        #expect(ParallelSyncSetting.clamp(-3) == 0)
+        #expect(ParallelSyncSetting.clamp(4) == 4)
+        #expect(ParallelSyncSetting.clamp(99) == 10)
+    }
+
+    @Test func unsetMeansUnlimitedAndStoredValuesAreClamped() {
+        let defaults = defaults()
+        #expect(ParallelSyncSetting.stored(in: defaults) == 0)
+        defaults.set(3, forKey: ParallelSyncSetting.userDefaultsKey)
+        #expect(ParallelSyncSetting.stored(in: defaults) == 3)
+        defaults.set(-1, forKey: ParallelSyncSetting.userDefaultsKey)
+        #expect(ParallelSyncSetting.stored(in: defaults) == 0)
+        defaults.set(50, forKey: ParallelSyncSetting.userDefaultsKey)
+        #expect(ParallelSyncSetting.stored(in: defaults) == 10)
+    }
+
+    @Test func titlesNameTheLimit() {
+        #expect(ParallelSyncSetting.title(for: 0) == "Unlimited")
+        #expect(ParallelSyncSetting.title(for: 1) == "1 at a time")
+        #expect(ParallelSyncSetting.title(for: 3) == "3 at a time")
+        #expect(ParallelSyncSetting.title(for: 40) == "10 at a time")
     }
 }
