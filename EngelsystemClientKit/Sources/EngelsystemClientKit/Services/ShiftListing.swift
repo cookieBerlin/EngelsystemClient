@@ -11,6 +11,10 @@ public enum ShiftTimeFilter: String, CaseIterable, Identifiable, Sendable {
     case all
 
     public static let `default` = ShiftTimeFilter.upcoming
+    public static let userDefaultsKey = "shiftTimeFilter"
+
+    /// The stored raw value as a filter; anything unrecognized falls back to the default.
+    public static func stored(raw: String) -> ShiftTimeFilter { ShiftTimeFilter(rawValue: raw) ?? .default }
 
     public var id: String { rawValue }
 
@@ -45,6 +49,10 @@ public enum ShiftSortOrder: String, CaseIterable, Identifiable, Sendable {
     case latestFirst
 
     public static let `default` = ShiftSortOrder.earliestFirst
+    public static let userDefaultsKey = "shiftSortOrder"
+
+    /// The stored raw value as an order; anything unrecognized falls back to the default.
+    public static func stored(raw: String) -> ShiftSortOrder { ShiftSortOrder(rawValue: raw) ?? .default }
 
     public var id: String { rawValue }
 

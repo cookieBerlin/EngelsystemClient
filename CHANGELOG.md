@@ -33,6 +33,9 @@ versioning: [Semantic Versioning](https://semver.org/).
 - The Features list of an instance is folded away while everything works (tap the summary to open it) and opens by itself, with the
   problems first, as soon as something is missing.
 
+- The Shifts screen has a filter menu: show Upcoming shifts (default), Today, Past or All, and sort Earliest First or Latest First.
+  Your choice is remembered on this device.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's

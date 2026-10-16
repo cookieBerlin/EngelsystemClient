@@ -80,6 +80,14 @@ struct ShiftListingTests {
         #expect(ShiftSortOrder.latestFirst.id == "latestFirst")
     }
 
+    @Test func storedRawValuesFallBackToTheDefaults() {
+        #expect(ShiftTimeFilter.stored(raw: "past") == .past)
+        #expect(ShiftTimeFilter.stored(raw: "nonsense") == .upcoming)
+        #expect(ShiftSortOrder.stored(raw: "latestFirst") == .latestFirst)
+        #expect(ShiftSortOrder.stored(raw: "") == .earliestFirst)
+        #expect(ShiftTimeFilter.userDefaultsKey != ShiftSortOrder.userDefaultsKey)
+    }
+
     @Test func theFilterIsOnlyTheReasonWhenShiftsExistButNoneIsShown() {
         #expect(ShiftListing.filterHidesEverything(allCount: 3, shownCount: 0))
         #expect(!ShiftListing.filterHidesEverything(allCount: 3, shownCount: 1))

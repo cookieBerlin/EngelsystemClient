@@ -418,6 +418,13 @@ exists without reading the whole diff history.
   never signs out. Pull to refresh uses `GET /shifts/{id}` (COMPAT(#1724): 404/403 ⇒ cached shift, no
   error). The detail fields are display-only cache fields on `CachedShift` (the team as one encoded field)
   and never count as a change for the Watch. The Watch is unchanged.
+- **Shift filter and sort** (2026-10-16): a filter menu in the Shifts toolbar (same pattern as the News filter) with
+  "Show" — Upcoming (default: running and not yet started), Today (runs or begins today, also across midnight), Past, All —
+  and "Sort" — Earliest First (default) or Latest First, which orders the days and the shifts within a day. Both choices are
+  remembered per device (`@AppStorage`); the symbol is filled when either differs from the default. When the filter hides all
+  shifts the list says "No Matching Shifts" with a "Show All" button; "Last Synced" ignores the filter. The Past/Today/Upcoming
+  split is recomputed every minute (so also across midnight). Logic: `ShiftTimeFilter`, `ShiftSortOrder` (Kit, tested).
+
 - **Collapsible Features list** (2026-10-16): on the instance page the summary line ("11 of 11 features available") is the
   header of a `DisclosureGroup`; the list starts collapsed when every function is available and open, problems first (not
   allowed, not offered, not checked yet), otherwise. A tap on the summary opens/closes it; the choice holds while the page

@@ -93,6 +93,11 @@ in the banner to end the whole sync, or choose **Skip <event>** to leave out jus
 
 Events are refreshed at the same time by default. If that is too much for a weak connection, lower **Settings → Instances → Parallel Syncs** (the Watch has the same setting).
 
+### Where are my past shifts?
+
+The Shifts screen lists upcoming and running shifts by default. Open the filter menu at the top right and choose **Past** (or **Today**, **All**);
+there you can also sort **Latest First**. The choice is remembered on this device.
+
 ### How do I remove an event and its data?
 
 **Settings →** tap the event **→ Remove Instance**. This deletes the saved API key and everything cached for that event on this

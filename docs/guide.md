@@ -56,6 +56,9 @@ ends the sync (after a confirmation) and **Skip** leaves out just that event. Th
 Your shifts, grouped by day ("Today", "Tomorrow", …). Each shift shows its time and location; tap the location to read its
 description. Pull down to refresh. A small badge shows which instance a shift belongs to when you use several.
 
+The menu at the top right chooses which shifts are listed — **Upcoming** (running and not yet started, the default), **Today**, **Past** or **All** — and the order
+(**Earliest First** or **Latest First**). The app remembers your choice on this device; the symbol is filled when it differs from the default.
+
 Tap a shift to open its **details**: the shift type with its description, the shift's own description, the team by angel
 type ("2 of 3" people, your own entry highlighted, entries marked as “did not show up”), tags, a night-shift hint, a link to
 the talk page and — on your own shifts — until when you can sign out. **Sign out in browser** opens the shift on the

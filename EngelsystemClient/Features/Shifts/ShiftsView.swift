@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Combine
 import EngelsystemClientKit
 
 /// 2026-09-17 multi-active-instance redesign (CLAUDE.md): `instances` is every
@@ -19,6 +20,10 @@ struct ShiftsView: View {
     @State private var selectedInstanceID: UUID?
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var displayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
+    @AppStorage(ShiftTimeFilter.userDefaultsKey) private var filterRaw: String = ShiftTimeFilter.default.rawValue
+    @AppStorage(ShiftSortOrder.userDefaultsKey) private var sortRaw: String = ShiftSortOrder.default.rawValue
+    /// "Now" for the Past/Today/Upcoming split; refreshed every minute (and so also across midnight).
+    @State private var now = Date()
     @Query(sort: \CachedShift.startsAt) private var allShifts: [CachedShift]
     // Unfiltered, same fetch-everything-and-filter-in-Swift pattern as `allShifts` —
     // backs the location link below (2026-09-23, user-requested).
@@ -33,7 +38,13 @@ struct ShiftsView: View {
         InstanceScope.displayMode(raw: displayModeRaw, instanceCount: instances.count)
     }
 
-    private var shifts: [CachedShift] { InstanceScope.filter(allShifts, to: instances, instanceID: \.instanceID) }
+    private var filter: ShiftTimeFilter { .stored(raw: filterRaw) }
+    private var sortOrder: ShiftSortOrder { .stored(raw: sortRaw) }
+
+    /// Every cached shift of the active instances, whatever the filter says.
+    private var allInstanceShifts: [CachedShift] { InstanceScope.filter(allShifts, to: instances, instanceID: \.instanceID) }
+
+    private var shifts: [CachedShift] { CachedShift.filtered(allInstanceShifts, by: filter, now: now) }
 
     private var switcherInstance: Instance? {
         InstanceScope.switcherInstance(in: instances, selected: selectedInstanceID)
@@ -93,7 +104,7 @@ struct ShiftsView: View {
                                     // header row rather than a real `Section` (unlike
                                     // .merged/.switcher below, which aren't already
                                     // sectioned by instance and can use real ones).
-                                    ForEach(CachedShift.groupedByDay(instanceShifts), id: \.day) { group in
+                                    ForEach(CachedShift.groupedByDay(instanceShifts, order: sortOrder), id: \.day) { group in
                                         Text(dateHeaderText(group.day))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
@@ -115,14 +126,18 @@ struct ShiftsView: View {
                         }
                     }
 
-                    SyncTimestampFooter(date: shifts.map(\.cachedAt).max())
+                    SyncTimestampFooter(date: allInstanceShifts.map(\.cachedAt).max())
                 }
                 .listStyle(.plain)
                 .toolbar {
                     if viewModel.isLoading {
                         ToolbarItem { ProgressView() }
                     }
+                    ToolbarItem(placement: .primaryAction) {
+                        filterMenu
+                    }
                 }
+                .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { now = $0 }
                 // No `.task`-on-appear sync (2026-09-22, user-requested, to reduce
                 // server load — see CLAUDE.md's polling-interval/background-sync
                 // feature): this screen now only refreshes via an explicit
@@ -149,7 +164,7 @@ struct ShiftsView: View {
         if shifts.isEmpty && !viewModel.isLoading {
             emptyState
         } else {
-            ForEach(CachedShift.groupedByDay(shifts), id: \.day) { group in
+            ForEach(CachedShift.groupedByDay(shifts, order: sortOrder), id: \.day) { group in
                 Section(dateHeaderText(group.day)) {
                     ForEach(group.shifts) { shift in
                         ShiftRow(
@@ -169,12 +184,51 @@ struct ShiftsView: View {
         InstanceScope.dayHeaderText(day)
     }
 
+    /// "Show" (time filter) and "Sort" in one menu, like the News filter; the symbol is filled when either
+    /// differs from the default.
+    private var filterMenu: some View {
+        Menu {
+            Section("Show") {
+                Picker("Show", selection: Binding(get: { filter }, set: { filterRaw = $0.rawValue })) {
+                    ForEach(ShiftTimeFilter.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.inline)
+            }
+            Section("Sort") {
+                Picker("Sort", selection: Binding(get: { sortOrder }, set: { sortRaw = $0.rawValue })) {
+                    ForEach(ShiftSortOrder.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.inline)
+            }
+        } label: {
+            Label(
+                "Filter",
+                systemImage: filter == .default && sortOrder == .default
+                    ? "line.3.horizontal.decrease.circle"
+                    : "line.3.horizontal.decrease.circle.fill"
+            )
+        }
+        .accessibilityIdentifier("shiftFilterMenu")
+    }
+
+    /// Distinguishes "no shifts at all" from "the filter hides all of them".
+    @ViewBuilder
     private var emptyState: some View {
-        ContentUnavailableView(
-            "No Shifts",
-            systemImage: "calendar",
-            description: Text("You don't have any shifts yet.")
-        )
+        if ShiftListing.filterHidesEverything(allCount: allInstanceShifts.count, shownCount: shifts.count) {
+            ContentUnavailableView {
+                Label("No Matching Shifts", systemImage: "line.3.horizontal.decrease.circle")
+            } description: {
+                Text("No shifts match the current filter.")
+            } actions: {
+                Button("Show All") { filterRaw = ShiftTimeFilter.all.rawValue }
+            }
+        } else {
+            ContentUnavailableView(
+                "No Shifts",
+                systemImage: "calendar",
+                description: Text("You don't have any shifts yet.")
+            )
+        }
     }
 }
 

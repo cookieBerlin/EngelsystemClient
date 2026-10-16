@@ -521,6 +521,55 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Info Desk Shift")).firstMatch.waitForExistence(timeout: 5))
     }
 
+    /// The Shifts menu: Upcoming hides the past shift, Past shows only it, All with Latest First reverses the order.
+    @MainActor
+    func testShiftFilterAndSortMenu() throws {
+        let app = XCUIApplication()
+        app.launchArguments += Self.freshStartArguments
+        app.launch()
+
+        let demoButton = app.buttons["Try Demo Mode"]
+        XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
+        waitUntilHittable(demoButton, in: app)
+        demoButton.tap()
+        openShifts(app)
+
+        func shift(_ title: String) -> XCUIElement {
+            app.buttons.matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch
+        }
+        func choose(_ item: String) {
+            app.buttons["shiftFilterMenu"].tap()
+            let entry = app.buttons[item]
+            XCTAssertTrue(entry.waitForExistence(timeout: 5), item)
+            entry.tap()
+        }
+
+        // Default "Upcoming": the shift that is over (Set-up Shift) is not listed.
+        XCTAssertTrue(shift("Info Desk Shift").waitForExistence(timeout: 10))
+        XCTAssertFalse(shift("Set-up Shift").exists)
+
+        choose("Past")
+        XCTAssertTrue(shift("Set-up Shift").waitForExistence(timeout: 5))
+        XCTAssertFalse(shift("Info Desk Shift").exists)
+
+        choose("All")
+        XCTAssertTrue(shift("Info Desk Shift").waitForExistence(timeout: 5))
+        XCTAssertTrue(shift("Set-up Shift").exists)
+
+        // The first row follows the sort order (the rows below the first screen are not built yet).
+        func firstRowHas(_ title: String) -> Bool {
+            app.cells.element(boundBy: 0).buttons.matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch.exists
+        }
+        XCTAssertTrue(firstRowHas("Set-up Shift"))
+        choose("Latest First")
+        XCTAssertTrue(shift("Late Night Info Desk").waitForExistence(timeout: 5))
+        XCTAssertTrue(firstRowHas("Late Night Info Desk"))
+
+        // Leave the defaults behind for the next run on this simulator.
+        choose("Earliest First")
+        choose("Upcoming")
+    }
+
     /// Tapping the freshness line starts a sync whose banner offers "Stop sync".
     @MainActor
     func testStopSyncAsksForConfirmation() throws {
