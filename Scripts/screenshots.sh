@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Generates the App Store screenshots from Demo Mode (UI test class ScreenshotTests, seeded by the Debug-only
 # `-seed-demo-instance` launch argument) into Screenshots/<device>/<language>/NN-<scene>.png (git-ignored).
-# Usage: Scripts/screenshots.sh [iphone|ipad|watch|all]   (default: all)
+# Usage: Scripts/screenshots.sh [iphone|ipad|watch|all|manual]   (default: all; `manual` = every iPhone screen for the guide)
 # Env:   IPHONE_TYPE (default iPhone-18-Pro-Max, the 6.9" class), IPAD_TYPE (default iPad-Pro-13-inch-M5-12GB),
 #        WATCH_TYPE (default Apple-Watch-Ultra-4-49mm)
 # The script creates and uses its own simulators ("EngelsystemClient Screenshots …"); yours stay untouched.
@@ -104,11 +104,14 @@ open(path, "wb").write(b"".join(chunks))
 PY
 }
 
-# Runs ScreenshotTests on one simulator and copies the attachments to Screenshots/<device>/<language>/.
+# Runs a screenshot test class on one simulator and copies the attachments to <base>/<device>/<language>/.
+# Defaults: the App Store set (ScreenshotTests, Screenshots/). `manual` mode: ManualScreenshotTests, Screenshots/manual/.
+TEST_CLASS="ScreenshotTests"
+TARGET_BASE="Screenshots"
 run_ui_device() { # device-label udid expected-size
   local device="$1" udid="$2" size="$3"
   local result="build/Screenshots-$device.xcresult" export="build/Screenshots-$device-attachments"
-  local target="Screenshots/$device/$LANGUAGE"
+  local target="$TARGET_BASE/$device/$LANGUAGE"
   rm -rf "$result" "$export" "$target"
   mkdir -p "$target" build
   echo "==> $device ($udid)"
@@ -116,7 +119,7 @@ run_ui_device() { # device-label udid expected-size
   local status=0
   # Normal simulator signing: CODE_SIGNING_ALLOWED=NO would strip the iCloud entitlement and the app would crash.
   xcodebuild test -scheme EngelsystemClient -destination "platform=iOS Simulator,id=$udid" \
-    -only-testing:EngelsystemClientUITests/ScreenshotTests -parallel-testing-enabled NO \
+    -only-testing:EngelsystemClientUITests/$TEST_CLASS -parallel-testing-enabled NO \
     -derivedDataPath build/ScreenshotsDerivedData -resultBundlePath "$result" \
     > "build/Screenshots-$device.log" 2>&1 || status=$?
   if [[ -d "$result" ]]; then
@@ -132,10 +135,30 @@ for test in json.load(open(os.path.join(export, "manifest.json"))):
 PY
   fi
   if [[ $status -ne 0 ]]; then
-    echo "error: ScreenshotTests failed (exit $status) — see build/Screenshots-$device.log" >&2
+    echo "error: $TEST_CLASS failed (exit $status) — see build/Screenshots-$device.log" >&2
     return 1
   fi
-  verify_device "$device" "$target" "$size" "${SCENES[@]}"
+  if [[ "$TEST_CLASS" == "ManualScreenshotTests" ]]; then
+    verify_manual "$target" "$size"
+  else
+    verify_device "$device" "$target" "$size" "${SCENES[@]}"
+  fi
+}
+
+# The manual set has no fixed scene list (it grows with the app): every file must have the iPhone size, and the count
+# is printed so a scene that went missing is noticed.
+verify_manual() { # dir expected-size
+  local file actual count=0 failed=0
+  for file in "$1"/*.png; do
+    [[ -f "$file" ]] || continue
+    normalize_png "$file"
+    actual="$(sips -g pixelWidth -g pixelHeight "$file" | awk '/pixelWidth/ {w=$2} /pixelHeight/ {h=$2} END {print w "x" h}')"
+    if [[ "$actual" != "$2" ]]; then echo "error: $file is $actual, expected $2" >&2; failed=1; fi
+    count=$((count + 1))
+  done
+  echo "  $count manual screenshots in $1"
+  [[ $count -gt 0 ]] && return $failed
+  return 1
 }
 
 # Every scene must exist with the exact App Store pixel size (after baking in the EXIF orientation); prints a summary.
@@ -190,11 +213,43 @@ run_watch() {
   verify_device "watch" "$target" "$WATCH_SIZE" "${WATCH_SCENES[@]}"
 }
 
+# Apple Watch pages for the guide (`manual` mode): each Settings page via the Debug-only `-open-settings-page` argument.
+run_watch_manual() {
+  local udid target="Screenshots/manual/watch/$LANGUAGE" page index=0
+  udid="$(ensure_simulator "$WATCH_NAME" "$WATCH_TYPE")"
+  rm -rf "$target"
+  mkdir -p "$target"
+  echo "==> watch manual ($udid)"
+  xcrun simctl boot "$udid" 2> /dev/null || true
+  xcrun simctl bootstatus "$udid" -b > /dev/null
+  local app
+  app="$(find build/ScreenshotsDerivedData/Build/Products -name 'EngelsystemClient Watch App.app' -path '*watchsimulator*' | head -1)"
+  [[ -n "$app" ]] || { echo "error: run Scripts/screenshots.sh watch first (it builds the Watch app)" >&2; return 1; }
+  xcrun simctl install "$udid" "$app"
+  for page in Instances Notifications Sync Diagnostics About; do
+    index=$((index + 1))
+    xcrun simctl terminate "$udid" "$WATCH_BUNDLE_ID" > /dev/null 2>&1 || true
+    xcrun simctl launch "$udid" "$WATCH_BUNDLE_ID" -open-settings -open-settings-page "$page" -skipNotificationPrompt YES > /dev/null
+    sleep 15
+    xcrun simctl io "$udid" screenshot "$target/0$index-settings-$(echo "$page" | tr 'A-Z' 'a-z').png" > /dev/null 2>&1
+  done
+  local count
+  count="$(ls "$target" | wc -l | tr -d ' ')"
+  echo "  $count Watch pages in $target"
+  [[ "$count" -eq 5 ]]
+}
+
 main() {
   local what="${1:-all}"
   case "$what" in
     iphone | ipad | watch | all) ;;
-    *) echo "usage: $0 [iphone|ipad|watch|all]" >&2; exit 2 ;;
+    manual) # every iPhone screen for the guide, into Screenshots/manual/iphone/en/
+      TEST_CLASS="ManualScreenshotTests"
+      TARGET_BASE="Screenshots/manual"
+      run_ui_device "iphone" "$(ensure_simulator "$IPHONE_NAME" "$IPHONE_TYPE")" "$IPHONE_SIZE"
+      run_watch_manual
+      return ;;
+    *) echo "usage: $0 [iphone|ipad|watch|all|manual]" >&2; exit 2 ;;
   esac
   if [[ "$what" == "iphone" || "$what" == "all" ]]; then
     run_ui_device "iphone" "$(ensure_simulator "$IPHONE_NAME" "$IPHONE_TYPE")" "$IPHONE_SIZE"

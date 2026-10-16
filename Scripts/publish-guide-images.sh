@@ -22,3 +22,27 @@ copy Screenshots/iphone/en/05-messages.png messages 330
 copy Screenshots/iphone/en/06-settings.png settings 330
 copy Screenshots/watch/en/01-next-shift.png watch-next-shift 220
 copy Screenshots/watch/en/02-settings.png watch-settings 220
+
+# Every screen (Scripts/screenshots.sh manual) as small PNGs under docs/assets/guide/screens/, named without the
+# order number (04-shift-detail.png -> shift-detail.png). Skipped when the manual set was not generated.
+MANUAL="Screenshots/manual/iphone/en"
+if [[ -d "$MANUAL" ]]; then
+  mkdir -p "$OUT/screens"
+  rm -f "$OUT"/screens/*.png
+  for file in "$MANUAL"/*.png; do
+    name="$(basename "$file" .png)"
+    name="${name#*-}"
+    [[ -f "$OUT/$name.png" ]] && continue # already published above (the App Store set)
+    copy "$file" "screens/$name" 330
+  done
+fi
+
+# The Watch's Settings pages (Scripts/screenshots.sh manual), same idea: 01-settings-sync.png -> screens/watch-settings-sync.png.
+MANUAL_WATCH="Screenshots/manual/watch/en"
+if [[ -d "$MANUAL_WATCH" ]]; then
+  mkdir -p "$OUT/screens"
+  for file in "$MANUAL_WATCH"/*.png; do
+    name="$(basename "$file" .png)"
+    copy "$file" "screens/watch-${name#*-}" 220
+  done
+fi
