@@ -12,6 +12,8 @@ import EngelsystemClientKit
 /// applies, matching every other multi-instance screen.
 struct MessagesView: View {
     let instances: [Instance]
+    /// Badges and edges tell the instances apart when several are active, also when only one of them offers Messages.
+    var showsInstances: Bool?
     /// Shared with `MainView` — see `ShiftsView`'s matching property for why.
     let syncStatus: MainSyncStatus
     var onUnauthorized: () -> Void = {}
@@ -20,6 +22,7 @@ struct MessagesView: View {
     @State private var selectedInstanceID: UUID?
     @State private var collapsedInstances: Set<UUID> = []
     @Environment(\.instanceColors) private var instanceColors
+    private var showsInstanceIndicators: Bool { showsInstances ?? (instances.count > 1) }
     @State private var isShowingNewConversation = false
     @State private var pendingConversation: PendingConversation?
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
@@ -132,9 +135,10 @@ struct MessagesView: View {
         if rows.isEmpty && !viewModel.isLoading {
             emptyState
         } else {
-            ForEach(rows, id: \.conversation.otherUser.id) { row in
-                ConversationRow(instance: row.instance, conversation: row.conversation, showsInstanceBadge: instances.count > 1)
-                    .instanceEdge(named: instances.count > 1 ? row.instance.name : nil, colors: instanceColors)
+            // The same user id exists on every instance: a row is identified by instance and user.
+            ForEach(rows.map { ConversationEntry(instance: $0.instance, conversation: $0.conversation) }) { row in
+                ConversationRow(instance: row.instance, conversation: row.conversation, showsInstanceBadge: showsInstanceIndicators)
+                    .instanceEdge(named: showsInstanceIndicators ? row.instance.name : nil, colors: instanceColors)
             }
         }
     }
@@ -160,6 +164,13 @@ private struct PendingConversation: Identifiable, Hashable {
 
     static func == (lhs: PendingConversation, rhs: PendingConversation) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+
+/// A conversation of one instance, identified by both (user ids repeat across instances).
+struct ConversationEntry: Identifiable {
+    let instance: Instance
+    let conversation: Conversation
+    var id: String { "\(instance.id.uuidString)-\(conversation.otherUser.id)" }
 }
 
 private struct ConversationRow: View {

@@ -43,3 +43,22 @@ struct InstanceColorsTests {
         #expect(environment.instanceColors != InstanceColors())
     }
 }
+
+@MainActor
+struct ConversationEntryTests {
+    /// User ids repeat across instances: two instances with the same user must not share a row identity
+    /// (they were drawn as the same row twice in the merged Messages list).
+    @Test func theSameUserOnTwoInstancesIsTwoRows() {
+        let sender = Reference(id: 7, name: "U7")
+        let message = Message(
+            id: 1, text: "t", sender: sender, receiver: Reference(id: 0, name: "me"),
+            read: true, createdAt: Date(timeIntervalSince1970: 1), updatedAt: nil)
+        let conversation = Conversation(otherUser: sender, latestMessage: message, unreadMessages: 0)
+        let a = Instance(name: "A", baseURL: "https://a.test", apiKeyKeychainRef: "a")
+        let b = Instance(name: "B", baseURL: "https://b.test", apiKeyKeychainRef: "b")
+        let first = ConversationEntry(instance: a, conversation: conversation)
+        let second = ConversationEntry(instance: b, conversation: conversation)
+        #expect(first.id != second.id)
+        #expect(first.id == ConversationEntry(instance: a, conversation: conversation).id)
+    }
+}

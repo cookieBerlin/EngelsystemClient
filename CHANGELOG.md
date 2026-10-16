@@ -48,6 +48,9 @@ versioning: [Semantic Versioning](https://semver.org/).
 - The main list hides every area an instance does not offer (not only Messages and Locations): an instance with only News
   shows just News, without empty Event and Account groups.
 
+- Messages of several instances in the merged list no longer show the same conversation twice, and keep the instance's badge and
+  color edge when only one of the active instances offers Messages.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's

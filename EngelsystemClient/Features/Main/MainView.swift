@@ -278,7 +278,9 @@ struct MainView: View {
                         LocationsView(instances: activeInstances, syncStatus: syncStatus, onUnauthorized: goToSettings)
                     case .messages:
                         // COMPAT(#1720)
-                        MessagesView(instances: activeInstances.filter(\.messagesSupported), syncStatus: syncStatus, onUnauthorized: goToSettings)
+                        MessagesView(
+                            instances: activeInstances.filter(\.messagesSupported), showsInstances: activeInstances.count > 1,
+                            syncStatus: syncStatus, onUnauthorized: goToSettings)
                     case .settings:
                         SettingsView(instances: instances, onInstanceActivated: syncInstance)
                     }
