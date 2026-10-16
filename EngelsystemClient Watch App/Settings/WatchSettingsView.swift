@@ -17,35 +17,100 @@ import EngelsystemClientKit
 /// affects iOS's Shifts/News/Profile catalog screens, which the Watch doesn't have
 /// (see `MultiInstanceDisplayMode`).
 struct WatchSettingsView: View {
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Instance.createdAt) private var instances: [Instance]
     @Query private var leadTimeSettingsRows: [NotificationLeadTimeSettings]
     @AppStorage(DeviceSyncPreferences.syncOnAppStartUserDefaultsKey)
     private var syncOnAppStart: Bool = true
+    @AppStorage(DebugLog.isEnabledUserDefaultsKey)
+    private var isDebugLoggingEnabled: Bool = DebugLog.defaultEnabled
 
     @State private var isPresentingSetup = false
-    @AppStorage(ParallelSyncSetting.userDefaultsKey) private var parallelSyncs = 0
-    @State private var cloudSyncStatus: CloudSyncStatus = .checking
 
-    /// See the iOS `SettingsView`'s matching properties for why this is a `@Query`
-    /// (CloudKit-synced within a platform) rather than `@AppStorage`, and why it
-    /// resolves the "watch" row specifically — this list is deliberately independent
-    /// from the iOS one (2026-09-22, user-requested).
+    /// The Watch's own reminder list (resolves the "watch" row specifically — independent from the iPhone's).
     private var leadTimesMinutes: [Int] {
         NotificationLeadTimeSettings.leadTimes(for: NotificationLeadTimeSettings.currentPlatform, in: leadTimeSettingsRows)
     }
 
-    private var leadTimesAvailableToAdd: [Int] {
-        NotificationLeadTimeSettings.availableToAdd(currentlySelected: leadTimesMinutes)
+    /// A short list of topics, each opening its own page with a summary behind it — the same structure as the
+    /// iPhone's Settings (2026-10-16; before, this was one long list).
+    var body: some View {
+        List {
+            // Without any instance the first thing to do is adding one.
+            if instances.isEmpty {
+                Button {
+                    isPresentingSetup = true
+                } label: {
+                    Label("Add Instance", systemImage: "plus")
+                }
+            }
+            NavigationLink {
+                WatchInstancesSettingsView()
+            } label: {
+                WatchSettingsRowLabel(
+                    title: "Instances", systemImage: "server.rack",
+                    summary: SettingsSummary.instances(active: instances.filter(\.isActive).count, total: instances.count))
+            }
+            NavigationLink {
+                WatchNotificationsSettingsView()
+            } label: {
+                WatchSettingsRowLabel(
+                    title: "Notifications", systemImage: "bell",
+                    summary: SettingsSummary.notifications(leadTimes: leadTimesMinutes))
+            }
+            NavigationLink {
+                WatchSyncSettingsView()
+            } label: {
+                WatchSettingsRowLabel(
+                    title: "Sync", systemImage: "arrow.triangle.2.circlepath",
+                    summary: SettingsSummary.watchSync(onAppStart: syncOnAppStart))
+            }
+            NavigationLink {
+                WatchDiagnosticsSettingsView()
+            } label: {
+                WatchSettingsRowLabel(
+                    title: "Diagnostics", systemImage: "stethoscope",
+                    summary: SettingsSummary.diagnostics(isEnabled: isDebugLoggingEnabled))
+            }
+            NavigationLink {
+                WatchAboutSettingsView()
+            } label: {
+                WatchSettingsRowLabel(
+                    title: "About", systemImage: "info.circle",
+                    summary: SettingsSummary.version(info: Bundle.main.infoDictionary))
+            }
+        }
+        .navigationTitle("Settings")
+        .sheet(isPresented: $isPresentingSetup) {
+            WatchSetupView()
+        }
     }
+}
 
-    private func addLeadTime(_ minutes: Int) {
-        NotificationLeadTimeSettings.addLeadTime(minutes, for: NotificationLeadTimeSettings.currentPlatform, in: modelContext)
-    }
+/// One row of the hub: icon, title and a short, secondary summary of the current state.
+private struct WatchSettingsRowLabel: View {
+    let title: String
+    let systemImage: String
+    let summary: String
 
-    private func removeLeadTime(_ minutes: Int) {
-        NotificationLeadTimeSettings.removeLeadTime(minutes, for: NotificationLeadTimeSettings.currentPlatform, in: modelContext)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Label(title, systemImage: systemImage)
+            if !summary.isEmpty {
+                Text(summary)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
+}
+
+/// Instances page: the list with an active switch each, "Add Instance" and the Parallel Syncs stepper.
+private struct WatchInstancesSettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Instance.createdAt) private var instances: [Instance]
+    @AppStorage(ParallelSyncSetting.userDefaultsKey) private var parallelSyncs = 0
+    @State private var isPresentingSetup = false
 
     var body: some View {
         List {
@@ -84,73 +149,10 @@ struct WatchSettingsView: View {
                 Text("How many instances are synced at the same time. Applies to this device only.")
                     .font(.caption2)
             }
-
-            Section {
-                ForEach(leadTimesMinutes, id: \.self) { minutes in
-                    HStack {
-                        Text("\(minutes) min")
-                        Spacer()
-                        Button {
-                            removeLeadTime(minutes)
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.red)
-                        }
-                        .accessibilityLabel("Remove \(minutes) min reminder")
-                    }
-                }
-                // `Menu` isn't available on watchOS — a pushed list of the remaining
-                // presets is the standard watchOS substitute for "tap to pick one
-                // from a short list".
-                if !leadTimesAvailableToAdd.isEmpty {
-                    NavigationLink {
-                        WatchAddReminderView(availableMinutes: leadTimesAvailableToAdd, onAdd: addLeadTime)
-                    } label: {
-                        Label("Add Reminder", systemImage: "plus")
-                    }
-                }
-            } header: {
-                Text("Notifications")
-            } footer: {
-                Text("Its own list, independent from your iPhone's.")
-                    .font(.caption2)
-            }
-
-            // 2026-09-22, user-requested background-sync feature: no interval picker
-            // here at all (originally shown/settable here too, shared via CloudKit
-            // with iOS — reverted the same day, at the user's explicit request, once
-            // it became clear it did nothing on this platform). Actually *running* a
-            // background sync on watchOS isn't implemented — the `BackgroundTasks`
-            // framework this app uses on iOS isn't available on watchOS at all, and
-            // watchOS's own separate background-refresh API has been reported
-            // unreliable on recent watchOS versions (see CLAUDE.md). Said plainly in
-            // the footer below, rather than showing a setting that would do nothing.
-            Section {
-                Toggle("Sync on App Start", isOn: $syncOnAppStart)
-            } header: {
-                Text("Sync")
-            } footer: {
-                Text("Background sync by interval isn't available on Apple Watch. This app still syncs when you open it or pull to refresh.")
-                    .font(.caption2)
-            }
-
-            Section {
-                VStack(spacing: 4) {
-                    Text(cloudSyncStatus.displayText)
-                    Text(AppVersionInfo.displayString)
-                }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-            }
-            .listRowBackground(Color.clear)
         }
-        .navigationTitle("Settings")
+        .navigationTitle("Instances")
         .sheet(isPresented: $isPresentingSetup) {
             WatchSetupView()
-        }
-        .task {
-            cloudSyncStatus = await CloudSyncStatus.current(containerIdentifier: ModelContainerFactory.cloudKitContainerIdentifier)
         }
     }
 
@@ -194,6 +196,126 @@ struct WatchSettingsView: View {
         InstanceRemoval.delete(
             instance, in: modelContext, keyStores: [KeychainSyncStore(), LocalKeychainStore()], scope: .shiftsOnly
         )
+    }
+}
+
+/// Notifications page: the Watch's own reminder times, independent from the iPhone's.
+private struct WatchNotificationsSettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var leadTimeSettingsRows: [NotificationLeadTimeSettings]
+
+    /// See the iOS `SettingsView`'s matching properties for why this is a `@Query` (CloudKit-synced within a
+    /// platform) rather than `@AppStorage`, and why it resolves the "watch" row specifically.
+    private var leadTimesMinutes: [Int] {
+        NotificationLeadTimeSettings.leadTimes(for: NotificationLeadTimeSettings.currentPlatform, in: leadTimeSettingsRows)
+    }
+
+    private var leadTimesAvailableToAdd: [Int] {
+        NotificationLeadTimeSettings.availableToAdd(currentlySelected: leadTimesMinutes)
+    }
+
+    private func addLeadTime(_ minutes: Int) {
+        NotificationLeadTimeSettings.addLeadTime(minutes, for: NotificationLeadTimeSettings.currentPlatform, in: modelContext)
+    }
+
+    private func removeLeadTime(_ minutes: Int) {
+        NotificationLeadTimeSettings.removeLeadTime(minutes, for: NotificationLeadTimeSettings.currentPlatform, in: modelContext)
+    }
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(leadTimesMinutes, id: \.self) { minutes in
+                    HStack {
+                        Text("\(minutes) min")
+                        Spacer()
+                        Button {
+                            removeLeadTime(minutes)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                        .accessibilityLabel("Remove \(minutes) min reminder")
+                    }
+                }
+                // `Menu` isn't available on watchOS — a pushed list of the remaining
+                // presets is the standard watchOS substitute for "tap to pick one
+                // from a short list".
+                if !leadTimesAvailableToAdd.isEmpty {
+                    NavigationLink {
+                        WatchAddReminderView(availableMinutes: leadTimesAvailableToAdd, onAdd: addLeadTime)
+                    } label: {
+                        Label("Add Reminder", systemImage: "plus")
+                    }
+                }
+            } footer: {
+                Text("Its own list, independent from your iPhone's.")
+                    .font(.caption2)
+            }
+        }
+        .navigationTitle("Notifications")
+    }
+}
+
+/// Sync page. No interval picker (2026-09-22, user-requested background-sync feature): actually *running* a
+/// background sync on watchOS isn't implemented — `BackgroundTasks` isn't available there and watchOS's own
+/// background-refresh API has been reported unreliable (see CLAUDE.md) — said plainly in the footer.
+private struct WatchSyncSettingsView: View {
+    @AppStorage(DeviceSyncPreferences.syncOnAppStartUserDefaultsKey)
+    private var syncOnAppStart: Bool = true
+
+    var body: some View {
+        List {
+            Section {
+                Toggle("Sync on App Start", isOn: $syncOnAppStart)
+            } footer: {
+                Text("Background sync by interval isn't available on Apple Watch. This app still syncs when you open it or pull to refresh.")
+                    .font(.caption2)
+            }
+        }
+        .navigationTitle("Sync")
+    }
+}
+
+/// Diagnostics page: the Watch's own debug logging switch (on by default in the beta).
+private struct WatchDiagnosticsSettingsView: View {
+    @AppStorage(DebugLog.isEnabledUserDefaultsKey)
+    private var isDebugLoggingEnabled: Bool = DebugLog.defaultEnabled
+
+    var body: some View {
+        List {
+            Section {
+                Toggle("Debug Logging", isOn: $isDebugLoggingEnabled)
+            } footer: {
+                Text("Records this app's internal activity on the Watch for troubleshooting. Never includes API keys or other secrets.")
+                    .font(.caption2)
+            }
+        }
+        .navigationTitle("Diagnostics")
+    }
+}
+
+/// About page: version and iCloud status.
+private struct WatchAboutSettingsView: View {
+    @State private var cloudSyncStatus: CloudSyncStatus = .checking
+
+    var body: some View {
+        List {
+            Section {
+                VStack(spacing: 4) {
+                    Text(cloudSyncStatus.displayText)
+                    Text(AppVersionInfo.displayString)
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .listRowBackground(Color.clear)
+        }
+        .navigationTitle("About")
+        .task {
+            cloudSyncStatus = await CloudSyncStatus.current(containerIdentifier: ModelContainerFactory.cloudKitContainerIdentifier)
+        }
     }
 }
 
