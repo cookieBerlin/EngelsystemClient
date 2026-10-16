@@ -131,6 +131,31 @@ extension StubbedNetworkTests {
             #expect(viewModel.featureSummary == "1 of \(total) features available")
         }
 
+        /// A typed key is the one that is tested (not the saved one), and a failing key store is reported on save.
+        @Test @MainActor func aTypedKeyIsTestedAndAFailingKeyStoreIsReported() async throws {
+            try StubURLProtocol.routeDemoInfo("GET /api/v0-beta/info")
+            let context = try makeContext()
+            let instance = Instance(name: "I", baseURL: "https://stub.test", apiKeyKeychainRef: "missing-\(UUID().uuidString)")
+            context.insert(instance)
+            let viewModel = EditInstanceViewModel(instance: instance)
+            viewModel.apiKey = "typed" // no saved key exists: only a typed one can pass
+            await viewModel.testConnection(for: instance)
+            #expect(viewModel.connectionTested)
+            #expect(viewModel.errorMessage == nil)
+
+            struct Broken: APIKeyStore {
+                struct Failure: Error {}
+                func save(apiKey: String, for reference: String) throws { throw Failure() }
+                func loadAPIKey(for reference: String) throws -> String { throw Failure() }
+                func deleteAPIKey(for reference: String) throws {}
+            }
+            let failing = EditInstanceViewModel(instance: instance, keyStores: { (Broken(), Broken()) })
+            failing.apiKey = "new-key"
+            #expect(failing.save(instance: instance, in: context) == nil)
+            #expect(failing.errorMessage != nil)
+            #expect(instance.name == "I") // nothing was applied
+        }
+
         @Test @MainActor func verifyOfTheNewsOnlyDemoShowsOneFeature() async throws {
             let key = "verify-demo-\(UUID().uuidString)"
             try LocalKeychainStore().save(apiKey: "demo", for: key)
@@ -182,8 +207,10 @@ extension StubbedNetworkTests {
             #expect(!viewModel.connectionTested)
             #expect(viewModel.errorMessage != nil)
 
-            #expect(await viewModel.save(instance: instance, in: context) == false)
-            #expect(viewModel.errorMessage != nil)
+            // Saving needs no key and no connection: only the test did.
+            viewModel.name = "Renamed"
+            #expect(viewModel.save(instance: instance, in: context) == false)
+            #expect(instance.name == "Renamed")
         }
     }
 

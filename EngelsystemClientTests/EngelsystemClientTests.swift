@@ -46,8 +46,7 @@ struct EditInstanceViewModelPersistenceTests {
 
         let viewModel = EditInstanceViewModel(instance: instance)
         viewModel.name = "Demo Renamed"
-        let succeeded = await viewModel.save(instance: instance, in: context)
-        #expect(succeeded)
+        #expect(viewModel.save(instance: instance, in: context) != nil)
 
         // Simulate the rebuild-and-relaunch scenario: a fresh container/context
         // reading the same file, not the `context` the edit was made through.
@@ -72,7 +71,7 @@ struct EditInstanceViewModelAPIKeyTests {
         let configuration = ModelConfiguration(schema: Schema([Instance.self]), isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(for: Instance.self, configurations: configuration)
         let context = ModelContext(container)
-        let instance = Instance(name: "Demo", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: UUID().uuidString)
+        let instance = Instance(name: "Server", baseURL: "https://server.test", apiKeyKeychainRef: UUID().uuidString)
         context.insert(instance)
         try KeychainSyncStore().save(apiKey: key, for: instance.apiKeyKeychainRef)
         try LocalKeychainStore().save(apiKey: key, for: instance.apiKeyKeychainRef)
@@ -85,9 +84,8 @@ struct EditInstanceViewModelAPIKeyTests {
 
         let viewModel = EditInstanceViewModel(instance: instance)
         viewModel.apiKey = ""
-        let succeeded = await viewModel.save(instance: instance, in: context)
-
-        #expect(succeeded)
+        viewModel.name = "Renamed"
+        #expect(viewModel.save(instance: instance, in: context) == false) // only the name changed
         #expect(try LocalKeychainStore().loadAPIKey(for: instance.apiKeyKeychainRef) == "original-key")
     }
 
@@ -97,10 +95,21 @@ struct EditInstanceViewModelAPIKeyTests {
 
         let viewModel = EditInstanceViewModel(instance: instance)
         viewModel.apiKey = "replacement-key"
-        let succeeded = await viewModel.save(instance: instance, in: context)
-
-        #expect(succeeded)
+        #expect(viewModel.save(instance: instance, in: context) == true) // a new key counts as a server change
         #expect(try LocalKeychainStore().loadAPIKey(for: instance.apiKeyKeychainRef) == "replacement-key")
+        #expect(viewModel.apiKey.isEmpty) // the field is blank again after saving
+    }
+
+    @Test @MainActor func aDemoAddressStoresTheDemoKeyWhateverWasTyped() async throws {
+        let (instance, context) = try makeInstanceWithSeededKey("original-key")
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef); try? KeychainSyncStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+
+        let viewModel = EditInstanceViewModel(instance: instance)
+        viewModel.baseURL = Instance.demoBaseURL
+        viewModel.apiKey = "ignored"
+        #expect(!viewModel.requiresAPIKey)
+        #expect(viewModel.save(instance: instance, in: context) == true)
+        #expect(try LocalKeychainStore().loadAPIKey(for: instance.apiKeyKeychainRef) == "demo")
     }
 }
 
@@ -195,41 +204,44 @@ struct EditInstanceViewModelSelfCheckTests {
     @Test @MainActor func testConnectionMarksConnectionTestedWithoutSaving() async throws {
         let (instance, context) = try makeInstanceWithSeededKey()
         defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+        _ = context
 
         let viewModel = EditInstanceViewModel(instance: instance)
-        #expect(viewModel.connectionTested) // starts true: reflects the already-persisted state
-        viewModel.baseURL = Instance.demoBaseURL // trigger didSet, same value
-        #expect(!viewModel.connectionTested) // any edit invalidates it until re-tested
-
+        #expect(!viewModel.connectionTested) // nothing was tested yet
         await viewModel.testConnection(for: instance)
-
         #expect(viewModel.connectionTested)
+        viewModel.baseURL = Instance.demoBaseURL + "/" // any edit invalidates the result
+        #expect(!viewModel.connectionTested)
+        #expect(!viewModel.hasChanges(for: instance)) // the trailing slash alone is no change
     }
 
-    /// 2026-09-21, user-requested: unlike Setup, Save used to stay enabled here even
-    /// right after editing the server URL or API key — since `save()` already
-    /// re-verifies internally regardless. The user asked for Save to actually be
-    /// disabled until a fresh "Test Connection" succeeds, same as Setup, so an edit
-    /// can't be submitted without ever having been checked.
-    @Test @MainActor func canSubmitIsDisabledAfterEditingServerOrKeyUntilRetested() async throws {
+    /// 2026-10-16: saving no longer needs a successful test (the server may be unreachable right now); it only
+    /// needs a name and an address, and Save/Discard appear when something changed.
+    @Test @MainActor func savingNeedsNoTestButTracksChangesAndDiscardRestores() async throws {
         let (instance, context) = try makeInstanceWithSeededKey()
         defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
         _ = context
 
         let viewModel = EditInstanceViewModel(instance: instance)
-        #expect(viewModel.canSubmit) // untouched dialog: reflects the already-verified state
+        #expect(viewModel.canSave && !viewModel.hasChanges(for: instance))
 
-        // Trailing slash keeps this recognized as the demo sentinel (Instance.isDemo
-        // compares normalizedBaseURL, which trims it) while still triggering didSet —
-        // a real, non-demo URL here would attempt an actual network request.
-        viewModel.baseURL = Instance.demoBaseURL + "/"
-        #expect(!viewModel.canSubmit)
+        viewModel.name = "Renamed"
+        #expect(viewModel.hasChanges(for: instance) && viewModel.canSave) // no test needed
+        viewModel.name = "  "
+        #expect(!viewModel.canSave)
 
-        await viewModel.testConnection(for: instance)
-        #expect(viewModel.canSubmit)
+        viewModel.name = "Again"
+        viewModel.baseURL = "demo://congress.local"
+        viewModel.apiKey = "typed"
+        viewModel.discard(to: instance)
+        #expect(viewModel.name == instance.name)
+        #expect(viewModel.baseURL == instance.normalizedBaseURL)
+        #expect(viewModel.apiKey.isEmpty)
+        #expect(!viewModel.hasChanges(for: instance))
 
-        viewModel.apiKey = "new-key"
-        #expect(!viewModel.canSubmit)
+        // A typed key on a demo address is not a change: the demo needs none.
+        viewModel.apiKey = "ignored"
+        #expect(!viewModel.hasChanges(for: instance))
     }
 }
 

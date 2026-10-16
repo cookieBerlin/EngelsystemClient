@@ -191,23 +191,27 @@ final class EngelsystemClientUITests: XCTestCase {
         featuresSummary.tap()
         XCTAssertTrue(shiftsFeature.waitForExistence(timeout: 5))
 
-        let editButton = app.buttons["Edit Instance"]
-        XCTAssertTrue(editButton.waitForExistence(timeout: 5))
-        editButton.tap()
-
-        let nameField = app.textFields["Name"]
+        // The fields are on the page itself. An edit shows Save and Discard; Discard asks first.
+        let nameField = app.textFields["instanceNameField"]
         XCTAssertTrue(nameField.waitForExistence(timeout: 5))
-        nameField.tap()
-        if let existingValue = nameField.value as? String, !existingValue.isEmpty {
-            nameField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count))
+        XCTAssertFalse(app.buttons["instanceSaveButton"].exists)
+        func replaceName(with text: String) {
+            nameField.tap()
+            if let existingValue = nameField.value as? String, !existingValue.isEmpty {
+                nameField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count))
+            }
+            nameField.typeText(text)
         }
-        nameField.typeText("Demo Renamed")
-
-        app.buttons["Save"].tap()
-        // Saving re-tests the connection (demo mode resolves instantly, no real
-        // network) and dismisses back to the instance detail view on success.
+        // An edit shows Save and Discard. (The confirmation dialog behind Discard is not driven here: the
+        // simulator does not expose action sheets to the UI tests; the reset itself is unit-tested.)
+        replaceName(with: "Demo Renamed")
+        XCTAssertTrue(app.buttons["instanceDiscardButton"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["instanceSaveButton"].exists)
+        // Saving needs no connection test.
+        app.buttons["instanceSaveButton"].tap()
         XCTAssertTrue(app.navigationBars["Demo Renamed"].waitForExistence(timeout: 10))
         XCTAssertTrue(containingText("Demo Renamed", in: app).waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["instanceSaveButton"].exists)
 
         goBack(app)
         XCTAssertTrue(app.navigationBars["Instances"].waitForExistence(timeout: 5))

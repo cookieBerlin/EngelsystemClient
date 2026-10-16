@@ -166,7 +166,7 @@ struct InstancesSettingsView: View {
             // Destination-based (not value-based): this page is itself pushed from the hub, and a
             // value link did not push the detail page from here (found with the UI tests).
             NavigationLink {
-                InstanceDetailView(instance: instance, onDelete: { delete(instance) })
+                InstanceDetailView(instance: instance, onDelete: { delete(instance) }, onChanged: onActivated)
             } label: {
                 EmptyView()
             }
@@ -219,14 +219,29 @@ private struct InstanceRow: View {
     }
 }
 
+/// One page for an instance: the editable fields (name, server, API key with Save/Discard), the instance's status
+/// and color, the connection test, the Features list and the sync times (2026-10-16 — it replaced the page plus
+/// the separate "Edit Instance" sheet).
 private struct InstanceDetailView: View {
     let instance: Instance
     let onDelete: () -> Void
+    /// Called after the server or the key changed, so the instance gets refreshed.
+    let onChanged: (Instance) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.instanceColors) private var colors
-    @State private var isPresentingEdit = false
+    @State private var form: EditInstanceViewModel
+    @State private var isConfirmingDiscard = false
+
+    init(instance: Instance, onDelete: @escaping () -> Void, onChanged: @escaping (Instance) -> Void) {
+        self.instance = instance
+        self.onDelete = onDelete
+        self.onChanged = onChanged
+        _form = State(initialValue: EditInstanceViewModel(instance: instance))
+    }
+
+    private var hasChanges: Bool { form.hasChanges(for: instance) }
     private let capabilities = ServerCapabilities.shared
     @State private var featuresExpandedByUser: Bool?
 
@@ -264,9 +279,57 @@ private struct InstanceDetailView: View {
 
     var body: some View {
         Form {
+            Section("Instance") {
+                TextField("Name", text: $form.name)
+                    .textInputAutocapitalization(.words)
+                    .accessibilityIdentifier("instanceNameField")
+                TextField("Server URL", text: $form.baseURL)
+                    #if os(iOS)
+                    .keyboardType(.URL)
+                    #endif
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .accessibilityIdentifier("instanceServerField")
+                if form.requiresAPIKey {
+                    SecureField("API Key (empty keeps the saved key)", text: $form.apiKey)
+                        .autocorrectionDisabled()
+                        .accessibilityIdentifier("instanceKeyField")
+                } else {
+                    // A demo address ignores the key: greyed out, with the reason.
+                    SecureField("API Key", text: .constant(""))
+                        .disabled(true)
+                    Text(InstanceForm.demoKeyHint)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section {
-                LabeledContent("Name", value: instance.name)
-                LabeledContent("Server", value: instance.normalizedBaseURL)
+                Button {
+                    Task { await form.testConnection(for: instance) }
+                } label: {
+                    if form.isTesting {
+                        ProgressView()
+                    } else if form.connectionTested {
+                        Label("Connection Verified", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("Test Connection")
+                    }
+                }
+                .disabled(!form.canTest)
+                if form.connectionTested, let summary = form.featureSummary {
+                    Label(summary, systemImage: "checklist")
+                        .foregroundStyle(.secondary)
+                }
+                if let message = form.errorMessage {
+                    Text(message).foregroundStyle(.red)
+                }
+            } footer: {
+                Text("Optional: checks the server and key as entered above. Saving does not need it.")
+            }
+
+            Section {
                 LabeledContent("Status", value: instance.isActive ? "Active" : "Inactive")
                 // Auto spreads the colors evenly over the instances; a hand-picked color is kept and synced to the other devices.
                 Picker(selection: Binding(
@@ -289,7 +352,6 @@ private struct InstanceDetailView: View {
                     }
                 }
                 .accessibilityIdentifier("instanceColorPicker")
-                Button("Edit Instance") { isPresentingEdit = true }
             }
 
             Section {
@@ -324,11 +386,33 @@ private struct InstanceDetailView: View {
             }
         }
         .navigationTitle(instance.name)
+        // Unsaved edits are saved or discarded on purpose: no way back (button or swipe) until then.
+        .navigationBarBackButtonHidden(hasChanges)
+        .toolbar {
+            if hasChanges {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Discard") { isConfirmingDiscard = true }
+                        .accessibilityIdentifier("instanceDiscardButton")
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        if let serverChanged = form.save(instance: instance, in: modelContext), serverChanged {
+                            onChanged(instance)
+                        }
+                    }
+                    .disabled(!form.canSave)
+                    .accessibilityIdentifier("instanceSaveButton")
+                }
+            }
+        }
+        .confirmationDialog("Discard changes?", isPresented: $isConfirmingDiscard, titleVisibility: .visible) {
+            Button("Discard Changes", role: .destructive) { form.discard(to: instance) }
+            Button("Keep Editing", role: .cancel) {}
+        } message: {
+            Text("Your edits to this instance will be lost.")
+        }
         .task {
             if instance.isDemo { capabilities.recordDemoInstance(instance.id, newsOnly: instance.isNewsOnlyDemo) }
-        }
-        .sheet(isPresented: $isPresentingEdit) {
-            EditInstanceView(instance: instance)
         }
     }
 
@@ -354,98 +438,6 @@ private struct InstanceDetailView: View {
             LabeledContent(label, value: date.formatted(.relative(presentation: .named)))
         } else {
             LabeledContent(label, value: "Never")
-        }
-    }
-}
-
-/// Combined "Edit Instance" form — name, server and API Key in one dialog
-/// (see `EditInstanceViewModel` for why this replaced the previously separate "Edit
-/// Name / Server" and "Update API Key" sheets).
-private struct EditInstanceView: View {
-    let instance: Instance
-
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @State private var viewModel: EditInstanceViewModel
-
-    init(instance: Instance) {
-        self.instance = instance
-        _viewModel = State(initialValue: EditInstanceViewModel(instance: instance))
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Name") {
-                    TextField("Name", text: $viewModel.name)
-                }
-                Section("Server") {
-                    TextField("Server URL", text: $viewModel.baseURL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        #if os(iOS)
-                        .keyboardType(.URL)
-                        #endif
-                }
-                Section {
-                    SecureField("New API Key (optional)", text: $viewModel.apiKey)
-                        .autocorrectionDisabled()
-                } footer: {
-                    Text("Leave blank to keep the current key. Only fill this in if it's expired, been revoked, or you're pointing this instance at a different account.")
-                }
-                if viewModel.connectionTested, let featureSummary = viewModel.featureSummary {
-                    Section {
-                        Label(featureSummary, systemImage: "checklist")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                if let errorMessage = viewModel.errorMessage {
-                    Section {
-                        Text(errorMessage).foregroundStyle(.red)
-                    }
-                }
-                Section {
-                    Button {
-                        Task { await viewModel.testConnection(for: instance) }
-                    } label: {
-                        if viewModel.isTesting {
-                            ProgressView()
-                        } else if viewModel.connectionTested {
-                            Label("Connection Verified", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        } else {
-                            Text("Test Connection")
-                        }
-                    }
-                    .disabled(!viewModel.canTest)
-                } footer: {
-                    Text("Re-checks the server/key, and whether automatic user detection works. Required after changing the server URL or API key before you can save.")
-                }
-            }
-            .navigationTitle("Edit Instance")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    if viewModel.isTesting {
-                        ProgressView()
-                    } else {
-                        Button("Save") {
-                            Task {
-                                if await viewModel.save(instance: instance, in: modelContext) {
-                                    dismiss()
-                                }
-                            }
-                        }
-                        .disabled(!viewModel.canSubmit)
-                    }
-                }
-            }
         }
     }
 }
