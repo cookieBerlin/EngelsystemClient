@@ -117,11 +117,10 @@ final class EngelsystemClient_Watch_AppUITests: XCTestCase {
         // subsequent UI interaction, not proactively.
         app.tap()
 
-        // Settings now exists on the Watch too, mirroring the iOS app's Settings screen
-        // (instance management + notification lead time) — a plain in-content
-        // NavigationLink row below the sync status, not a toolbar item (watchOS's
-        // compact navigation bar doesn't reliably render a bare `ToolbarItem`). May need
-        // scrolling into view, same as the demo button above.
+        // Settings is a short list of topics (Instances, Notifications, Sync, Diagnostics, About), each with its
+        // own page. It is a plain in-content NavigationLink row below the sync status, not a toolbar item
+        // (watchOS's compact navigation bar doesn't reliably render a bare `ToolbarItem`); it may need scrolling
+        // into view, same as the demo button above.
         let settingsButton = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label == %@", "Settings"))
             .firstMatch
@@ -132,43 +131,32 @@ final class EngelsystemClient_Watch_AppUITests: XCTestCase {
         settingsButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 15))
 
-        // watchOS List rows expose as `.cell`, unlike the loosely-matched rows above.
-        let demoInstanceRow = app.cells["Demo"]
-        XCTAssertTrue(demoInstanceRow.waitForExistence(timeout: 10))
-        demoInstanceRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        // Wait for the push itself to land (navigation title is the instance name) before
-        // checking its content — decouples "did navigation happen" from "is this specific
-        // label rendered yet", which was flaky when checked together under one timeout.
+        // Instances page: the demo instance, then its detail page (editable in place, no separate edit sheet).
+        openSettingsTopic("Instances", in: app)
+        XCTAssertTrue(app.navigationBars["Instances"].waitForExistence(timeout: 15))
+        // A narrower query than `containingText` (rows are cells), which is much cheaper to evaluate on the Watch.
+        let demoInstanceRow = app.cells.matching(NSPredicate(format: "label CONTAINS %@", "Demo")).firstMatch
+        XCTAssertTrue(demoInstanceRow.waitForExistence(timeout: 15))
+        // The demo instance is active before the row is opened.
+        let activeSwitch = app.switches["Demo Active"]
+        XCTAssertTrue(activeSwitch.waitForExistence(timeout: 10))
+        XCTAssertEqual(activeSwitch.value as? String, "1", "active before opening")
+        // Tap the name side of the row: the switch for "active" sits on the right.
+        demoInstanceRow.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)).tap()
         XCTAssertTrue(app.navigationBars["Demo"].waitForExistence(timeout: 15))
 
-        // Editing the instance (combined name/server/User ID/API Key dialog since the
-        // 2026-09-17 multi-active-instance redesign — previously two separate actions).
-        // Visible without scrolling — it's the first section's fourth row.
-        let editButton = app.buttons["Edit Instance"]
-        XCTAssertTrue(editButton.waitForExistence(timeout: 15))
-        editButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        XCTAssertTrue(app.navigationBars["Edit Instance"].waitForExistence(timeout: 15))
-        XCTAssertTrue(containingText("Demo", in: app).waitForExistence(timeout: 10))
-        // watchOS auto-adds a "Close" (xmark) button to a sheet's navigation bar —
-        // nested Button elements share the same label, so `.firstMatch` to avoid an
-        // ambiguous-match error.
-        let closeButton = app.buttons["Close"].firstMatch
-        XCTAssertTrue(closeButton.waitForExistence(timeout: 5))
-        closeButton.tap()
+        // The fields are on the page itself; Save/Discard only appear after a change.
+        XCTAssertTrue(app.textFields.firstMatch.waitForExistence(timeout: 15)) // name / server URL fields
+        XCTAssertFalse(app.buttons["Save"].exists)
 
-        // The only instance defaults to active on creation, so its detail view's
-        // Status row reads "Active" — there's no separate "Update API Key" action
-        // anymore (folded into "Edit Instance" above) or "Use as Active Instance"
-        // button (activation now happens via a swipe action on the Settings list, not
-        // from the detail screen). Adding the Edit row above pushed this below the
-        // fold, so it now needs scrolling too.
-        let statusLabel = containingText("Active", in: app)
+        // The Status row ("Active"/"Inactive": a coordinate tap on the row has been seen to flip the row's switch in
+        // the simulator, so only its presence is checked). "Remove Instance" isn't materialized in the accessibility
+        // tree until scrolled into view.
+        let statusLabel = app.cells.matching(NSPredicate(format: "label BEGINSWITH %@", "Status")).firstMatch
         for _ in 0..<10 where !statusLabel.exists {
             app.swipeUp()
         }
         XCTAssertTrue(statusLabel.waitForExistence(timeout: 15))
-        // "Remove Instance" isn't materialized in the accessibility tree until scrolled
-        // into view — same as the Setup form.
         let removeInstanceButton = app.buttons["Remove Instance"]
         for _ in 0..<10 where !removeInstanceButton.exists {
             app.swipeUp()
@@ -176,19 +164,35 @@ final class EngelsystemClient_Watch_AppUITests: XCTestCase {
         XCTAssertTrue(removeInstanceButton.waitForExistence(timeout: 10))
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Instances"].waitForExistence(timeout: 10))
+        XCTAssertTrue(containingText("Parallel Syncs", in: app).waitForExistence(timeout: 10))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
 
-        // Notification lead-time picker defaults to 15 min and can be changed —
-        // same loose-matching + coordinate-tap approach as the iOS UI test, since the
-        // system Picker control's hittable region doesn't coincide with its label.
-        let leadTimeRow = containingText("Notify Before Shift", in: app)
-        XCTAssertTrue(leadTimeRow.waitForExistence(timeout: 15))
+        // Notifications page: the default 15 min reminder is listed and more can be added.
+        openSettingsTopic("Notifications", in: app)
+        XCTAssertTrue(app.navigationBars["Notifications"].waitForExistence(timeout: 15))
         XCTAssertTrue(containingText("15 min", in: app).waitForExistence(timeout: 15))
-        leadTimeRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        let thirtyMinOption = containingText("30 min", in: app)
-        XCTAssertTrue(thirtyMinOption.waitForExistence(timeout: 10))
-        thirtyMinOption.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        XCTAssertTrue(containingText("30 min", in: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(containingText("Add Reminder", in: app).waitForExistence(timeout: 10))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
+
+        // Diagnostics page: its own logging switch and the (manual) send button.
+        openSettingsTopic("Diagnostics", in: app)
+        XCTAssertTrue(app.navigationBars["Diagnostics"].waitForExistence(timeout: 15))
+        XCTAssertTrue(containingText("Debug Logging", in: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(containingText("Send Log to iPhone", in: app).waitForExistence(timeout: 10))
+    }
+
+    /// Opens one topic of the Settings list (scrolling it into view when needed).
+    @MainActor
+    private func openSettingsTopic(_ title: String, in app: XCUIApplication) {
+        let row = containingText(title, in: app)
+        for _ in 0..<10 where !row.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
 
     @MainActor
