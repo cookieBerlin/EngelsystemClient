@@ -39,6 +39,7 @@
 */EngelsystemClient/Features/InstanceSetup/InstanceSetupView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/Main/MainView.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/Main/InstanceFreshnessFooter.swift   # SwiftUI layout (ADR 0010); every text and decision lives in the tested Kit type InstanceFreshness
+*/EngelsystemClient/Features/Shared/SyncRunBanner.swift   # SwiftUI layout (ADR 0010); every text, symbol and rule lives in the tested Kit type SyncRunModel
 */EngelsystemClient/Features/Shared/SyncProgressBanner.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/Shared/SyncTimestampFooter.swift   # SwiftUI layout (ADR 0010)
 */EngelsystemClient/Features/Shared/ErrorBanner.swift   # SwiftUI layout (ADR 0010)

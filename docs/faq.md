@@ -84,6 +84,12 @@ It shows how old the saved data of each active event is. Grey with a check mark 
 means 12 hours or more; red means nothing was loaded yet. Tap a line to refresh that event. Switching an event on in Settings refreshes it
 automatically, so you do not see old data for long.
 
+### The sync seems stuck. What can I do?
+
+While a sync runs, the banner at the top shows every event with what it is doing. A line turns orange when a step has not answered
+for 30 seconds, and an event that makes no progress for a minute is stopped (“timed out”) so the others can continue. Tap **Stop sync**
+in the banner to end the whole sync, or choose **Skip <event>** to leave out just the one that hangs. Data that was already loaded is kept.
+
 ### How do I remove an event and its data?
 
 **Settings →** tap the event **→ Remove Instance**. This deletes the saved API key and everything cached for that event on this

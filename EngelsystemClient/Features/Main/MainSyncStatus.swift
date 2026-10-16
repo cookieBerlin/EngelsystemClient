@@ -18,6 +18,25 @@ final class MainSyncStatus {
     var statusText = ""
     var didFail = false
 
+    /// The per-instance rows of the current `AppSyncCoordinator` run (empty for the simple banner).
+    let runModel = SyncRunModel()
+    let control = SyncControl()
+    /// A coordinated run is in progress (so "Stop sync" makes sense).
+    private(set) var isRunning = false
+    private var runTask: Task<Bool, Never>?
+    private var stopRequested = false
+
+    /// How long the banner stays after a run: briefly when all went well, longer when something failed.
+    var hideDelay: Duration = .milliseconds(1200)
+    var problemHideDelay: Duration = .seconds(5)
+
+    /// What `AppSyncCoordinator.syncEverything` is handed to report into this status.
+    struct Callbacks {
+        let onProgress: (AppSyncCoordinator.Progress) -> Void
+        let onEvent: (SyncEvent) -> Void
+        let control: SyncControl
+    }
+
     /// The app-start sync runs only when the per-device toggle is on; both it and the main
     /// page's pull-to-refresh need at least one active instance to sync.
     nonisolated static func shouldRunStartSync(syncOnAppStartEnabled: Bool, activeInstanceCount: Int) -> Bool {
@@ -51,8 +70,10 @@ final class MainSyncStatus {
     /// success/failure state is actually seen, then hides it — shared by every
     /// caller below instead of each repeating the same sleep-then-hide dance.
     private func showBrieflyThenHide() async {
-        try? await Task.sleep(nanoseconds: 1_200_000_000)
+        let problem = runModel.problemSummary != nil
+        try? await Task.sleep(for: problem ? problemHideDelay : hideDelay)
         isSyncing = false
+        runModel.reset()
     }
 
     /// Runs `work`, showing an indeterminate banner (no step count — just
@@ -62,6 +83,7 @@ final class MainSyncStatus {
     /// their own ViewModel, so there's no multi-step `AppSyncCoordinator.Progress` to
     /// report — just "is it running" and "did it succeed".
     func run(statusText: String, _ work: () async -> Bool) async {
+        runModel.reset()
         isSyncing = true
         completed = 0
         total = 0
@@ -76,10 +98,40 @@ final class MainSyncStatus {
     /// Same as `run(statusText:_:)`, but for a caller that *does* have per-step
     /// progress to report — `AppSyncCoordinator.syncEverything`'s `onProgress`, used
     /// by both `MainView`'s app-start sync and its own pull-to-refresh.
-    func runCoordinated(_ work: (@escaping (AppSyncCoordinator.Progress) -> Void) async -> Bool) async {
+    func runCoordinated(_ work: @escaping (Callbacks) async -> Bool) async {
         begin()
-        let succeeded = await work { self.apply($0) }
+        runModel.reset()
+        let callbacks = Callbacks(
+            onProgress: { [weak self] in self?.apply($0) },
+            onEvent: { [weak self] in self?.runModel.apply($0) },
+            control: control
+        )
+        stopRequested = false
+        let task = Task { @MainActor in await work(callbacks) }
+        runTask = task
+        isRunning = true
+        let succeeded = await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+        isRunning = false
+        runTask = nil
         finish(succeeded: succeeded)
+        if stopRequested {
+            // The rows of instances that never ran would only confuse: fall back to the plain text.
+            runModel.reset()
+            statusText = "Stopped"
+        } else if let problems = runModel.problemSummary {
+            statusText = problems
+        }
         await showBrieflyThenHide()
+    }
+
+    /// "Stop sync": cancels the whole run. What was loaded already stays; nothing counts as failed.
+    func stop() {
+        stopRequested = true
+        runTask?.cancel()
+    }
+
+    /// Skips one instance of the running sync (the banner offers it when several are syncing).
+    func skip(_ id: UUID) {
+        control.skip(id)
     }
 }

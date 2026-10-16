@@ -291,7 +291,14 @@ struct MainView: View {
             lastSelectedSectionRaw = newValue.rawValue
         }
         .overlay(alignment: .top) {
-            if syncStatus.isSyncing {
+            if syncStatus.isSyncing, !syncStatus.runModel.rows.isEmpty {
+                SyncRunBanner(
+                    model: syncStatus.runModel,
+                    isRunning: syncStatus.isRunning,
+                    onStop: syncStatus.stop,
+                    onSkip: syncStatus.skip
+                )
+            } else if syncStatus.isSyncing {
                 SyncProgressBanner(
                     statusText: syncStatus.statusText,
                     fraction: syncStatus.fraction,
@@ -325,11 +332,13 @@ struct MainView: View {
     /// happening" indicator, not an error-reporting UI.
     private func runFullSync() async {
         guard !activeInstances.isEmpty else { return }
-        await syncStatus.runCoordinated { onProgress in
+        await syncStatus.runCoordinated { callbacks in
             await AppSyncCoordinator().syncEverything(
                 instances: activeInstances,
                 in: modelContext,
-                onProgress: onProgress
+                control: callbacks.control,
+                onEvent: callbacks.onEvent,
+                onProgress: callbacks.onProgress
             )
         }
     }
@@ -338,12 +347,14 @@ struct MainView: View {
     /// in Settings (its cache may be old) or when its row in the footer was tapped.
     private func syncInstance(_ instance: Instance) {
         instanceSyncQueue.enqueue(instance) { instance in
-            await syncStatus.runCoordinated { onProgress in
+            await syncStatus.runCoordinated { callbacks in
                 await AppSyncCoordinator().syncEverything(
                     instances: [instance],
                     in: modelContext,
                     reminderInstances: activeInstances,
-                    onProgress: onProgress
+                    control: callbacks.control,
+                    onEvent: callbacks.onEvent,
+                    onProgress: callbacks.onProgress
                 )
             }
         }

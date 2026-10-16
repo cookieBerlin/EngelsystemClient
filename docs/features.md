@@ -428,6 +428,17 @@ exists without reading the whole diff history.
   others'. A change made on the other device reaches the Watch through the existing CloudKit remote-change refresh. Logic and
   texts: `InstanceFreshness` and `Instance.setActive` (returns whether it was just switched on) in the Kit.
 
+- **Sync banner per instance** (2026-10-16): a full sync (app start, pull-to-refresh on the main page, an instance switched on,
+  a tapped freshness row) shows `SyncRunBanner` — one row per instance with its state (waiting / running / done / failed /
+  timed out / skipped), the area it works on and "n/5" steps, and a thin line under the text for the finished steps. The
+  instance's name leads the row only when several instances sync. A step that takes 30 s turns the row orange ("not
+  responding"); an instance that makes no progress for 60 s is cancelled ("timed out") and the next one still runs
+  (`SyncControl`, restarted by every finished step). **Stop sync** asks first (“Data already loaded is kept…”); with several
+  instances the dialog also offers **Skip <instance>**. After a run with problems the banner stays 5 s and names the instances
+  (“Partially failed: Congress (timed out)”). `AppSyncCoordinator` reports `SyncEvent`s, `SyncRunModel` (Kit, tested) turns
+  them into the rows. The single-area pull-to-refresh of Shifts/News/Profile keeps the simple banner (no stop button).
+  A cancelled URLSession request counts as a cancellation, never as a network failure.
+
 - **Shifts** (`Features/Shifts`): lists the signed-in user's shifts
   aggregated across every active instance (see "Multi-instance concept"
   above for `MultiInstanceDisplayMode`). `ShiftsViewModel.refresh(instances:

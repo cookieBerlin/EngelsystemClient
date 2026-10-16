@@ -62,7 +62,7 @@ public final class SyncControl {
         if runningID == id { worker?.cancel() }
     }
 
-    func consumeSkip(_ id: UUID) -> Bool {
+    public func consumeSkip(_ id: UUID) -> Bool {
         skipRequests.remove(id) != nil
     }
 
@@ -134,6 +134,9 @@ public final class SyncRunModel {
     public private(set) var rows: [Row] = []
 
     public init() {}
+
+    /// Clears the rows (a run without instances, or the banner going away).
+    public func reset() { rows = [] }
 
     public func apply(_ event: SyncEvent, now: Date = Date()) {
         switch event {

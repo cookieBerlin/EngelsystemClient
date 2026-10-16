@@ -381,15 +381,103 @@ struct MainSyncStatusTests {
     /// multi-step `Progress` to report.
     @Test func runCoordinatedAppliesProgressUpdatesThenHides() async {
         let status = MainSyncStatus()
-        await status.runCoordinated { onProgress in
-            onProgress(AppSyncCoordinator.Progress(completed: 1, total: 2, description: "Shifts – Demo"))
-            onProgress(AppSyncCoordinator.Progress(completed: 2, total: 2, description: "News – Demo"))
+        status.hideDelay = .milliseconds(10)
+        await status.runCoordinated { callbacks in
+            callbacks.onProgress(AppSyncCoordinator.Progress(completed: 1, total: 2, description: "Shifts – Demo"))
+            callbacks.onProgress(AppSyncCoordinator.Progress(completed: 2, total: 2, description: "News – Demo"))
             return true
         }
         #expect(!status.isSyncing)
         #expect(status.completed == 2)
         #expect(status.total == 2)
         #expect(!status.didFail)
+    }
+}
+
+@MainActor
+struct MainSyncStatusRunTests {
+    private func plan(_ status: MainSyncStatus, _ callbacks: MainSyncStatus.Callbacks, ids: [UUID]) {
+        callbacks.onEvent(.planned(ids.enumerated().map {
+            SyncPlannedInstance(id: $0.element, name: "I\($0.offset)", totalSteps: 5)
+        }))
+    }
+
+    @Test func runCoordinatedFillsTheRowsAndClearsThemAfterwards() async {
+        let status = MainSyncStatus()
+        status.hideDelay = .milliseconds(10)
+        let id = UUID()
+        await status.runCoordinated { callbacks in
+            callbacks.onEvent(.planned([SyncPlannedInstance(id: id, name: "Home", totalSteps: 5)]))
+            callbacks.onEvent(.instanceStarted(id: id))
+            #expect(status.runModel.rows.count == 1)
+            #expect(status.isRunning)
+            callbacks.onEvent(.instanceFinished(id: id, outcome: .succeeded))
+            return true
+        }
+        #expect(!status.isRunning)
+        #expect(status.runModel.rows.isEmpty)
+        #expect(status.statusText == "Updated")
+    }
+
+    @Test func aProblemStaysLongerAndIsNamed() async {
+        let status = MainSyncStatus()
+        status.hideDelay = .milliseconds(10)
+        status.problemHideDelay = .milliseconds(300)
+        let ids = [UUID(), UUID()]
+        let start = Date()
+        await status.runCoordinated { callbacks in
+            self.plan(status, callbacks, ids: ids)
+            callbacks.onEvent(.instanceFinished(id: ids[0], outcome: .succeeded))
+            callbacks.onEvent(.instanceFinished(id: ids[1], outcome: .timedOut))
+            return false
+        }
+        #expect(Date().timeIntervalSince(start) >= 0.3)
+        #expect(status.didFail)
+        #expect(status.statusText == "Partially failed: I1 (timed out)")
+    }
+
+    @Test func stopCancelsTheRunAndShowsStopped() async {
+        let status = MainSyncStatus()
+        status.hideDelay = .milliseconds(10)
+        let ids = [UUID(), UUID()]
+        let run = Task { @MainActor in
+            await status.runCoordinated { callbacks in
+                self.plan(status, callbacks, ids: ids)
+                while !Task.isCancelled { await Task.yield() }
+                return true
+            }
+        }
+        while !status.isRunning { await Task.yield() }
+        status.stop()
+        await run.value
+        #expect(!status.isRunning)
+        #expect(status.statusText == "Stopped")
+        #expect(status.runModel.rows.isEmpty)
+    }
+
+    /// The view's own task being cancelled (the screen went away) cancels the sync too.
+    @Test func cancellingTheCallerCancelsTheRun() async {
+        let status = MainSyncStatus()
+        status.hideDelay = .milliseconds(10)
+        var sawCancellation = false
+        let run = Task { @MainActor in
+            await status.runCoordinated { _ in
+                while !Task.isCancelled { await Task.yield() }
+                sawCancellation = true
+                return true
+            }
+        }
+        while !status.isRunning { await Task.yield() }
+        run.cancel()
+        await run.value
+        #expect(sawCancellation)
+    }
+
+    @Test func skipPassesTheRequestToTheControl() async {
+        let status = MainSyncStatus()
+        let id = UUID()
+        status.skip(id)
+        #expect(status.control.consumeSkip(id))
     }
 }
 

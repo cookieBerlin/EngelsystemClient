@@ -25,6 +25,10 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Switching an event on in Settings now refreshes it right away (on the iPhone and on the Watch), instead of showing old data until
   the next sync.
 
+- The sync banner shows every event on its own line with the area it is working on, a thin progress line and "n/5" steps. An
+  event that does not answer for 30 seconds turns orange, one that makes no progress for a minute is stopped so the others can
+  continue. **Stop sync** (with a confirmation, and **Skip <event>** when several events sync) ends a sync that hangs.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's

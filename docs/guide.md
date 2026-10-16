@@ -44,8 +44,10 @@ you entered.
 
 The main screen is a list of areas in three groups: **Communication** (News, Messages), **Event** (Shifts, Locations) and
 **Account** (Profile). Messages and Locations only appear if your server offers them. When the app starts, or an area is no
-longer available, you always land on this list. Pull down to refresh everything at once; the tiny progress banner at the top shows what is
-syncing. The gear button opens **Settings**.
+longer available, you always land on this list. Pull down to refresh everything at once; the banner at the top shows what is
+syncing — with several active events one line per event, each with its steps ("2/5"). If an event does not answer, its line turns orange; **Stop sync**
+ends the sync (after a confirmation) and **Skip** leaves out just that event. The line at the bottom of the list shows how old each event's data is
+(tap it to refresh). The gear button opens **Settings**.
 
 ### Shifts
 

@@ -500,6 +500,34 @@ final class EngelsystemClientUITests: XCTestCase {
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Info Desk Shift")).firstMatch.waitForExistence(timeout: 5))
     }
 
+    /// Tapping the freshness line starts a sync whose banner offers "Stop sync".
+    @MainActor
+    func testStopSyncAsksForConfirmation() throws {
+        let app = XCUIApplication()
+        app.launchArguments += Self.freshStartArguments
+        app.launch()
+
+        let demoButton = app.buttons["Try Demo Mode"]
+        XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
+        waitUntilHittable(demoButton, in: app)
+        demoButton.tap()
+        openShifts(app)
+        goBack(app)
+
+        // Let the app-start sync finish, then start another one from the footer.
+        let banner = app.otherElements["syncProgressBanner"]
+        if banner.waitForExistence(timeout: 3) {
+            XCTAssertTrue(banner.waitForNonExistence(timeout: 30))
+        }
+        let freshness = app.buttons["freshness-Demo"]
+        XCTAssertTrue(freshness.waitForExistence(timeout: 10))
+        freshness.tap()
+
+        // The banner lists the instance and offers "Stop sync". The confirmation dialog itself is not driven
+        // here: the demo sync ends within a few seconds, so tapping through the dialog would race the banner.
+        XCTAssertTrue(app.buttons["stopSyncButton"].waitForExistence(timeout: 5))
+    }
+
     @MainActor
     /// Demo mode lands on the main page (the sidebar), not Shifts (2026-10-12): open Shifts from there.
     private func openShifts(_ app: XCUIApplication) {

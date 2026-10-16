@@ -94,6 +94,13 @@ struct SyncRunModelTests {
         #expect(single.problemSummary == "Partially failed: failed")
     }
 
+    @Test func resetClearsTheRows() {
+        let model = model([(home, "Home")])
+        model.reset()
+        #expect(model.rows.isEmpty)
+        #expect(!model.showsNames)
+    }
+
     @Test func aRowWithoutStepsHasNoFraction() {
         #expect(SyncRunModel.Row(id: home, name: "Home", totalSteps: 0).fraction == 0)
     }
