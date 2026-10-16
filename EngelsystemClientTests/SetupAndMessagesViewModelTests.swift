@@ -129,9 +129,12 @@ extension StubbedNetworkTests {
             await viewModel.testConnection(for: instance)
             #expect(capabilities.status(.messages, for: instance.id).state == .unknown)
 
+            capabilities.record(.shiftTeam, state: .notOffered, evidence: .field, for: instance.id)
             viewModel.baseURL = Instance.demoBaseURL
             await viewModel.testConnection(for: instance)
             #expect(capabilities.status(.messages, for: instance.id).state == .available)
+            // The summary reads the same list the instance page shows.
+            #expect(viewModel.featureSummary == capabilities.summaryText(for: instance.id))
         }
 
         @Test @MainActor func editingCanTestOnlyWithAServerURLAndNotWhileTesting() {

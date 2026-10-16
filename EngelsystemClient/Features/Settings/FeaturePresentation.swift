@@ -23,10 +23,6 @@ enum FeaturePresentation {
         }
     }
 
-    static func summaryText(available: Int, total: Int) -> String {
-        ServerCapabilities.summaryText(available: available, total: total)
-    }
-
     /// "Checked: 5 minutes ago", or nil when nothing was recorded yet.
     static func checkedText(_ status: FeatureStatus, now: Date = Date()) -> String? {
         guard let checkedAt = status.checkedAt else { return nil }

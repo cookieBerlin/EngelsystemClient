@@ -51,7 +51,6 @@ struct FeaturePresentationTests {
     }
 
     @Test func summaryAndCheckedTexts() {
-        #expect(FeaturePresentation.summaryText(available: 5, total: 13) == "5 of 13 features available")
         #expect(FeaturePresentation.checkedText(.unknown) == nil)
         let recorded = FeatureStatus(state: .available, evidence: .probe, privilege: nil, checkedAt: Date())
         #expect(FeaturePresentation.checkedText(recorded)?.hasPrefix("Checked ") == true)

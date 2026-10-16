@@ -32,6 +32,25 @@ struct ServerCapabilitiesStoreTests {
         }
     }
 
+    @Test func aGrantedRightDoesNotRevivePartsTheServerLacks() {
+        let capabilities = ServerCapabilities(defaults: freshDefaults())
+        let id = UUID()
+        capabilities.record(.messages, state: .notOffered, evidence: .notFound, for: id)
+        capabilities.record(.shiftTeam, state: .notOffered, evidence: .field, for: id)
+        capabilities.applyPrivileges(["api"], for: id)
+        #expect(capabilities.status(.messages, for: id).state == .notOffered)
+        #expect(capabilities.status(.shiftTeam, for: id).state == .notOffered)
+    }
+
+    @Test func theSummaryNamesWhatIsNotCheckedYet() {
+        let capabilities = ServerCapabilities(defaults: freshDefaults())
+        let id = UUID()
+        let total = ServerFeature.listed.count
+        #expect(capabilities.summaryText(for: id) == "0 of \(total) features available, \(total) not checked yet")
+        capabilities.recordDemoInstance(id)
+        #expect(capabilities.summaryText(for: id) == "\(total) of \(total) features available")
+    }
+
     @Test func theDemoInstanceHasEveryListedFunction() {
         let capabilities = ServerCapabilities(defaults: freshDefaults())
         let id = UUID()

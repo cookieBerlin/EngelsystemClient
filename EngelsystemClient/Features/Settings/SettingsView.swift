@@ -241,8 +241,7 @@ private struct InstanceDetailView: View {
             }
 
             Section {
-                let summary = capabilities.summary(for: instance.id)
-                Text(FeaturePresentation.summaryText(available: summary.available, total: summary.total))
+                Text(capabilities.summaryText(for: instance.id))
                     .foregroundStyle(.secondary)
                 ForEach(ServerFeature.listed, id: \.self) { feature in
                     featureRow(feature)

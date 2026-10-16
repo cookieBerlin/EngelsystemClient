@@ -152,6 +152,22 @@ public final class ServerCapabilities {
         return (available, ServerFeature.listed.count)
     }
 
+    /// The one-line summary of an instance as the Features list and "Verify" both show it:
+    /// "8 of 11 features available", plus how many nothing has checked yet.
+    public func summaryText(for instanceID: UUID) -> String {
+        let summary = summary(for: instanceID)
+        let unchecked = ServerFeature.listed.filter { status($0, for: instanceID).state == .unknown }.count
+        let text = Self.summaryText(available: summary.available, total: summary.total)
+        return unchecked == 0 ? text : "\(text), \(unchecked) not checked yet"
+    }
+
+    /// Records what the shift fields of a list of shifts say (also used by "Verify").
+    public func recordShiftFields(of shifts: [Shift], for instanceID: UUID) {
+        for (feature, supported) in Self.shiftFeaturesSupported(by: shifts) {
+            record(feature, state: supported ? .available : .notOffered, evidence: .field, for: instanceID)
+        }
+    }
+
     /// Whether the function is available on at least one of the given instances.
     public func isAvailable(_ feature: ServerFeature, forAnyOf instanceIDs: [UUID]) -> Bool {
         instanceIDs.contains { isAvailable(feature, for: $0) }
@@ -199,6 +215,8 @@ public final class ServerCapabilities {
         for feature in ServerFeature.allCases {
             guard let required = feature.requiredPrivilege else { continue }
             let granted = !Set(privileges).isDisjoint(with: [required, "api"])
+            // A right cannot make a route the server does not have appear.
+            if granted, status(feature, for: instanceID).state == .notOffered { continue }
             record(feature, state: granted ? .available : .notAllowed, evidence: .privileges,
                    privilege: granted ? nil : required, for: instanceID, now: now)
         }

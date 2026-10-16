@@ -91,9 +91,14 @@ final class EditInstanceViewModel {
             _ = try await apiClient.fetchInfo(credential)
             let privileges = await apiClient.ownPrivileges(credential)
             featureSummary = ServerCapabilities.featureSummary(privileges: privileges)
-            // The same finding feeds the instance's Features list, as long as it is still the same server.
-            if credential.baseURL == Instance.apiBasePath(for: instance.normalizedBaseURL) {
+            // The same findings feed the instance's Features list, as long as it is still the same server,
+            // and then the summary reads that list — so both always say the same.
+            if credential.baseURL == Instance.apiBasePath(for: instance.normalizedBaseURL), let privileges {
                 capabilities.applyPrivileges(privileges, for: instance.id)
+                if let shifts = try? await apiClient.fetchShifts(credential) {
+                    capabilities.recordShiftFields(of: shifts, for: instance.id)
+                }
+                featureSummary = capabilities.summaryText(for: instance.id)
             }
             connectionTested = true
         } catch {
