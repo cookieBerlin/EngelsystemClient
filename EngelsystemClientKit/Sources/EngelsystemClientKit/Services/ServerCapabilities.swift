@@ -222,11 +222,21 @@ public final class ServerCapabilities {
         }
     }
 
-    /// The demo instance has no server to ask: every listed function works there.
-    public func recordDemoInstance(_ instanceID: UUID, now: Date = Date()) {
+    /// The demo instance has no server to ask: every listed function works there — except on the demo server
+    /// that offers only News (`newsOnly`), where everything else is not offered.
+    public func recordDemoInstance(_ instanceID: UUID, newsOnly: Bool = false, now: Date = Date()) {
         for feature in ServerFeature.listed {
-            record(feature, state: .available, evidence: .probe, for: instanceID, now: now)
+            if newsOnly && feature != .news {
+                record(feature, state: .notOffered, evidence: .notFound, for: instanceID, now: now)
+            } else {
+                record(feature, state: .available, evidence: .probe, for: instanceID, now: now)
+            }
         }
+    }
+
+    /// The summary "Test Connection" shows for a demo address without asking anything.
+    public static func demoSummaryText(newsOnly: Bool) -> String {
+        summaryText(available: newsOnly ? 1 : ServerFeature.listed.count, total: ServerFeature.listed.count)
     }
 
     /// "5 of 8 features available" — the one-line summary shown after "Test Connection".

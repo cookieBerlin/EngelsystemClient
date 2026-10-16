@@ -117,6 +117,33 @@ extension StubbedNetworkTests {
             #expect(viewModel.featureSummary?.hasSuffix("features available") == true)
         }
 
+        /// A demo address needs no server: the summary names what that demo offers.
+        @Test @MainActor func demoAddressesShowWhatTheDemoOffers() async {
+            let total = ServerFeature.listed.count
+            let viewModel = InstanceSetupViewModel()
+            viewModel.baseURL = Instance.demoBaseURL
+            viewModel.apiKey = "demo"
+            await viewModel.testConnection()
+            #expect(viewModel.featureSummary == "\(total) of \(total) features available")
+
+            viewModel.baseURL = "demo://nothing.local"
+            await viewModel.testConnection()
+            #expect(viewModel.featureSummary == "1 of \(total) features available")
+        }
+
+        @Test @MainActor func verifyOfTheNewsOnlyDemoShowsOneFeature() async throws {
+            let key = "verify-demo-\(UUID().uuidString)"
+            try LocalKeychainStore().save(apiKey: "demo", for: key)
+            defer { try? LocalKeychainStore().deleteAPIKey(for: key) }
+            let instance = Instance(name: "Only News", baseURL: "demo://nothing.local", apiKeyKeychainRef: key)
+            let capabilities = ServerCapabilities(defaults: UserDefaults(suiteName: "verify-demo-\(UUID().uuidString)")!)
+            let viewModel = EditInstanceViewModel(instance: instance, capabilities: capabilities)
+
+            await viewModel.testConnection(for: instance)
+            #expect(viewModel.featureSummary == "1 of \(ServerFeature.listed.count) features available")
+            #expect(capabilities.status(.shifts, for: instance.id).state == .notOffered)
+        }
+
         @Test @MainActor func verifyFeedsTheInstanceFeatureListOnlyForTheSameServer() async throws {
             let key = "verify-\(UUID().uuidString)"
             try LocalKeychainStore().save(apiKey: "demo", for: key)

@@ -92,4 +92,7 @@ public extension Instance {
 
     /// Any `demo://` address is a demo instance; the host picks the data (`DemoScenario`).
     var isDemo: Bool { normalizedBaseURL.hasPrefix(DemoScenario.scheme) }
+
+    /// A demo instance whose server offers only News (an unknown `demo://` address).
+    var isNewsOnlyDemo: Bool { DemoScenario.isNewsOnly(address: normalizedBaseURL) }
 }

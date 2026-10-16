@@ -61,7 +61,12 @@ final class InstanceSetupViewModel {
         )
         do {
             _ = try await apiClient.fetchInfo(credential)
-            featureSummary = ServerCapabilities.featureSummary(privileges: await apiClient.ownPrivileges(credential))
+            let address = baseURL.trimmingCharacters(in: .whitespaces)
+            if address.hasPrefix(DemoScenario.scheme) {
+                featureSummary = ServerCapabilities.demoSummaryText(newsOnly: DemoScenario.isNewsOnly(address: address))
+            } else {
+                featureSummary = ServerCapabilities.featureSummary(privileges: await apiClient.ownPrivileges(credential))
+            }
             connectionTested = true
         } catch {
             connectionTested = false

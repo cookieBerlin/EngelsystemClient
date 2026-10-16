@@ -98,6 +98,8 @@ final class EditInstanceViewModel {
                 if let shifts = try? await apiClient.fetchShifts(credential) {
                     capabilities.recordShiftFields(of: shifts, for: instance.id)
                 }
+                // A demo address has no server to ask: what the demo offers is known.
+                if instance.isDemo { capabilities.recordDemoInstance(instance.id, newsOnly: instance.isNewsOnlyDemo) }
                 featureSummary = capabilities.summaryText(for: instance.id)
             }
             connectionTested = true

@@ -51,6 +51,19 @@ struct ServerCapabilitiesStoreTests {
         #expect(capabilities.summaryText(for: id) == "\(total) of \(total) features available")
     }
 
+    @Test func theNewsOnlyDemoServerOffersNothingButNews() {
+        let capabilities = ServerCapabilities(defaults: freshDefaults())
+        let id = UUID()
+        capabilities.recordDemoInstance(id, newsOnly: true)
+        #expect(capabilities.status(.news, for: id).state == .available)
+        #expect(capabilities.status(.shifts, for: id).state == .notOffered)
+        #expect(capabilities.status(.messages, for: id).state == .notOffered)
+        #expect(capabilities.summaryText(for: id) == "1 of \(ServerFeature.listed.count) features available")
+        #expect(ServerCapabilities.demoSummaryText(newsOnly: true) == "1 of \(ServerFeature.listed.count) features available")
+        #expect(ServerCapabilities.demoSummaryText(newsOnly: false)
+            == "\(ServerFeature.listed.count) of \(ServerFeature.listed.count) features available")
+    }
+
     @Test func theDemoInstanceHasEveryListedFunction() {
         let capabilities = ServerCapabilities(defaults: freshDefaults())
         let id = UUID()

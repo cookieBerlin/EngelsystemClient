@@ -26,6 +26,12 @@ public enum DemoScenario: String, CaseIterable, Sendable {
     /// The unknown address plays a server that offers only News: every other function answers "not found".
     public var offersOnlyNews: Bool { self == .unknown }
 
+    /// Whether a (typed) address is a demo server that offers only News: any `demo://` address that is not one
+    /// of the known data sets.
+    public static func isNewsOnly(address: String) -> Bool {
+        address.hasPrefix(scheme) && (DemoScenario(baseURL: address)?.offersOnlyNews ?? true)
+    }
+
     /// The addresses with real demo data.
     public static var supportedAddresses: [String] {
         allCases.filter { $0 != .unknown }.map(\.baseURL)

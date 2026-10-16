@@ -25,6 +25,17 @@ struct DemoScenarioTests {
         #expect(EventCredential(baseURL: "demo://congress.local/api/v0-beta", apiKey: "k").scenario == .congress)
     }
 
+    @Test func onlyUnknownDemoAddressesOfferJustNews() {
+        #expect(DemoScenario.isNewsOnly(address: "demo://nothing.local"))
+        #expect(DemoScenario.isNewsOnly(address: "demo://nothing.local/api/v0-beta"))
+        #expect(!DemoScenario.isNewsOnly(address: "demo://congress.local"))
+        #expect(!DemoScenario.isNewsOnly(address: "demo://engelsystem.local"))
+        #expect(!DemoScenario.isNewsOnly(address: "https://real.test"))
+        let only = Instance(name: "N", baseURL: "demo://nothing.local/", apiKeyKeychainRef: "n")
+        let classic = Instance(name: "C", baseURL: Instance.demoBaseURL, apiKeyKeychainRef: "c")
+        #expect(only.isNewsOnlyDemo && !classic.isNewsOnlyDemo)
+    }
+
     @Test func eachScenarioHasItsOwnData() async throws {
         let main = EventCredential(baseURL: "demo://engelsystem.local/api/v0-beta", apiKey: "demo")
         let congress = EventCredential(baseURL: "demo://congress.local/api/v0-beta", apiKey: "demo")

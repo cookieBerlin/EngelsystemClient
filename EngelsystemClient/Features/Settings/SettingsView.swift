@@ -325,7 +325,7 @@ private struct InstanceDetailView: View {
         }
         .navigationTitle(instance.name)
         .task {
-            if instance.isDemo { capabilities.recordDemoInstance(instance.id) }
+            if instance.isDemo { capabilities.recordDemoInstance(instance.id, newsOnly: instance.isNewsOnlyDemo) }
         }
         .sheet(isPresented: $isPresentingEdit) {
             EditInstanceView(instance: instance)
