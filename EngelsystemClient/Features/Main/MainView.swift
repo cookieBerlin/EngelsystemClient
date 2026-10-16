@@ -137,14 +137,22 @@ struct MainView: View {
         ) -> [Section] {
             // COMPAT(#1711): `.locations` additionally needs at least one active instance whose
             // server lets this account read the locations list (no instances: nothing to hide).
-            let locationsVisible = activeInstances.isEmpty
-                || capabilities.isAvailable(.locationsList, forAnyOf: activeInstances.map(\.id))
+            // An area is hidden only when something proved that no active instance offers it (ADR 0015):
+            // unknown counts as available, and without instances nothing is hidden.
+            let ids = activeInstances.map(\.id)
+            func offered(_ features: ServerFeature...) -> Bool {
+                activeInstances.isEmpty || features.contains { capabilities.isAvailable($0, forAnyOf: ids) }
+            }
             return sidebarCases.filter { section in
                 switch section {
+                case .news: return offered(.news)
+                case .shifts: return offered(.shifts)
+                // The profile page is made of the work logs and the angel types.
+                case .profile: return offered(.profileWorklogs, .profileAngelTypes)
                 // COMPAT(#1720): Messages only where the server offers the messages API.
                 case .messages: return activeInstances.contains(where: \.messagesSupported)
-                case .locations: return locationsVisible
-                default: return true
+                case .locations: return offered(.locationsList)
+                case .settings: return true
                 }
             }
         }

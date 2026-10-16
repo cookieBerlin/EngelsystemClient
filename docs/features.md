@@ -451,6 +451,11 @@ exists without reading the whole diff history.
   allowed, not offered, not checked yet), otherwise. A tap on the summary opens/closes it; the choice holds while the page
   is open. Logic: `FeatureListLayout` (Kit).
 
+- **Main list follows the Features list** (2026-10-16, ADR 0015): News, Shifts, Locations, Messages and Profile (needs the work
+  logs or the angel types) are listed only when at least one active instance offers them — or nothing has proved the
+  opposite yet. A group without any row (e.g. "Event" without Shifts and Locations) is left out with its heading. The demo
+  server that offers only News therefore shows just News.
+
 - **Instance freshness and refresh on activation** (2026-10-16): the footer of the main list
   (`InstanceFreshnessFooter`) shows per active instance how old its cached data is — grey with a check mark below 12 hours,
   orange with a warning triangle from 12 hours on, red with a warning triangle when nothing was ever synced; the instance's name

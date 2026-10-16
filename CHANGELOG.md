@@ -45,6 +45,9 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Demo Mode can have several instances: `demo://engelsystem.local` (as before) and `demo://congress.local`; any other `demo://`
   address plays a server that offers only News, with one post that lists the addresses that work.
 
+- The main list hides every area an instance does not offer (not only Messages and Locations): an instance with only News
+  shows just News, without empty Event and Account groups.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's

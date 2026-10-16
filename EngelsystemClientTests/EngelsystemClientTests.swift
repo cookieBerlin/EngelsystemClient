@@ -561,6 +561,32 @@ struct MainViewMessagesVisibilityTests {
         #expect(visible.contains(.messages))
     }
 
+    /// ADR 0015: News, Shifts and Profile follow the Features list too; a group without a row disappears with its heading.
+    @Test @MainActor func newsShiftsAndProfileRowsFollowTheirFeatures() {
+        let capabilities = ServerCapabilities(defaults: UserDefaults(suiteName: "MainViewRows-\(UUID().uuidString)")!)
+        let only = makeInstance(name: "Only News", messagesSupported: false)
+        capabilities.recordDemoInstance(only.id, newsOnly: true)
+        let visible = MainView.Section.visibleSidebarCases(forActiveInstances: [only], capabilities: capabilities)
+        #expect(visible == [.news])
+        #expect(MainView.Section.groupedForSidebar(visible).map(\.group.title) == ["Communication"])
+
+        // Another instance that offers everything brings the rows back.
+        let full = makeInstance(name: "Full", messagesSupported: true)
+        capabilities.recordDemoInstance(full.id)
+        let both = MainView.Section.visibleSidebarCases(forActiveInstances: [only, full], capabilities: capabilities)
+        #expect(Set(both) == Set(MainView.Section.sidebarCases))
+
+        // The profile needs only one of its two parts, the news row disappears on its own.
+        let profileOnly = makeInstance(name: "Profile", messagesSupported: false)
+        capabilities.record(.news, supported: false, for: profileOnly.id)
+        capabilities.record(.shifts, supported: false, for: profileOnly.id)
+        capabilities.record(.profileWorklogs, supported: false, for: profileOnly.id)
+        capabilities.record(.locationsList, supported: false, for: profileOnly.id)
+        let visibleProfile = MainView.Section.visibleSidebarCases(forActiveInstances: [profileOnly], capabilities: capabilities)
+        #expect(visibleProfile == [.profile])
+        #expect(MainView.Section.groupedForSidebar(visibleProfile).map(\.group.title) == ["Account"])
+    }
+
     /// COMPAT(#1711): the Locations row needs at least one active instance whose server lets the account read locations.
     @Test @MainActor func locationsRowFollowsTheLocationsListCapability() {
         let capabilities = ServerCapabilities(defaults: UserDefaults(suiteName: "MainViewLocations-\(UUID().uuidString)")!)
