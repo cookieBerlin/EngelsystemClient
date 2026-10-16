@@ -181,6 +181,16 @@ final class EngelsystemClientUITests: XCTestCase {
         // the "Event" section was read-only LabeledContent).
         demoInstanceRow.tap()
         XCTAssertTrue(app.navigationBars["Demo"].waitForExistence(timeout: 5))
+        // Everything works in Demo Mode, so the Features list starts collapsed; a tap on the summary opens it.
+        let featuresSummary = app.staticTexts["featuresSummary"]
+        XCTAssertTrue(featuresSummary.waitForExistence(timeout: 5))
+        // A feature row reads as one element ("Shifts, Available, Checked …").
+        let shiftsFeature = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label BEGINSWITH 'Shifts' AND label CONTAINS 'Available'")).firstMatch
+        XCTAssertFalse(shiftsFeature.exists)
+        featuresSummary.tap()
+        XCTAssertTrue(shiftsFeature.waitForExistence(timeout: 5))
+
         let editButton = app.buttons["Edit Instance"]
         XCTAssertTrue(editButton.waitForExistence(timeout: 5))
         editButton.tap()

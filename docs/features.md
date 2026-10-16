@@ -418,6 +418,11 @@ exists without reading the whole diff history.
   never signs out. Pull to refresh uses `GET /shifts/{id}` (COMPAT(#1724): 404/403 ⇒ cached shift, no
   error). The detail fields are display-only cache fields on `CachedShift` (the team as one encoded field)
   and never count as a change for the Watch. The Watch is unchanged.
+- **Collapsible Features list** (2026-10-16): on the instance page the summary line ("11 of 11 features available") is the
+  header of a `DisclosureGroup`; the list starts collapsed when every function is available and open, problems first (not
+  allowed, not offered, not checked yet), otherwise. A tap on the summary opens/closes it; the choice holds while the page
+  is open. Logic: `FeatureListLayout` (Kit).
+
 - **Instance freshness and refresh on activation** (2026-10-16): the footer of the main list
   (`InstanceFreshnessFooter`) shows per active instance how old its cached data is — grey with a check mark below 12 hours,
   orange with a warning triangle from 12 hours on, red with a warning triangle when nothing was ever synced; the instance's name

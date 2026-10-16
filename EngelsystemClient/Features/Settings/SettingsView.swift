@@ -221,6 +221,17 @@ private struct InstanceDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isPresentingEdit = false
     private let capabilities = ServerCapabilities.shared
+    @State private var featuresExpandedByUser: Bool?
+
+    private var featuresExpanded: Binding<Bool> {
+        Binding(
+            get: {
+                featuresExpandedByUser
+                    ?? FeatureListLayout.startsExpanded(ServerFeature.listed.map { capabilities.status($0, for: instance.id).state })
+            },
+            set: { featuresExpandedByUser = $0 }
+        )
+    }
 
     // Unfiltered `@Query`s, same pattern as Shifts/News/Profile — filtered down to
     // this one instance below. 2026-09-23, user-requested "last sync timestamps".
@@ -254,10 +265,16 @@ private struct InstanceDetailView: View {
             }
 
             Section {
-                Text(capabilities.summaryText(for: instance.id))
-                    .foregroundStyle(.secondary)
-                ForEach(ServerFeature.listed, id: \.self) { feature in
-                    featureRow(feature)
+                // Collapsed while everything works, open (problems first) otherwise; a tap on the summary
+                // opens or closes it and that choice holds while the page is open.
+                DisclosureGroup(isExpanded: featuresExpanded) {
+                    ForEach(FeatureListLayout.ordered(ServerFeature.listed, state: { capabilities.status($0, for: instance.id).state }), id: \.self) { feature in
+                        featureRow(feature)
+                    }
+                } label: {
+                    Text(capabilities.summaryText(for: instance.id))
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("featuresSummary")
                 }
             } header: {
                 Text("Features")

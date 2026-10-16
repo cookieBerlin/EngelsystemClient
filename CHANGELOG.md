@@ -30,6 +30,9 @@ versioning: [Semantic Versioning](https://semver.org/).
   continue. Active events are now refreshed at the same time; **Parallel Syncs** (Settings › Instances, also on the Watch) limits how many
   at once. **Stop sync** (with a confirmation, and **Skip <event>** when several events sync) ends a sync that hangs.
 
+- The Features list of an instance is folded away while everything works (tap the summary to open it) and opens by itself, with the
+  problems first, as soon as something is missing.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's

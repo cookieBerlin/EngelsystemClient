@@ -48,7 +48,8 @@ Nothing is wrong with the app — the area appears automatically after a sync on
 
 Open **Settings → Instances →** your event. The **Features** list shows for every area whether it is available, not allowed
 for your account (with the privilege it needs, when the server tells) or not offered by the server, and when it was checked.
-Missing areas are hidden quietly — the app does not show errors for them. After **Test Connection** a server with the newer
+The list is folded away while everything works (tap the summary line to open it) and opens by itself, problems first, as soon as
+something is missing. Missing areas are hidden quietly — the app does not show errors for them. After **Test Connection** a server with the newer
 access concept ([#1709](https://github.com/engelsystem/engelsystem/pull/1709)) also shows a short summary such as “5 of 8
 features available”.
 
