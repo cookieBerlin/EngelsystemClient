@@ -60,6 +60,11 @@ Messages need a server that offers the private-message interface, which is the s
 privilege. The app checks this during each sync and shows the area only if at least one active server supports it. Demo
 Mode always has it.
 
+### How do I change the color of an instance?
+
+**Settings → Instances →** tap the instance **→ Color**. "Auto" gives every instance its own color; pick one yourself and it is kept, also on your other devices.
+Tap the colored band of an instance in the "Sectioned" view to fold its entries away.
+
 ### What happens when I activate several events?
 
 Shifts, News and Profile show data from all active events. **Settings → Instances → Multiple Active Instances** chooses between one merged

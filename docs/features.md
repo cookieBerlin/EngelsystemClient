@@ -418,6 +418,16 @@ exists without reading the whole diff history.
   never signs out. Pull to refresh uses `GET /shifts/{id}` (COMPAT(#1724): 404/403 ⇒ cached shift, no
   error). The detail fields are display-only cache fields on `CachedShift` (the team as one encoded field)
   and never count as a change for the Watch. The Watch is unchanged.
+- **Instance colors and sections** (2026-10-16): every instance has a color (`InstancePalette`, eight system colors).
+  "Auto" (default) spreads the colors evenly over the instances in the order they were created and skips colors picked
+  by hand; a hand-picked color is stored in the CloudKit-synced `Instance.colorKey` and so shows on every device. Settings ›
+  Instances › [instance] has a **Color** picker; the instance list shows the color dot. In the "Sectioned" mode all lists
+  (Shifts, News, Locations, Messages, Profile) use the same `InstanceSection`: a tinted band across the full width with
+  the instance's color, name, count ("3 shifts") and a chevron; tapping it folds the instance away (kept while the screen
+  is open). Topics or days inside an instance are `SubheadingRow`s (Profile now shows Profile / Angel Types / Worklogs in
+  every mode, and uses the flat list style like the other screens). In the merged mode badges are colored and rows have a
+  colored left edge. Colors never carry the information alone: the name is always shown.
+
 - **Shift filter and sort** (2026-10-16): a filter menu in the Shifts toolbar (same pattern as the News filter) with
   "Show" — Upcoming (default: running and not yet started), Today (runs or begins today, also across midnight), Past, All —
   and "Sort" — Earliest First (default) or Latest First, which orders the days and the shifts within a day. Both choices are

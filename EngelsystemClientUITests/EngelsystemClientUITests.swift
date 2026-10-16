@@ -570,6 +570,68 @@ final class EngelsystemClientUITests: XCTestCase {
         choose("Upcoming")
     }
 
+    /// Two instances in "Sectioned" mode: each gets a band with its name that folds its content away.
+    @MainActor
+    func testInstanceBandsFold() throws {
+        let app = XCUIApplication()
+        app.launchArguments += Self.freshStartArguments
+        // The display mode setting, given as a launch argument (it overrides the stored preference).
+        app.launchArguments += ["-multiInstanceDisplayMode", "sectioned"]
+        app.launch()
+
+        let demoButton = app.buttons["Try Demo Mode"]
+        XCTAssertTrue(demoButton.waitForExistence(timeout: 5))
+        waitUntilHittable(demoButton, in: app)
+        demoButton.tap()
+        let settingsButton = app.buttons["Settings"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 10))
+        settingsButton.tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        openSettingsPage("Instances", in: app)
+
+        // A second (demo) instance.
+        app.buttons["Add Instance"].tap()
+        let name = app.textFields["Name (e.g. 42C3)"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Second")
+        let server = app.textFields["https://engelsystem.example.org"]
+        server.tap()
+        server.typeText("demo://engelsystem.local")
+        let key = app.secureTextFields["API Key"]
+        key.tap()
+        key.typeText("demo")
+        app.buttons["Test Connection"].tap()
+        XCTAssertTrue(app.staticTexts["Connection Verified"].waitForExistence(timeout: 10))
+        app.buttons["Save"].tap()
+        XCTAssertTrue(app.navigationBars["Instances"].waitForExistence(timeout: 10))
+
+        // Back to the main list (Instances -> Settings hub -> main list), one tap per level.
+        for _ in 0..<3 {
+            let back = app.buttons["BackButton"].firstMatch
+            guard back.waitForExistence(timeout: 3) else { break }
+            back.tap()
+            if app.staticTexts["Shifts"].waitForExistence(timeout: 3) { break }
+        }
+        let shiftsRow = app.staticTexts["Shifts"]
+        XCTAssertTrue(shiftsRow.waitForExistence(timeout: 10))
+        shiftsRow.tap()
+        XCTAssertTrue(app.navigationBars["Shifts"].waitForExistence(timeout: 10))
+
+        let demoBand = app.buttons["instanceHeader-Demo"]
+        // (An instance without any synced shifts has no band yet, so only the first one is checked.)
+        XCTAssertTrue(demoBand.waitForExistence(timeout: 10))
+        let infoDesk = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Info Desk Shift")).firstMatch
+        XCTAssertTrue(infoDesk.waitForExistence(timeout: 5))
+
+        // Folding the instance hides its shifts, folding again brings them back.
+        demoBand.tap()
+        XCTAssertTrue(infoDesk.waitForNonExistence(timeout: 5) || !infoDesk.isHittable)
+        XCTAssertTrue(demoBand.exists)
+        demoBand.tap()
+        XCTAssertTrue(infoDesk.waitForExistence(timeout: 5))
+    }
+
     /// Tapping the freshness line starts a sync whose banner offers "Stop sync".
     @MainActor
     func testStopSyncAsksForConfirmation() throws {

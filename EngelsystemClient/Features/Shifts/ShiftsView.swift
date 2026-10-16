@@ -18,6 +18,8 @@ struct ShiftsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = ShiftsViewModel()
     @State private var selectedInstanceID: UUID?
+    @State private var collapsedInstances: Set<UUID> = []
+    @Environment(\.instanceColors) private var instanceColors
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var displayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
     @AppStorage(ShiftTimeFilter.userDefaultsKey) private var filterRaw: String = ShiftTimeFilter.default.rawValue
@@ -98,23 +100,17 @@ struct ShiftsView: View {
                         ForEach(instances) { instance in
                             let instanceShifts = shifts.filter { $0.instanceID == instance.id }
                             if !instanceShifts.isEmpty {
-                                Section(instance.name) {
-                                    // A `Section` can't nest inside another `Section` in a
-                                    // plain `List`, so date sub-groups here are a styled
-                                    // header row rather than a real `Section` (unlike
-                                    // .merged/.switcher below, which aren't already
-                                    // sectioned by instance and can use real ones).
+                                InstanceSection(
+                                    instance: instance,
+                                    countText: CountText.text(instanceShifts.count, singular: "shift"),
+                                    collapsed: $collapsedInstances
+                                ) {
                                     ForEach(CachedShift.groupedByDay(instanceShifts, order: sortOrder), id: \.day) { group in
-                                        Text(dateHeaderText(group.day))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                        SubheadingRow(title: dateHeaderText(group.day))
                                         ForEach(group.shifts) { shift in
-                                            // `instance` here is this ForEach's own loop
-                                            // variable (already exactly the shift's owning
-                                            // instance, since `instanceShifts` above is
-                                            // already filtered to it) — not a call to the
-                                            // `instance(for:)` helper below, which exists
-                                            // for the .merged/.switcher case instead.
+                                            // `instance` is this ForEach's own loop variable (already exactly the
+                                            // shift's owning instance), unlike the `instance(for:)` helper used by
+                                            // the .merged/.switcher rows.
                                             ShiftRow(shift: shift, location: location(for: shift), instance: instance, ownUserID: ownUserID(for: shift))
                                         }
                                     }
@@ -174,6 +170,7 @@ struct ShiftsView: View {
                             ownUserID: ownUserID(for: shift),
                             instanceName: labeled ? instanceName(for: shift) : nil
                         )
+                        .instanceEdge(named: labeled ? instanceName(for: shift) : nil, colors: instanceColors)
                     }
                 }
             }
@@ -301,11 +298,14 @@ private struct ShiftRow: View {
 struct InstanceBadge: View {
     let name: String
 
+    @Environment(\.instanceColors) private var colors
+
     var body: some View {
         Text(name)
-            .font(.caption2)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.white)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(Capsule().fill(Color.blue.opacity(0.15)))
+            .background(Capsule().fill(colors.color(named: name)))
     }
 }

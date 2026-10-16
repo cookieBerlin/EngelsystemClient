@@ -65,6 +65,13 @@ struct InstancePaletteTests {
         #expect(colors[auto.id] == .blue)
     }
 
+    @Test func countsReadAsSingularOrPlural() {
+        #expect(CountText.text(1, singular: "shift") == "1 shift")
+        #expect(CountText.text(0, singular: "shift") == "0 shifts")
+        #expect(CountText.text(4, singular: "post") == "4 posts")
+        #expect(CountText.text(2, singular: "entry", plural: "entries") == "2 entries")
+    }
+
     @Test func noInstancesNoColors() {
         #expect(InstancePalette.assignments(for: []).isEmpty)
     }

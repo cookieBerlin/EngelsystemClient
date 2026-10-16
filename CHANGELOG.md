@@ -36,6 +36,10 @@ versioning: [Semantic Versioning](https://semver.org/).
 - The Shifts screen has a filter menu: show Upcoming shifts (default), Today, Past or All, and sort Earliest First or Latest First.
   Your choice is remembered on this device.
 
+- Every instance has a color (Settings › Instances › [instance] › Color; "Auto" by default, synced between your devices). With several
+  instances the lists show them under a colored band that folds the entries away, merged lists mark the entries with a colored badge and edge,
+  and the Profile screen shows the same three topics in every display mode.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's

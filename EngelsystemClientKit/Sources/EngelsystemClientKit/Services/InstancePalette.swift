@@ -38,3 +38,10 @@ public enum InstancePalette: String, CaseIterable, Identifiable, Sendable {
         return result
     }
 }
+
+/// "1 shift", "3 shifts": the count shown in an instance heading.
+public enum CountText {
+    public static func text(_ count: Int, singular: String, plural: String? = nil) -> String {
+        "\(count) \(count == 1 ? singular : plural ?? singular + "s")"
+    }
+}

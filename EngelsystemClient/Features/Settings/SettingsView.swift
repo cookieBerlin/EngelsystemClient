@@ -204,9 +204,14 @@ struct InstancesSettingsView: View {
 private struct InstanceRow: View {
     let instance: Instance
 
+    @Environment(\.instanceColors) private var colors
+
     var body: some View {
         VStack(alignment: .leading) {
-            Text(instance.name)
+            HStack(spacing: 6) {
+                Circle().fill(colors.color(for: instance.id)).frame(width: 9, height: 9)
+                Text(instance.name)
+            }
             Text(instance.normalizedBaseURL)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -219,6 +224,8 @@ private struct InstanceDetailView: View {
     let onDelete: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.instanceColors) private var colors
     @State private var isPresentingEdit = false
     private let capabilities = ServerCapabilities.shared
     @State private var featuresExpandedByUser: Bool?
@@ -261,6 +268,27 @@ private struct InstanceDetailView: View {
                 LabeledContent("Name", value: instance.name)
                 LabeledContent("Server", value: instance.normalizedBaseURL)
                 LabeledContent("Status", value: instance.isActive ? "Active" : "Inactive")
+                // Auto spreads the colors evenly over the instances; a hand-picked color is kept and synced to the other devices.
+                Picker(selection: Binding(
+                    get: { InstancePalette.stored(instance.colorKey) },
+                    set: { instance.setColor($0, in: modelContext) }
+                )) {
+                    Text("Auto").tag(InstancePalette?.none)
+                    ForEach(InstancePalette.allCases) { color in
+                        Label {
+                            Text(color.title)
+                        } icon: {
+                            Image(systemName: "circle.fill").foregroundStyle(color.color)
+                        }
+                        .tag(Optional(color))
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text("Color")
+                        Circle().fill(colors.color(for: instance.id)).frame(width: 10, height: 10)
+                    }
+                }
+                .accessibilityIdentifier("instanceColorPicker")
                 Button("Edit Instance") { isPresentingEdit = true }
             }
 

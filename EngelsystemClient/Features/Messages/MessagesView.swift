@@ -18,6 +18,8 @@ struct MessagesView: View {
 
     @State private var viewModel = MessagesViewModel()
     @State private var selectedInstanceID: UUID?
+    @State private var collapsedInstances: Set<UUID> = []
+    @Environment(\.instanceColors) private var instanceColors
     @State private var isShowingNewConversation = false
     @State private var pendingConversation: PendingConversation?
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
@@ -70,7 +72,11 @@ struct MessagesView: View {
                         ForEach(instances) { instance in
                             let rows = conversations(for: instance)
                             if !rows.isEmpty {
-                                Section(instance.name) {
+                                InstanceSection(
+                                    instance: instance,
+                                    countText: CountText.text(rows.count, singular: "conversation"),
+                                    collapsed: $collapsedInstances
+                                ) {
                                     ForEach(rows, id: \.otherUser.id) { conversation in
                                         ConversationRow(instance: instance, conversation: conversation, showsInstanceBadge: false)
                                     }
@@ -128,6 +134,7 @@ struct MessagesView: View {
         } else {
             ForEach(rows, id: \.conversation.otherUser.id) { row in
                 ConversationRow(instance: row.instance, conversation: row.conversation, showsInstanceBadge: instances.count > 1)
+                    .instanceEdge(named: instances.count > 1 ? row.instance.name : nil, colors: instanceColors)
             }
         }
     }

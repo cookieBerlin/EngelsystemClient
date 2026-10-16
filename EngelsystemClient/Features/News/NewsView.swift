@@ -14,6 +14,8 @@ struct NewsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = NewsViewModel()
     @State private var selectedInstanceID: UUID?
+    @State private var collapsedInstances: Set<UUID> = []
+    @Environment(\.instanceColors) private var instanceColors
     @State private var meetingFilter: NewsMeetingFilter = .all
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var displayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
@@ -73,7 +75,11 @@ struct NewsView: View {
                         ForEach(instances) { instance in
                             let instanceNews = CachedNews.sortedByRecency(newsItems.filter { $0.instanceID == instance.id })
                             if !instanceNews.isEmpty {
-                                Section(instance.name) {
+                                InstanceSection(
+                                    instance: instance,
+                                    countText: CountText.text(instanceNews.count, singular: "post"),
+                                    collapsed: $collapsedInstances
+                                ) {
                                     ForEach(instanceNews) { item in
                                         NewsRow(item: item, instance: instance)
                                     }
@@ -145,6 +151,7 @@ struct NewsView: View {
         } else {
             ForEach(items) { merged in
                 NewsRow(item: merged.item, instance: instance(for: merged.item), instanceNames: merged.instanceNames)
+                    .instanceEdge(named: instances.count > 1 ? merged.instanceNames.first : nil, colors: instanceColors)
             }
         }
     }

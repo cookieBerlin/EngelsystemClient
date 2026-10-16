@@ -307,6 +307,7 @@ struct MainView: View {
                 )
             }
         }
+        .environment(\.instanceColors, InstanceColors(instances: instances))
         .task { await runAppStartSyncIfNeeded() }
     }
 

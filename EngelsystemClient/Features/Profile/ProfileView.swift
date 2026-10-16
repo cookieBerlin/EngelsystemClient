@@ -19,6 +19,8 @@ struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = ProfileViewModel()
     @State private var selectedInstanceID: UUID?
+    @State private var collapsedInstances: Set<UUID> = []
+    @Environment(\.instanceColors) private var instanceColors
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var displayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
     @Query private var allUsers: [CachedUser]
@@ -35,6 +37,11 @@ struct ProfileView: View {
 
     private var switcherInstance: Instance? {
         InstanceScope.switcherInstance(in: instances, selected: selectedInstanceID)
+    }
+
+    /// The name whose color edges a merged row — only when several instances are shown.
+    private func edgeName(for instanceID: UUID) -> String? {
+        instances.count > 1 ? instanceName(for: instanceID) : nil
     }
 
     private func instanceName(for instanceID: UUID) -> String? {
@@ -86,6 +93,8 @@ struct ProfileView: View {
                         angelTypeMemberships.map(\.cachedAt).max(),
                     ]))
                 }
+                // Flat like every other list of the app, so the instance bands look the same everywhere.
+                .listStyle(.plain)
                 .toolbar {
                     if viewModel.isLoading {
                         ToolbarItem { ProgressView() }
@@ -116,6 +125,7 @@ struct ProfileView: View {
             } else {
                 ForEach(users) { profile in
                     ProfileIdentityRow(profile: profile, instanceName: instanceName(for: profile.instanceID))
+                        .instanceEdge(named: edgeName(for: profile.instanceID), colors: instanceColors)
                 }
             }
         }
@@ -129,6 +139,7 @@ struct ProfileView: View {
             } else {
                 ForEach(CachedAngelTypeMembership.sortedByName(angelTypeMemberships)) { membership in
                     AngelTypeRow(membership: membership, instanceName: instanceName(for: membership.instanceID))
+                        .instanceEdge(named: edgeName(for: membership.instanceID), colors: instanceColors)
                 }
             }
         }
@@ -142,6 +153,7 @@ struct ProfileView: View {
             } else {
                 ForEach(worklogs) { worklog in
                     WorklogRow(worklog: worklog, instanceName: instanceName(for: worklog.instanceID))
+                        .instanceEdge(named: edgeName(for: worklog.instanceID), colors: instanceColors)
                 }
                 LabeledContent("Total", value: String(format: "%.1fh", CachedWorklog.totalHours(worklogs)))
                     .fontWeight(.semibold)
@@ -195,15 +207,27 @@ struct ProfileView: View {
         let instanceAngelTypes = CachedAngelTypeMembership.sortedByName(angelTypeMemberships.filter { $0.instanceID == instance.id })
         let instanceWorklogs = worklogs.filter { $0.instanceID == instance.id }
 
-        Section(instance.name) {
+        InstanceSection(
+            instance: instance,
+            countText: CountText.text(instanceWorklogs.count, singular: "worklog"),
+            collapsed: $collapsedInstances
+        ) {
+            SubheadingRow(title: "Profile")
             if let profile {
                 ProfileIdentityDetail(profile: profile)
-            }
-            if instanceAngelTypes.isEmpty && instanceWorklogs.isEmpty && profile == nil {
+            } else {
                 Text("No profile data yet.").foregroundStyle(.secondary)
+            }
+            SubheadingRow(title: "Angel Types")
+            if instanceAngelTypes.isEmpty {
+                Text("No angel types yet.").foregroundStyle(.secondary)
             }
             ForEach(instanceAngelTypes) { membership in
                 AngelTypeRow(membership: membership)
+            }
+            SubheadingRow(title: "Worklogs")
+            if instanceWorklogs.isEmpty {
+                Text("No worklogs yet.").foregroundStyle(.secondary)
             }
             ForEach(instanceWorklogs) { worklog in
                 WorklogRow(worklog: worklog)

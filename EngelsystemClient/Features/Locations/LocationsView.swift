@@ -15,6 +15,7 @@ struct LocationsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = LocationsViewModel()
     @State private var selectedInstanceID: UUID?
+    @State private var collapsedInstances: Set<UUID> = []
     @AppStorage(MultiInstanceDisplayMode.userDefaultsKey)
     private var displayModeRaw: String = MultiInstanceDisplayMode.merged.rawValue
     @Query private var allLocations: [CachedLocation]
@@ -65,7 +66,11 @@ struct LocationsView: View {
                         ForEach(instances) { instance in
                             let instanceLocations = CachedLocation.sortedByName(activeInstanceLocations.filter { $0.instanceID == instance.id })
                             if !instanceLocations.isEmpty {
-                                Section(instance.name) {
+                                InstanceSection(
+                                    instance: instance,
+                                    countText: CountText.text(instanceLocations.count, singular: "location"),
+                                    collapsed: $collapsedInstances
+                                ) {
                                     ForEach(instanceLocations) { location in
                                         LocationRow(location: location, instance: instance)
                                     }

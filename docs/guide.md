@@ -107,7 +107,7 @@ Settings is a short list of pages; each row shows a summary of its current state
 - **Instances**: all your events. Use the switch to turn an event on or off (switching one on refreshes its data right away); tap one to edit its name, server or API key, or to
   remove it (this also removes the data cached for it). **Multiple Active Instances** chooses how Shifts, News and Profile show
   more than one active event: **Merged** (one list, labeled by event), **Switcher** (one event at a time via a control at the
-  top) or **Sectioned** (one section per event). **Parallel Syncs** sets how many events are refreshed at the same time (Unlimited by default,
+  top) or **Sectioned** (one section per event, each under a colored band you can tap to fold away). Every event has a **color** (**Settings → Instances →** the event → **Color**; "Auto" spreads the colors evenly, a picked color is kept on all your devices). **Parallel Syncs** sets how many events are refreshed at the same time (Unlimited by default,
   "1 at a time" syncs one after the other); the setting belongs to this device, and the Watch has its own.
 - **Notifications**: the reminder times before each shift ("15 min", …). **Add Reminder** adds more, the red button removes
   one. **Notify on New News** posts a notification when a background sync finds new announcements. **Apple Watch Reminders**
