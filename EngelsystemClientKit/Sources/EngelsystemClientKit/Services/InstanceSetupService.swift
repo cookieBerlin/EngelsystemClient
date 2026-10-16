@@ -37,6 +37,20 @@ public struct InstanceSetupService {
     /// the server/key combination is still valid. Mutating `instance` directly (rather
     /// than returning a value to apply) matches how sync services update existing
     /// `Cached*` models already fetched from a `ModelContext`.
+    /// Applies the edited name/address to `instance` and stores a freshly typed key — without testing the
+    /// connection: the user may save an instance whose server is not reachable right now. Backs the editable
+    /// instance page.
+    public func applyChanges(
+        to instance: Instance, name: String, baseURL: String, newAPIKeyToStore: String?, store: APIKeyStore
+    ) throws {
+        if let newAPIKeyToStore {
+            try store.save(apiKey: newAPIKeyToStore, for: instance.apiKeyKeychainRef)
+        }
+        instance.name = name
+        instance.baseURL = baseURL
+        instance.touch()
+    }
+
     public func updateInstance(
         for instance: Instance,
         name: String,
