@@ -28,7 +28,8 @@ enum DemoData {
         ),
         Location(
             id: 3, name: "Workshop Room A", description: "Hands-on workshops, about 40 seats",
-            mapUrl: nil, contact: ContactDect(dect: "1003"),
+            // The one demo location with a web page, so the map link / embedded view can be tried out.
+            mapUrl: "https://github.com/cookieBerlin/EngelsystemClient", contact: ContactDect(dect: "1003"),
             url: "https://demo.engelsystem.local/locations/3"
         ),
         Location(

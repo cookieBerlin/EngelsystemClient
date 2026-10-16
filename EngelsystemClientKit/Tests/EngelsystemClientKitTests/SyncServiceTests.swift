@@ -205,6 +205,8 @@ private let demoCredential = EventCredential(baseURL: Instance.demoBaseURL + "/a
     let client = APIClient.shared
     let location = try await client.fetchLocation(id: 1, demoCredential)
     #expect(location.name == "Heaven")
+    // One demo location has a web page, so the map link can be tried.
+    #expect(try await client.fetchLocation(id: 3, demoCredential).mapUrl == "https://github.com/cookieBerlin/EngelsystemClient")
 
     await #expect(throws: APIError.notFound) {
         _ = try await client.fetchLocation(id: 999, demoCredential)

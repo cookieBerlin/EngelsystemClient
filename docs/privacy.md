@@ -77,8 +77,9 @@ profile, or any other data you access through the app.
   default (changeable, never, or only until the app quits, under **Settings › Privacy**), and you can delete them any time under
   **Settings › Privacy › Delete Map Website Data**. Links inside the map page stay in that view and do not open other apps. If you switch the setting to "Link Only", the
   app loads nothing from the map address; tapping "Show Map" opens it in your browser.
-- **Demo Mode**: uses entirely synthetic, pre-built sample data. No
-  network requests are made at all while using Demo Mode.
+- **Demo Mode**: uses entirely synthetic, pre-built sample data and sends nothing to any server. The one exception is
+  the map link of the demo location “Workshop Room A”, which points to this project's page on GitHub: it is only loaded
+  when you open that location (in the app's map view, or in your browser with “Link Only”), exactly like any other map link.
 
 ## What the app does *not* do
 

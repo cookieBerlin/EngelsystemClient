@@ -21,7 +21,7 @@ logging. Hard constraints are mirrored in [`CLAUDE.md`](../CLAUDE.md).
   defines no App Transport Security exceptions and no custom
   server-trust handling; do not add trust exceptions for invalid
   certificates.
-- Demo mode (`demo://` sentinel URL) makes no network requests.
+- Demo mode (`demo://` sentinel URL) makes no API requests; the only web page it can load is the map link of the demo location “Workshop Room A” (the project's GitHub page), when the user opens it.
 - The optional embedded map (ADR 0014) loads only `http`/`https` addresses into a `WKWebView` with a persistent data store of its own (apart from Safari, deletable in Settings) and
   gets no app data; App Transport Security still applies, so plain `http` map pages fail to load.
 

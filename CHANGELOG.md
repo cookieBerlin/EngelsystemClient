@@ -41,6 +41,7 @@ versioning: [Semantic Versioning](https://semver.org/).
 - "Test Connection" now also checks a real data request and warns when the account is not allowed to use the API (403).
 - The Features list of the demo instance no longer shows “Not checked yet” for every entry, and “Verify” in Edit Instance
   now also updates that list with what it found. Both show the same summary, including how many entries are not checked yet.
+- The demo location “Workshop Room A” has a map link (this project's GitHub page), so the map view can be tried in Demo Mode.
 - Fixed: shifts could not be read from servers that send shift tags (“Could not read the API response”). Reading errors now
   also name the field that did not match.
 

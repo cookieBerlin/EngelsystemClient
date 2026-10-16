@@ -80,7 +80,7 @@ whenever the UI or the demo data changes visibly.
   Locations/Messages, reminders, Watch app and complication, Settings (including Export
   Diagnostics)."
 - **Beta App Review notes**: "No account is needed. On the first screen tap 'Try Demo Mode' — it
-  uses built-in sample data and makes no network requests. A real Engelsystem instance and API key
+  uses built-in sample data and sends no API requests (the demo location “Workshop Room A” links to the project's GitHub page as its map). A real Engelsystem instance and API key
   are only needed to test against an actual server."
 - **Feedback Email**: `EngelsystemClient@cuccato.net`; **Privacy Policy URL**:
   `https://cookieberlin.github.io/EngelsystemClient/privacy`; **Support**:
