@@ -56,6 +56,8 @@ versioning: [Semantic Versioning](https://semver.org/).
   connection test. The same on the Apple Watch.
 - Demo addresses (`demo://…`) need no API key any more, and "Try Demo Mode" is the first block when adding an instance.
 
+- The colors in the instance's color picker are shown in their own color instead of black.
+
 ### Removed
 - The “Open on Website” button on the location screen.
 - The manual “User ID” field and the automatic check for servers without the `self` shortcut: servers that lack Engelsystem's

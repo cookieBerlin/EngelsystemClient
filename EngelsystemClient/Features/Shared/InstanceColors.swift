@@ -17,6 +17,22 @@ extension InstancePalette {
     }
 }
 
+#if canImport(UIKit)
+import UIKit
+
+extension InstancePalette {
+    /// A small filled circle in the palette color that keeps its color inside a menu: menu items draw symbols as
+    /// monochrome templates (all black), an image with the original rendering mode is left alone.
+    var swatch: Image {
+        let configuration = UIImage.SymbolConfiguration(pointSize: 16)
+        // The system symbol always exists; the plain symbol is only the (never used) fallback behind it.
+        let colored = [UIImage(systemName: "circle.fill", withConfiguration: configuration)].compactMap { $0 }
+            .map { Image(uiImage: $0.withTintColor(UIColor(color), renderingMode: .alwaysOriginal)) }
+        return (colored + [Image(systemName: "circle.fill")])[0]
+    }
+}
+#endif
+
 /// The color of every instance (`InstancePalette.assignments(for:)`), provided to all screens through the
 /// environment by `MainView`. Looked up by id or — where a row only knows the instance's name — by name.
 struct InstanceColors: Equatable {

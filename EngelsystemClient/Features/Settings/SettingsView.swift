@@ -341,7 +341,7 @@ private struct InstanceDetailView: View {
                         Label {
                             Text(color.title)
                         } icon: {
-                            Image(systemName: "circle.fill").foregroundStyle(color.color)
+                            color.swatch
                         }
                         .tag(Optional(color))
                     }

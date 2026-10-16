@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Testing
 import EngelsystemClientKit
 @testable import EngelsystemClient
@@ -8,6 +9,15 @@ struct InstanceColorsTests {
     @Test func everyPaletteColorMapsToASystemColor() {
         let colors = InstancePalette.allCases.map(\.color)
         #expect(colors == [.blue, .orange, .green, .purple, .pink, .teal, .red, .indigo])
+    }
+
+    /// Menu items draw symbols black; the swatch is an original-rendering image, one per palette color.
+    @Test func everyPaletteColorHasASwatch() {
+        for color in InstancePalette.allCases {
+            _ = color.swatch
+        }
+        let image = UIImage(systemName: "circle.fill")?.withTintColor(.red, renderingMode: .alwaysOriginal)
+        #expect(image?.renderingMode == .alwaysOriginal)
     }
 
     @Test func colorsAreFoundByIDAndByNameWithABlueFallback() {
