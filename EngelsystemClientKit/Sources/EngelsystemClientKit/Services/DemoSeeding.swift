@@ -41,6 +41,20 @@ public enum DemoSeeding {
         #endif
     }
 
+    /// Debug-only: with `-open-settings`, the Watch app opens this Settings page (`Instances`, `Notifications`, `Sync`,
+    /// `Diagnostics`, `About`) instead of the hub — for the guide's Watch screenshots (`Scripts/screenshots.sh manual`).
+    public static let openSettingsPageArgument = "-open-settings-page"
+
+    /// The page named by `-open-settings-page <name>`; nil without the argument (and in Release builds).
+    public static func settingsPage(arguments: [String]) -> String? {
+        #if DEBUG
+        guard let index = arguments.firstIndex(of: openSettingsPageArgument) else { return nil }
+        return arguments.dropFirst(index + 1).first
+        #else
+        return nil
+        #endif
+    }
+
     /// Seeds only when the argument was passed (Debug builds) and no instance exists yet.
     public static func shouldSeed(arguments: [String], existingInstanceCount: Int) -> Bool {
         #if DEBUG

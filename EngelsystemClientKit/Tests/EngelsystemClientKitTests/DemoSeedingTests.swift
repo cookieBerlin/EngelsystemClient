@@ -37,6 +37,9 @@ struct DemoSeedingTests {
     @Test func opensSettingsOnlyWhenAsked() {
         #expect(DemoSeeding.shouldOpenSettings(arguments: [DemoSeeding.openSettingsArgument]))
         #expect(!DemoSeeding.shouldOpenSettings(arguments: [DemoSeeding.launchArgument]))
+        #expect(DemoSeeding.settingsPage(arguments: [DemoSeeding.openSettingsArgument, DemoSeeding.openSettingsPageArgument, "Sync"]) == "Sync")
+        #expect(DemoSeeding.settingsPage(arguments: [DemoSeeding.openSettingsPageArgument]) == nil) // no value
+        #expect(DemoSeeding.settingsPage(arguments: [DemoSeeding.openSettingsArgument]) == nil)
     }
 
     @Test func insertsADemoInstanceAndItsKey() async throws {

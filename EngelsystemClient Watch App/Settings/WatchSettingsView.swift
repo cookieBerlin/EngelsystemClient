@@ -25,6 +25,8 @@ struct WatchSettingsView: View {
     private var isDebugLoggingEnabled: Bool = DebugLog.defaultEnabled
 
     @State private var isPresentingSetup = false
+    /// Debug-only deep link (`-open-settings-page <name>`), used by the guide's screenshots.
+    @State private var deepLinkedPage: String? = DemoSeeding.settingsPage(arguments: ProcessInfo.processInfo.arguments)
 
     /// The Watch's own reminder list (resolves the "watch" row specifically — independent from the iPhone's).
     private var leadTimesMinutes: [Int] {
@@ -80,6 +82,15 @@ struct WatchSettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .navigationDestination(item: $deepLinkedPage) { page in
+            switch page {
+            case "Notifications": WatchNotificationsSettingsView()
+            case "Sync": WatchSyncSettingsView()
+            case "Diagnostics": WatchDiagnosticsSettingsView()
+            case "About": WatchAboutSettingsView()
+            default: WatchInstancesSettingsView()
+            }
+        }
         .sheet(isPresented: $isPresentingSetup) {
             WatchSetupView()
         }
