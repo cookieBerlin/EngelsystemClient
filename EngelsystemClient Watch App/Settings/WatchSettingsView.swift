@@ -227,25 +227,77 @@ private struct WatchInstanceRow: View {
     }
 }
 
+/// One page for an instance on the Watch: editable name, server and API key (Save/Discard with a confirmation),
+/// the status and the last sync (2026-10-16 — it replaced the page plus the separate "Edit Instance" sheet).
 private struct WatchInstanceDetailView: View {
     let instance: Instance
     let onDelete: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var isPresentingEdit = false
+    @Environment(\.modelContext) private var modelContext
+    @State private var form: WatchEditInstanceViewModel
+    @State private var isConfirmingDiscard = false
     // Watch's schema only includes CachedShift (CLAUDE.md's Watch App Scope) — no
     // News/Profile row to show here, unlike iOS's equivalent screen.
     @Query private var allShifts: [CachedShift]
 
+    init(instance: Instance, onDelete: @escaping () -> Void) {
+        self.instance = instance
+        self.onDelete = onDelete
+        _form = State(initialValue: WatchEditInstanceViewModel(instance: instance))
+    }
+
     private var lastShiftsSync: Date? { CacheSyncTimestamp.lastSyncDate(for: instance.id, in: allShifts) }
+    private var hasChanges: Bool { form.hasChanges(for: instance) }
 
     var body: some View {
         List {
+            Section("Instance") {
+                TextField("Name", text: $form.name)
+                TextField("Server URL", text: $form.baseURL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                if form.requiresAPIKey {
+                    SecureField("New API Key", text: $form.apiKey)
+                } else {
+                    // A demo address ignores the key: greyed out, with the reason.
+                    SecureField("API Key", text: .constant(""))
+                        .disabled(true)
+                    Text(InstanceForm.demoKeyHint)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section {
-                LabeledContent("Name", value: instance.name)
-                LabeledContent("Server", value: instance.normalizedBaseURL)
+                if form.isTesting {
+                    ProgressView()
+                } else if form.connectionTested {
+                    Label("Verified", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                } else {
+                    Button("Test Connection") {
+                        Task { await form.testConnection(for: instance) }
+                    }
+                    .disabled(!form.canTest)
+                }
+                if form.connectionTested, let summary = form.featureSummary {
+                    Text(summary)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                if let message = form.errorMessage {
+                    Text(message)
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                }
+            } footer: {
+                Text("Optional. Saving does not need it.")
+                    .font(.caption2)
+            }
+
+            Section {
                 LabeledContent("Status", value: instance.isActive ? "Active" : "Inactive")
-                Button("Edit Instance") { isPresentingEdit = true }
             }
 
             Section("Last Synced") {
@@ -253,6 +305,18 @@ private struct WatchInstanceDetailView: View {
                     LabeledContent("Shifts", value: lastShiftsSync.formatted(.relative(presentation: .named)))
                 } else {
                     LabeledContent("Shifts", value: "Never")
+                }
+            }
+
+            if hasChanges {
+                Section {
+                    Button("Save") {
+                        if let serverChanged = form.save(instance: instance, in: modelContext), serverChanged {
+                            Task { await WatchShiftsSyncCoordinator.shared.refreshActiveInstances(in: modelContext) }
+                        }
+                    }
+                    .disabled(!form.canSave)
+                    Button("Discard", role: .destructive) { isConfirmingDiscard = true }
                 }
             }
 
@@ -264,94 +328,13 @@ private struct WatchInstanceDetailView: View {
             }
         }
         .navigationTitle(instance.name)
-        .sheet(isPresented: $isPresentingEdit) {
-            WatchEditInstanceView(instance: instance)
-        }
-    }
-}
-
-/// Combined "Edit Instance" form — see the iOS `EditInstanceView`'s matching comment
-/// for why this merged what used to be separate "Edit Name / Server" and "Update API
-/// Key" sheets.
-private struct WatchEditInstanceView: View {
-    let instance: Instance
-
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @State private var viewModel: WatchEditInstanceViewModel
-
-    init(instance: Instance) {
-        self.instance = instance
-        _viewModel = State(initialValue: WatchEditInstanceViewModel(instance: instance))
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Name") {
-                    TextField("Name", text: $viewModel.name)
-                }
-                Section("Server") {
-                    TextField("Server URL", text: $viewModel.baseURL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
-                Section {
-                    SecureField("New API Key (optional)", text: $viewModel.apiKey)
-                } footer: {
-                    Text("Leave blank to keep the current key.")
-                        .font(.caption2)
-                }
-                if viewModel.connectionTested, let featureSummary = viewModel.featureSummary {
-                    Section {
-                        Text(featureSummary)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                if let errorMessage = viewModel.errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .font(.caption2)
-                            .foregroundStyle(.red)
-                    }
-                }
-                Section {
-                    Button {
-                        Task { await viewModel.testConnection(for: instance) }
-                    } label: {
-                        if viewModel.isTesting {
-                            ProgressView()
-                        } else if viewModel.connectionTested {
-                            Label("Verified", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        } else {
-                            Text("Test Connection")
-                        }
-                    }
-                    .disabled(!viewModel.canTest)
-                } footer: {
-                    Text("Required after changing the server URL or API key before you can save.")
-                        .font(.caption2)
-                }
-                Section {
-                    if viewModel.isTesting {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Button("Save") {
-                            Task {
-                                if await viewModel.save(instance: instance, in: modelContext) {
-                                    dismiss()
-                                }
-                            }
-                        }
-                        .disabled(!viewModel.canSubmit)
-                    }
-                }
-            }
-            .navigationTitle("Edit Instance")
+        // Unsaved edits are saved or discarded on purpose: no way back until then.
+        .navigationBarBackButtonHidden(hasChanges)
+        .confirmationDialog("Discard changes?", isPresented: $isConfirmingDiscard, titleVisibility: .visible) {
+            Button("Discard Changes", role: .destructive) { form.discard(to: instance) }
+            Button("Keep Editing", role: .cancel) {}
+        } message: {
+            Text("Your edits to this instance will be lost.")
         }
     }
 }

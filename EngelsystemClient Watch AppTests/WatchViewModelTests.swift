@@ -49,6 +49,20 @@ struct WatchSetupViewModelTests {
         #expect(viewModel.canSubmit)
     }
 
+    @Test @MainActor func onlyRealAddressesNeedAnAPIKey() async {
+        let viewModel = WatchSetupViewModel()
+        viewModel.name = "Demo"
+        viewModel.baseURL = "demo://nothing.local"
+        #expect(!viewModel.requiresAPIKey)
+        #expect(viewModel.canTest)
+        await viewModel.testConnection()
+        #expect(viewModel.connectionTested)
+        #expect(viewModel.featureSummary == ServerCapabilities.demoSummaryText(newsOnly: true))
+        #expect(viewModel.canSubmit)
+        viewModel.baseURL = "https://real.test"
+        #expect(viewModel.requiresAPIKey && !viewModel.canTest)
+    }
+
     @Test @MainActor func aFailingConnectionTestShowsTheError() async {
         let viewModel = WatchSetupViewModel()
         viewModel.baseURL = offlineBaseURL
@@ -92,25 +106,58 @@ struct WatchSetupViewModelTests {
     }
 }
 
+private final class RecordingKeyStore: APIKeyStore, @unchecked Sendable {
+    struct Failure: Error {}
+    var saved: [String: String] = [:]
+    var fails = false
+    func save(apiKey: String, for reference: String) throws {
+        if fails { throw Failure() }
+        saved[reference] = apiKey
+    }
+    func loadAPIKey(for reference: String) throws -> String { saved[reference] ?? "" }
+    func deleteAPIKey(for reference: String) throws {}
+}
+
 struct WatchEditInstanceViewModelTests {
-    @Test @MainActor func canTestAndCanSubmitFollowTheFormState() {
+    @Test @MainActor func canTestAndCanSaveFollowTheFormState() {
         let instance = Instance(name: "I", baseURL: "https://example.com", apiKeyKeychainRef: "r")
         let viewModel = WatchEditInstanceViewModel(instance: instance)
-        #expect(viewModel.canTest)
-        #expect(viewModel.canSubmit) // already "tested": nothing changed yet
+        #expect(viewModel.canTest && viewModel.canSave)
+        #expect(!viewModel.hasChanges(for: instance))
+        #expect(!viewModel.connectionTested) // nothing was tested yet
         viewModel.baseURL = " "
-        #expect(!viewModel.canTest && !viewModel.canSubmit)
+        #expect(!viewModel.canTest && !viewModel.canSave)
     }
 
-    @Test @MainActor func withoutAStoredKeyTestAndSaveReportTheError() async throws {
+    @Test @MainActor func editsAreTrackedAndDiscardRestoresTheSavedValues() {
+        let instance = Instance(name: "I", baseURL: "https://example.com", apiKeyKeychainRef: "r")
+        let viewModel = WatchEditInstanceViewModel(instance: instance)
+        viewModel.name = "Changed"
+        #expect(viewModel.hasChanges(for: instance))
+        viewModel.baseURL = "demo://congress.local"
+        viewModel.apiKey = "typed"
+        viewModel.discard(to: instance)
+        #expect(viewModel.name == "I" && viewModel.baseURL == "https://example.com" && viewModel.apiKey.isEmpty)
+        #expect(!viewModel.hasChanges(for: instance))
+        // A demo address needs no key, so typing one is no change.
+        viewModel.baseURL = "demo://congress.local"
+        viewModel.apiKey = "ignored"
+        #expect(!viewModel.requiresAPIKey)
+        viewModel.discard(to: instance)
+        #expect(viewModel.requiresAPIKey)
+    }
+
+    @Test @MainActor func withoutAStoredKeyTestingReportsTheErrorButSavingNeedsNoKey() async throws {
         let context = try makeContext()
         let instance = try seed(baseURL: "https://example.com", in: context, withKey: false)
         let viewModel = WatchEditInstanceViewModel(instance: instance)
         await viewModel.testConnection(for: instance)
         #expect(!viewModel.connectionTested)
         #expect(viewModel.errorMessage != nil)
-        #expect(await viewModel.save(instance: instance, in: context) == false)
-        #expect(viewModel.errorMessage != nil)
+        viewModel.name = "Renamed"
+        #expect(viewModel.save(instance: instance, in: context) == false) // only the name changed
+        #expect(instance.name == "Renamed")
+        #expect(viewModel.errorMessage == nil)
     }
 
     @Test @MainActor func testingAndSavingAgainstTheDemoServerRenamesTheInstance() async throws {
@@ -121,8 +168,45 @@ struct WatchEditInstanceViewModelTests {
         viewModel.name = "Renamed"
         await viewModel.testConnection(for: instance)
         #expect(viewModel.connectionTested)
-        #expect(await viewModel.save(instance: instance, in: context))
+        #expect(viewModel.featureSummary == ServerCapabilities.demoSummaryText(newsOnly: false))
+        #expect(viewModel.save(instance: instance, in: context) == false)
         #expect(instance.name == "Renamed")
+        #expect(!viewModel.connectionTested)
+
+        viewModel.baseURL = "demo://nothing.local"
+        await viewModel.testConnection(for: instance)
+        #expect(viewModel.featureSummary == ServerCapabilities.demoSummaryText(newsOnly: true))
+    }
+
+    @Test @MainActor func aTypedKeyIsStoredAndASwitchToADemoAddressStoresTheDemoKey() throws {
+        let context = try makeContext()
+        let instance = Instance(name: "I", baseURL: "https://example.com", apiKeyKeychainRef: "ref")
+        context.insert(instance)
+        let store = RecordingKeyStore()
+        let viewModel = WatchEditInstanceViewModel(instance: instance, keyStore: store)
+        viewModel.apiKey = "typed"
+        #expect(viewModel.save(instance: instance, in: context) == true) // a new key counts as a server change
+        #expect(store.saved["ref"] == "typed")
+        #expect(viewModel.apiKey.isEmpty)
+
+        viewModel.baseURL = "demo://congress.local"
+        #expect(viewModel.save(instance: instance, in: context) == true)
+        #expect(store.saved["ref"] == "demo")
+        #expect(instance.baseURL == "demo://congress.local")
+    }
+
+    @Test @MainActor func aFailingKeyStoreIsReportedAndNothingIsApplied() throws {
+        let context = try makeContext()
+        let instance = Instance(name: "I", baseURL: "https://example.com", apiKeyKeychainRef: "ref")
+        context.insert(instance)
+        let store = RecordingKeyStore()
+        store.fails = true
+        let viewModel = WatchEditInstanceViewModel(instance: instance, keyStore: store)
+        viewModel.apiKey = "new"
+        viewModel.name = "Changed"
+        #expect(viewModel.save(instance: instance, in: context) == nil)
+        #expect(viewModel.errorMessage != nil)
+        #expect(instance.name == "I")
     }
 
     @Test @MainActor func aFailingConnectionTestAgainstAnOfflineServerShowsTheError() async throws {
@@ -130,6 +214,11 @@ struct WatchEditInstanceViewModelTests {
         let instance = try seed(baseURL: offlineBaseURL, in: context)
         defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
         let viewModel = WatchEditInstanceViewModel(instance: instance)
+        await viewModel.testConnection(for: instance)
+        #expect(!viewModel.connectionTested)
+        #expect(viewModel.errorMessage != nil)
+
+        viewModel.apiKey = "typed" // the typed key is tested instead of the saved one
         await viewModel.testConnection(for: instance)
         #expect(!viewModel.connectionTested)
         #expect(viewModel.errorMessage != nil)
@@ -178,5 +267,34 @@ struct NextShiftViewModelFailureTests {
         #expect(NextShiftViewModel.message(for: APIError.forbidden) == APIError.forbidden.userMessage)
         #expect(NextShiftViewModel.message(for: InstanceCredentialError.apiKeyNotFound).contains("Set up"))
         #expect(NextShiftViewModel.message(for: PlainError()) == "plain failure")
+    }
+}
+
+/// The connection test against a real (non-demo) address, through the stubbed network: the server is reachable and
+/// reports no privileges, so the summary stays empty and nothing is claimed.
+@Suite(.serialized)
+struct WatchRealServerConnectionTests {
+    @Test @MainActor func setupTestsARealAddressWithoutClaimingFeatures() async throws {
+        StubbedNetwork.install()
+        try StubURLProtocol.routeDemoInfo("GET /api/v0-beta/info")
+        let viewModel = WatchSetupViewModel()
+        viewModel.name = "Server"
+        viewModel.baseURL = "https://stub.test"
+        viewModel.apiKey = "k"
+        await viewModel.testConnection()
+        #expect(viewModel.connectionTested)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @Test @MainActor func editTestsARealAddressWithoutClaimingFeatures() async throws {
+        StubbedNetwork.install()
+        try StubURLProtocol.routeDemoInfo("GET /api/v0-beta/info")
+        let context = try makeContext()
+        let instance = try seed(baseURL: "https://stub.test", in: context)
+        defer { try? LocalKeychainStore().deleteAPIKey(for: instance.apiKeyKeychainRef) }
+        let viewModel = WatchEditInstanceViewModel(instance: instance)
+        await viewModel.testConnection(for: instance)
+        #expect(viewModel.connectionTested)
+        #expect(viewModel.errorMessage == nil)
     }
 }

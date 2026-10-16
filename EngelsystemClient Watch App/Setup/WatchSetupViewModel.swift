@@ -34,18 +34,19 @@ final class WatchSetupViewModel {
         self.setupService = setupService
     }
 
+    /// A demo address needs no key: the field is greyed out with a hint.
+    var requiresAPIKey: Bool { InstanceForm.requiresAPIKey(address: baseURL) }
+
+    private var hasUsableKey: Bool {
+        !requiresAPIKey || !apiKey.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
     var canTest: Bool {
-        !baseURL.trimmingCharacters(in: .whitespaces).isEmpty
-            && !apiKey.trimmingCharacters(in: .whitespaces).isEmpty
-            && !isTesting
+        !baseURL.trimmingCharacters(in: .whitespaces).isEmpty && hasUsableKey && !isTesting
     }
 
     var canSubmit: Bool {
-        connectionTested
-            && !name.trimmingCharacters(in: .whitespaces).isEmpty
-            && !baseURL.trimmingCharacters(in: .whitespaces).isEmpty
-            && !apiKey.trimmingCharacters(in: .whitespaces).isEmpty
-            && !isTesting
+        connectionTested && InstanceForm.canSave(name: name, address: baseURL) && hasUsableKey && !isTesting
     }
 
     /// Tests the server/key against `/info` and whether it resolves the `self`
@@ -59,11 +60,16 @@ final class WatchSetupViewModel {
 
         let credential = EventCredential(
             baseURL: Instance.apiBasePath(for: baseURL.trimmingCharacters(in: .whitespaces)),
-            apiKey: apiKey
+            apiKey: InstanceForm.effectiveAPIKey(address: baseURL, typed: apiKey)
         )
         do {
             _ = try await apiClient.fetchInfo(credential)
-            featureSummary = ServerCapabilities.featureSummary(privileges: await apiClient.ownPrivileges(credential))
+            let address = baseURL.trimmingCharacters(in: .whitespaces)
+            if address.hasPrefix(DemoScenario.scheme) {
+                featureSummary = ServerCapabilities.demoSummaryText(newsOnly: DemoScenario.isNewsOnly(address: address))
+            } else {
+                featureSummary = ServerCapabilities.featureSummary(privileges: await apiClient.ownPrivileges(credential))
+            }
             connectionTested = true
         } catch {
             connectionTested = false
@@ -82,7 +88,7 @@ final class WatchSetupViewModel {
             let instance = try await setupService.createInstance(
                 name: name.trimmingCharacters(in: .whitespaces),
                 baseURL: baseURL.trimmingCharacters(in: .whitespaces),
-                apiKey: apiKey,
+                apiKey: InstanceForm.effectiveAPIKey(address: baseURL, typed: apiKey),
                 store: LocalKeychainStore()
             )
             modelContext.insert(instance)
@@ -99,7 +105,7 @@ final class WatchSetupViewModel {
     func useDemoInstance(in modelContext: ModelContext) async -> Bool {
         name = "Demo"
         baseURL = Instance.demoBaseURL
-        apiKey = "demo"
+        apiKey = InstanceForm.demoAPIKey
         return await save(in: modelContext)
     }
 
