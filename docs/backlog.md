@@ -26,10 +26,11 @@ the R tasks when the owner reports a merge.
 - [ ] **W-12** Device check on the Watch: the active switch in Settings › Instances now spans the full row height
       (commit `de752b0`); confirm that tapping it is easy and the name side still opens the instance. If not, tune
       `WatchSettingsView.instanceRow`.
-- [ ] **W-13** Mac: availability in the store and the Xcode setting are confirmed (2026-10-17; Release build settings:
-      `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES`). What is left: confirm the wording of the guide and the FAQ — the beta
-      runs on a Mac with Apple silicon through TestFlight (same invitation link, own window, no Watch functions) — and correct
-      `docs/guide.md` / `docs/faq.md` if it differs.
+- [ ] **W-13** Mac: plan an explicit test of the app on a Mac with Apple silicon (TestFlight install, window sizes and
+      resizing, sidebar layout, keyboard and pointer, iCloud sync of instances, notifications, phone-number links, the embedded
+      map, debug log export). Availability in the store and the Xcode setting are confirmed (2026-10-17; Release build
+      `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES`). Afterwards replace the careful "not tested in depth yet" wording in
+      `docs/guide.md` and `docs/faq.md` by what the test showed.
 - [ ] **W-14** After the next screenshot publication, look at the live guide once in light and in dark mode (the images swap
       to `<name>-dark.png`; a missing dark image must fall back to the light one) and on a phone-width window.
 

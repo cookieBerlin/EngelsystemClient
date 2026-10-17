@@ -74,8 +74,9 @@ list, a switcher, or one section per instance. Each row shows a small badge with
 
 ### Does the app run on a Mac?
 
-Yes, on a Mac with Apple silicon: install the beta with the TestFlight app on the Mac (same invitation link); the iPhone/iPad
-app opens in its own window. The Apple Watch functions are not part of it. Your instances sync through iCloud.
+Yes, on a Mac with Apple silicon, as the iPhone/iPad app: install the beta with the TestFlight app on the Mac. This is not tested
+in depth yet, so please report anything that looks or behaves wrongly (see [Support](support.md)). The Apple Watch functions are
+not part of it.
 
 ### Can I sign up for or swap shifts?
 

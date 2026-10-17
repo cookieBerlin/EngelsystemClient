@@ -27,10 +27,10 @@ account with the app's developer and no tracking (see the [Privacy Policy](priva
 
 ## iPhone, iPad and Mac
 
-The app runs on **iPhone** and **iPad** (with a sidebar layout) and, through TestFlight, also on a **Mac with Apple silicon**:
-install the beta with the TestFlight app on the Mac (the same invitation link) and the iPhone/iPad app opens in its own window.
-The Mac app has everything the iPad app has except the Apple Watch functions. Your instances sync between your devices through
-iCloud. (The Mac version is part of the beta; its availability in the App Store depends on the release.)
+The app runs on **iPhone** and **iPad** (with a sidebar layout). On a **Mac with Apple silicon** the iPhone/iPad app can run as
+well: the beta can be installed with the TestFlight app on the Mac, and the App Store offers the app for these Macs too. This
+is **not tested in depth yet**, so some things may look or behave differently from the iPad app; please report problems on
+[Support](support.md). The Apple Watch functions are not part of the Mac app.
 
 ## Try it without an account: Demo Mode
 
