@@ -1,5 +1,6 @@
 title: Engelsystem Client
 description: Engelsystem Client — an unofficial companion app for Engelsystem on iPhone, iPad and Apple Watch
+url: https://cookieberlin.github.io
 baseurl: /EngelsystemClient   # project site: https://cookieberlin.github.io/EngelsystemClient/
 # Own Bootstrap 5 layout (docs/_layouts/default.html), no remote theme; every page uses it.
 defaults:

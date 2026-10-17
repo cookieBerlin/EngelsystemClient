@@ -1,5 +1,7 @@
 ---
 title: Privacy Policy
+html_title: "Privacy Policy – Engelsystem Client"
+description: "What data the Engelsystem Client app stores and sends: credentials in the Keychain, no tracking, no third-party servers."
 ---
 
 # Privacy Policy

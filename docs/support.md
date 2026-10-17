@@ -1,5 +1,7 @@
 ---
 title: Support
+html_title: "Support – Engelsystem Client"
+description: "How to get help with the Engelsystem Client app: report a bug, request a feature or contact the developer."
 ---
 
 # Support

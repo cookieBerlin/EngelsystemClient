@@ -1,5 +1,7 @@
 ---
 title: FAQ
+html_title: "FAQ – Engelsystem Client"
+description: "Answers to common questions about the Engelsystem Client app: supported servers, missing areas, notifications, Apple Watch and privacy."
 ---
 
 # Frequently Asked Questions
