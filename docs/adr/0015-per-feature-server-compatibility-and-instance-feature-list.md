@@ -41,5 +41,5 @@ and no errors for missing rights.
 - `ServerCapabilities` (ADR 0013) is reshaped: the feature list with states and privilege names is permanent, the
   field/404-based fallbacks are removed per PR. ADR 0013 is marked superseded when the new model lands.
 - No Phase 2 write features are added: signing out of a shift is only offered as a link to the web page.
-- Details of the plan: `docs/backlog.md` (K-10 – K-13, S-01 – S-06, W-01 – W-06, R-02 – R-13) and the planned matrix in
+- Details of the plan: `docs/backlog.md` (K-10 – K-13, S-01 – S-06, W-01 – W-05, R-02 – R-13, R-50) and the planned matrix in
   `docs/architecture.md`.

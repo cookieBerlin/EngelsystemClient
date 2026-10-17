@@ -13,12 +13,7 @@ Background: the server side is a stack of open upstream PRs (#1709 – #1726, se
 [`roadmap.md`](roadmap.md)). The app must work with upstream `main` today, with each PR and with all of them; missing
 rights or functions are **never errors** (silent hiding plus a feature list per instance); once PRs are merged the
 fallbacks are deleted again (R tasks). Order of work: K-10 – K-13 (framework, done), then S-01 – S-06 (features with fallbacks),
-the W tasks alongside, the R tasks when the owner reports a merge.
-
-### Website (GitHub Pages; each step its own commit)
-
-- [ ] **W-06** After each R task: delete that PR's row from the compatibility table; at R-13 remove the section (the
-      privilege explanation stays).
+the R tasks when the owner reports a merge.
 
 ## Removing the compatibility workarounds (R tasks, ADR 0013/0015)
 
@@ -28,7 +23,7 @@ the W tasks alongside, the R tasks when the owner reports a merge.
 condition for every R task:** the owner reports that the PR is merged **and** the servers run it (merged is not
 deployed). Afterwards the feature is assumed to exist: a failure shows a normal error again where the privilege list does not
 explain it, the fixture state of that PR is deleted and the tests are simplified, its row leaves the website table
-(W-06) and the register. The privilege-based part of the feature list (K-10 – K-12) stays for good.
+(R-50) and the register. The privilege-based part of the feature list (K-10 – K-12) stays for good.
 
 - [ ] **R-02** [#1709](https://github.com/engelsystem/engelsystem/pull/1709) (access concept): remove `COMPAT(#1709)` — the
       403 probe and the `API`/`Bureaucrat` wording, the fallback when `privileges` is missing from `GET /users/self`,
@@ -58,5 +53,8 @@ explain it, the fixture state of that PR is deleted and the tests are simplified
       privilege-based feature list, delete the "Server compatibility" section of the website (keep the privilege
       explanation), the register section in `docs/architecture.md`, mark ADR 0013 and 0015's temporary parts as done, and
       make sure `grep -rn "COMPAT("` finds nothing.
+
+- [ ] **R-50** (accompanies every R task above) After each R task: delete that PR's row from the website's compatibility
+      table; at R-13 remove the section (the privilege explanation stays).
 
 _(No other open tasks.)_

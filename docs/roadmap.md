@@ -66,8 +66,8 @@ Owner decisions (2026-10-13):
   supporters without "api"). #1721 shift types, #1722 shift lists/details (`shift_type.description`, `sign_out_until`,
   `tags`, `talk_url`, `night_shift`, `signup_available_from`), #1723 entries (`freeloaded`, `can_sign_out`,
   `user_comment`), #1724 `GET /shifts/{id}`, #1725 angel types, #1726 users/profiles (goodie score, vouchers).
-- Website updates are part of the plan (backlog W-01 – W-06).
-- Details: ADR 0015; backlog K-10 – K-13, S-01 – S-06, W-01 – W-06, R-02 – R-13. Nothing of this is implemented yet.
+- Website updates are part of the plan (backlog W-01 – W-05, R-50).
+- Details: ADR 0015; backlog K-10 – K-13, S-01 – S-06, W-01 – W-05, R-02 – R-13, R-50. Nothing of this is implemented yet.
 
 ## Open decisions
 
