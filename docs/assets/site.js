@@ -31,3 +31,33 @@
   });
 })();
 
+
+// Guide screenshots follow the theme: in dark mode every guide image is replaced by its "-dark" counterpart
+// (name.png -> name-dark.png); an image without one (the Watch screens are dark anyway) stays as it is.
+(function () {
+  var root = document.documentElement;
+  var images = Array.prototype.filter.call(document.querySelectorAll('img[src*="/assets/guide/"]'), function (img) {
+    return !/-dark\.png/.test(img.getAttribute('src')) && !/\/watch/.test(img.getAttribute('src'));
+  });
+  images.forEach(function (img) {
+    img.dataset.light = img.getAttribute('src');
+    img.addEventListener('error', function () {
+      if (img.dataset.darkMissing !== '1') {
+        img.dataset.darkMissing = '1';
+        img.setAttribute('src', img.dataset.light);
+      }
+    });
+  });
+  function apply() {
+    var dark = root.getAttribute('data-bs-theme') === 'dark';
+    images.forEach(function (img) {
+      if (dark && img.dataset.darkMissing !== '1') {
+        img.setAttribute('src', img.dataset.light.replace(/\.png$/, '-dark.png'));
+      } else {
+        img.setAttribute('src', img.dataset.light);
+      }
+    });
+  }
+  new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ['data-bs-theme'] });
+  apply();
+})();

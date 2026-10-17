@@ -37,6 +37,22 @@ if [[ -d "$MANUAL" ]]; then
   done
 fi
 
+# The dark appearance of the same screens (Scripts/screenshots.sh manual): <name>-dark.png next to the light image; the
+# website swaps them when the visitor switches to dark. The App Store set has no dark counterpart of its own, so the
+# top-level images (shifts, news, ...) take theirs from the manual set, which shows the same demo data.
+MANUAL_DARK="Screenshots/manual-dark/iphone/en"
+if [[ -d "$MANUAL_DARK" ]]; then
+  for file in "$MANUAL_DARK"/*.png; do
+    name="$(basename "$file" .png)"
+    name="${name#*-}"
+    if [[ -f "$OUT/$name.png" ]]; then
+      copy "$file" "$name-dark" 330
+    else
+      copy "$file" "screens/$name-dark" 330
+    fi
+  done
+fi
+
 # The Watch's Settings pages (Scripts/screenshots.sh manual), same idea: 01-settings-sync.png -> screens/watch-settings-sync.png.
 MANUAL_WATCH="Screenshots/manual/watch/en"
 if [[ -d "$MANUAL_WATCH" ]]; then

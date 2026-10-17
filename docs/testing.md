@@ -155,11 +155,13 @@ also stated in [`CLAUDE.md`](../CLAUDE.md).
 - **`ManualScreenshotTests`** (2026-10-16) is the second screenshot class: every iPhone screen once for the guide
   (`Scripts/screenshots.sh manual` → `Screenshots/manual/iphone/en/NN-<name>.png`, plus the Watch's Settings pages via the
   Debug-only `-open-settings -open-settings-page <Instances|Notifications|Sync|Diagnostics|About>` arguments into
-  `Screenshots/manual/watch/en/`; `Scripts/publish-guide-images.sh` turns them into `docs/assets/guide/screens/`). **A new
+  `Screenshots/manual/watch/en/`; `Scripts/publish-guide-images.sh` turns them into `docs/assets/guide/screens/`). The iPhone set is run twice, in light
+  (`Screenshots/manual/`) and in dark appearance (`Screenshots/manual-dark/`); the dark images are published as `<name>-dark.png`
+  and `docs/assets/site.js` swaps them in when the website is switched to dark (a missing dark image falls back to the light one). **A new
   screen needs a new scene in `ManualScreenshotTests` and its image in `guide.md`.** A scene whose screen cannot be reached is
   skipped, so after a run check the count and look at the images. The test passes `-reset-instances` (earlier runs leave a
-  second instance behind) and waits for the first sync. Not captured: the open color menu of an instance (system menus are not
-  in the accessibility tree here), the Watch's instance page.
+  second instance behind) and waits for the first sync. The open color menu is shot without waiting for an element (system menus
+  may not be in the accessibility tree); not captured: the Watch's instance page.
 
 ## Compatibility matrix (ADR 0015)
 

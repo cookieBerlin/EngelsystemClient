@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Generates the App Store screenshots from Demo Mode (UI test class ScreenshotTests, seeded by the Debug-only
 # `-seed-demo-instance` launch argument) into Screenshots/<device>/<language>/NN-<scene>.png (git-ignored).
-# Usage: Scripts/screenshots.sh [iphone|ipad|watch|all|manual]   (default: all; `manual` = every iPhone screen for the guide)
+# Usage: Scripts/screenshots.sh [iphone|ipad|watch|all|manual]   (default: all; `manual` = every iPhone screen for the guide,
+#        light into Screenshots/manual/ and dark into Screenshots/manual-dark/, plus the Watch pages)
 # Env:   IPHONE_TYPE (default iPhone-18-Pro-Max, the 6.9" class), IPAD_TYPE (default iPad-Pro-13-inch-M5-12GB),
 #        WATCH_TYPE (default Apple-Watch-Ultra-4-49mm)
 # The script creates and uses its own simulators ("EngelsystemClient Screenshots …"); yours stay untouched.
@@ -48,7 +49,7 @@ ensure_english() { # udid
   fi
 }
 
-# Boots the simulator with English (US), light appearance and the status bar Apple uses in marketing images
+# Boots the simulator with English (US), light appearance (APPEARANCE=dark for the dark guide images) and the status bar Apple uses in marketing images
 # (9:41, full battery without the charging bolt, Wi-Fi and cellular), and removes a previous install of the app so every run starts with
 # fresh state (including the notification permission prompt the test handles).
 prepare_simulator() { # udid
@@ -56,7 +57,7 @@ prepare_simulator() { # udid
   xcrun simctl boot "$udid" 2> /dev/null || true
   xcrun simctl bootstatus "$udid" -b > /dev/null
   ensure_english "$udid"
-  xcrun simctl ui "$udid" appearance light
+  xcrun simctl ui "$udid" appearance "${APPEARANCE:-light}"
   xcrun simctl status_bar "$udid" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 \
     --cellularMode active --cellularBars 4 --batteryState discharging --batteryLevel 100
   xcrun simctl uninstall "$udid" "$BUNDLE_ID" 2> /dev/null || true
@@ -247,6 +248,9 @@ main() {
       TEST_CLASS="ManualScreenshotTests"
       TARGET_BASE="Screenshots/manual"
       run_ui_device "iphone" "$(ensure_simulator "$IPHONE_NAME" "$IPHONE_TYPE")" "$IPHONE_SIZE"
+      # The same screens in dark appearance: the guide shows them when the visitor switches the website to dark.
+      TARGET_BASE="Screenshots/manual-dark"
+      APPEARANCE="dark" run_ui_device "iphone" "$(ensure_simulator "$IPHONE_NAME" "$IPHONE_TYPE")" "$IPHONE_SIZE"
       run_watch_manual
       return ;;
     *) echo "usage: $0 [iphone|ipad|watch|all|manual]" >&2; exit 2 ;;
