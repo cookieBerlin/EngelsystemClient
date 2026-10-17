@@ -82,9 +82,16 @@ whenever the UI or the demo data changes visibly.
   shift, and glance at your next shift on Apple Watch. Please test: adding your instance's
   server with an API key, shift reminders, the Watch app and complication, and pull-to-refresh.
   No server? Tap 'Try Demo Mode' on the first screen."
-- **What to Test** (per build): "First TestFlight build: setup and Demo Mode, Shifts/News/Profile/
-  Locations/Messages, reminders, Watch app and complication, Settings (including Export
-  Diagnostics)."
+- **What to Test** (per build), version 0.2.0: "Please test: (1) the new shift detail page (tap a shift) and the Filter menu of
+  Shifts and News; (2) several instances at once — colors, the colored bands and instance tags, display modes in
+  Settings > Instances, 'Parallel Syncs' and the sync banner with Stop/Skip; (3) one page per instance (name, server, API key, Save/
+  Discard) and its Features list — areas your server or account does not offer are hidden quietly; (4) tappable phone numbers
+  (Settings > Phone Numbers); (5) the map inside a location (Settings > Privacy); (6) Apple Watch: Settings pages, the larger
+  switch in Instances, and Diagnostics > Send Log to iPhone with the iPhone's Diagnostics > Logs received from Apple Watch.
+  The app also runs on Macs with Apple silicon — feedback welcome. Debug logging is on in the beta; please attach Settings >
+  Diagnostics > Export Diagnostics to bug reports (nothing is sent automatically). Demo Mode: 'Try Demo Mode' on the first screen."
+  *(0.1.0 was: "First TestFlight build: setup and Demo Mode, Shifts/News/Profile/Locations/Messages, reminders, Watch app and complication,
+  Settings (including Export Diagnostics).")*
 - **Beta App Review notes**: "No account is needed. On the first screen tap 'Try Demo Mode' — it
   uses built-in sample data and sends no API requests (the demo location “Workshop Room A” links to the project's GitHub page as its map). A real Engelsystem instance and API key
   are only needed to test against an actual server."

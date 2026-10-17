@@ -739,3 +739,15 @@ Closed record of the first TestFlight release (it used to be a roadmap item):
   Internal Testing group was set up 2026-10-12 with build 0.1.0 (2).
 - **Beta App Review**: submitted 2026-10-12 for build 0.1.0 (2) and **accepted 2026-10-13**; version 0.1.0 is available on
   TestFlight. Tag and GitHub Release: `v0.1.0` (see `docs/release.md` for the procedure of later builds).
+
+## TestFlight release of version 0.2.0 (2026-10-17)
+
+- Build 253 (the commit count of `8e0d82a`) was archived and uploaded from the Xcode Organizer; tag `v0.2.0` and a GitHub
+  Release carry the changelog section. Beta App Review was requested the same day (new "What to Test" text in
+  `docs/release.md`).
+- First release with the build number taken from git (`Scripts/embed-build-info.sh`). A CLI archive showed the iOS app, the
+  Watch app and the complication all at 253.
+- The guide images that show the version (About on the iPhone and on the Watch) were regenerated from that commit.
+  Gotcha: a Watch app built by the Watch UI test run (`Scripts/screenshots.sh`) reports build `2`, because that build path
+  does not run the stamping phase the way an archive does; the About image for the Watch was therefore taken from a plain
+  Watch build.
