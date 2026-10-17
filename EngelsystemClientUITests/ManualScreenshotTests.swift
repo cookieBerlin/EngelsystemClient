@@ -57,6 +57,12 @@ final class ManualScreenshotTests: ScreenshotTestCase {
             self.open("News")
             self.waitFor(self.app.staticTexts["Welcome to the Demo Congress!"])
             self.shot("news")
+            let filter = self.app.buttons["Filter"].firstMatch
+            if filter.waitForExistence(timeout: 3) {
+                filter.tap()
+                if self.app.buttons["Meetings"].waitForExistence(timeout: 3) { self.shot("news-filter-menu") }
+                self.dismissMenu()
+            }
             let readMore = self.app.buttons["Read More"].firstMatch
             if readMore.waitForExistence(timeout: 3) {
                 readMore.tap()
@@ -144,6 +150,14 @@ final class ManualScreenshotTests: ScreenshotTestCase {
                 }
                 self.app.swipeUp()
                 self.shot("instance-page-more")
+                let color = self.app.buttons["instanceColorPicker"].firstMatch
+                if color.exists {
+                    color.tap()
+                    // The system menu may not be in the accessibility tree, so the shot does not wait for an element.
+                    Thread.sleep(forTimeInterval: 1.5)
+                    self.shot("instance-color-menu")
+                    self.app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.5)).tap()
+                }
                 self.goBack(self.app)
             }
             let add = self.app.buttons["Add Instance"]
@@ -317,7 +331,8 @@ final class ManualScreenshotTests: ScreenshotTestCase {
     @MainActor
     private func dismissMenu() {
         // A tap on the top-left corner closes an open menu without choosing anything.
-        if app.buttons["Upcoming"].exists || app.buttons["Earliest First"].exists {
+        if app.buttons["Upcoming"].exists || app.buttons["Earliest First"].exists || app.buttons["Meetings"].exists
+            || app.buttons["Auto"].exists {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.5)).tap()
         }
     }

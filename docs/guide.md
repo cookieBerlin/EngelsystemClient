@@ -25,6 +25,13 @@ account with the app's developer and no tracking (see the [Privacy Policy](priva
 - It is **read-only for shifts**: you cannot sign up for or change shifts in the app. That needs support in the Engelsystem
   server first.
 
+## iPhone, iPad and Mac
+
+The app runs on **iPhone** and **iPad** (with a sidebar layout) and, through TestFlight, also on a **Mac with Apple silicon**:
+install the beta with the TestFlight app on the Mac (the same invitation link) and the iPhone/iPad app opens in its own window.
+The Mac app has everything the iPad app has except the Apple Watch functions. Your instances sync between your devices through
+iCloud. (The Mac version is part of the beta; its availability in the App Store depends on the release.)
+
 ## Try it without an account: Demo Mode
 
 On the first screen tap **Try Demo Mode** (it is the first block of the form). The app fills itself with sample data (shifts, news, a few messages) and makes no
@@ -87,7 +94,14 @@ shift.
 ![News comments](assets/guide/screens/news-comments.png){: width="200"}
 
 Announcements from the instance. Pinned posts come first. Tap **Read More** to expand long posts and the **comments** link to
-read the discussion. The filter button at the top shows only **Meetings** or only other posts.
+read the discussion.
+
+![News filter menu](assets/guide/screens/news-filter-menu.png){: width="200"}
+
+The **filter button** at the top right (three lines in a circle; the circle is filled while a filter is on) opens a menu with
+**All**, **Meetings** and **Non-Meetings**: show only the announcements that are meetings, only the others, or everything. The
+filter is not remembered — after the next start of the app the list shows **All** again. With several instances the filter applies to
+all of them.
 
 ### Profile
 
@@ -123,64 +137,127 @@ simply not offering it yet (it needs the open Engelsystem change
 
 ![Settings](assets/guide/settings.png){: width="240"}
 
-Settings is a short list of pages; each row shows a summary of its current state.
+Settings is a short list of pages; each row shows a summary of its current state. The gear button on the main screen opens it.
 
-![Instances](assets/guide/screens/settings-instances.png){: width="160"}
-![An instance](assets/guide/screens/instance-page.png){: width="160"}
-![An instance's Features list](assets/guide/screens/instance-features.png){: width="160"}
-![Notifications](assets/guide/screens/settings-notifications.png){: width="160"}
-![Sync](assets/guide/screens/settings-sync.png){: width="160"}
-![Phone Numbers](assets/guide/screens/settings-phone-numbers.png){: width="160"}
-![Privacy](assets/guide/screens/settings-privacy.png){: width="160"}
-![Diagnostics](assets/guide/screens/settings-diagnostics.png){: width="160"}
-![Export Diagnostics](assets/guide/screens/export-diagnostics.png){: width="160"}
-![Debug Log](assets/guide/screens/debug-log.png){: width="160"}
-![About](assets/guide/screens/settings-about.png){: width="160"}
+### Instances
 
-- **Instances**: all your instances. Use the switch to turn an instance on or off (switching one on refreshes its data right away); tap one to open its page: there you change its name, server or API key right on the page — **Save** and **Discard** (which asks first) appear as soon as
-  something changed, and saving does not need a successful connection test (**Test Connection** is optional) — or remove it (this also removes the data cached for it). **Multiple Active Instances** chooses how Shifts, News and Profile show
-  more than one active instance: **Merged** (one list, labeled by instance), **Switcher** (one instance at a time via a control at the
-  top) or **Sectioned** (one section per instance, each under a colored band you can tap to fold away). Every instance has a **color** (**Settings → Instances →** the instance → **Color**; "Auto" spreads the colors evenly, a picked color is kept on all your devices). **Parallel Syncs** sets how many instances are refreshed at the same time (Unlimited by default,
-  "1 at a time" syncs one after the other); the setting belongs to this device, and the Watch has its own.
+![Instances](assets/guide/screens/settings-instances.png){: width="200"}
+![An instance](assets/guide/screens/instance-page.png){: width="200"}
+![More on an instance's page](assets/guide/screens/instance-page-more.png){: width="200"}
 
-![Two instances](assets/guide/screens/settings-instances-two.png){: width="160"}
-![Shifts, sectioned](assets/guide/screens/shifts-sectioned.png){: width="160"}
-![Shifts, merged](assets/guide/screens/shifts-merged.png){: width="160"}
-![Locations, merged](assets/guide/screens/locations-merged.png){: width="160"}
-![News, sectioned](assets/guide/screens/news-sectioned.png){: width="160"}
-![Locations, sectioned](assets/guide/screens/locations-sectioned.png){: width="160"}
-- **Notifications**: the reminder times before each shift ("15 min", …). **Add Reminder** adds more, the red button removes
-  one. **Notify on New News** posts a notification when a background sync finds new announcements. **Apple Watch Reminders**
-  is the same for your Watch, independently of the iPhone list.
-- **Sync**: **Background Sync** sets how often the app may refresh in the background (iOS decides the exact moment, so it can
-  take longer than the interval); **Sync on App Start** refreshes when you open the app. The page also shows the iCloud status
-  and the last background sync.
-- **Phone Numbers**: which app opens internal and other numbers (see "Phone numbers" above).
-- **Privacy**: **Map Links** (a plain link or the map inside the location screen), automatic deletion of the map page's data and
-  **Delete Map Website Data**, plus a link to the privacy policy.
-- **Diagnostics**: **This iPhone** — **Debug Logging** (on by default in the beta), **View Debug Log** and **Export Diagnostics** for bug
-  reports (see the [FAQ](faq.md#something-is-wrong-how-do-i-report-it)). **Logs received from Apple Watch** — the logs the Watch sent,
-  to view, **Share All**, swipe to delete or **Delete All**; **Request Log from Apple Watch** asks the Watch to send its log, and
-  **Log on Apple Watch** switches the Watch's logging (it shows "Waiting for Apple Watch" until the Watch confirms). On the Watch:
-  **Settings → Diagnostics → Send Log to iPhone**. Nothing is sent unless you tap or request it.
-- **About**: version and build, and links to the guide, support, privacy policy and the source code.
+All your instances. Use the switch to turn an instance on or off (switching one on refreshes its data right away); tap one to open
+its page. There you change its **name**, **server** or **API key** right on the page — **Save** and **Discard** (which asks first)
+appear as soon as something changed, and saving does not need a successful connection test (**Test Connection** is optional).
+The page also shows the connection status, the **Features** list (see [below](#what-your-instance-offers-the-features-list)),
+the times of the last syncs and the **color** of the instance. **Remove Instance** deletes it together with the data cached for it.
+
+**Parallel Syncs** sets how many instances are refreshed at the same time (Unlimited by default, "1 at a time" syncs one after the
+other); the setting belongs to this device, and the Watch has its own.
+
+#### Several instances: display mode, colors and instance tags
+
+**Multiple Active Instances** chooses how Shifts, News, Locations, Messages and Profile show more than one active instance:
+
+- **Merged**: one list; every entry carries an **instance tag**.
+- **Switcher**: one instance at a time, chosen with a control at the top.
+- **Sectioned**: one section per instance, each under a **colored band** with the instance's name that you can tap to fold the section away.
+
+![Two instances](assets/guide/screens/settings-instances-two.png){: width="200"}
+![Shifts, sectioned](assets/guide/screens/shifts-sectioned.png){: width="200"}
+![Shifts, merged](assets/guide/screens/shifts-merged.png){: width="200"}
+
+Every instance has its own **color**. It is the color of the section band and of the **instance tag**: the small rounded label
+with the instance's name that sits at the entries of a merged list (a shift, a news post, a location, a conversation) so you can see
+at a glance which instance an entry belongs to. The same color shows as a dot at the instance in Settings. Pick it on the
+instance's page under **Color** (the menu lists the colors with a swatch); **Auto** spreads the colors evenly over your instances,
+and a color you picked is kept on all your devices.
+
+![The color menu of an instance](assets/guide/screens/instance-color-menu.png){: width="200"}
+![Locations, merged](assets/guide/screens/locations-merged.png){: width="200"}
+![News, sectioned](assets/guide/screens/news-sectioned.png){: width="200"}
+
+### Notifications
+
+![Notifications](assets/guide/screens/settings-notifications.png){: width="200"}
+
+The reminder times before each shift ("15 min", …). **Add Reminder** adds more, the red button removes one. **Notify on New News**
+posts a notification when a background sync finds new announcements. **Apple Watch Reminders** is the same for your Watch,
+independently of the iPhone list.
+
+### Sync
+
+![Sync](assets/guide/screens/settings-sync.png){: width="200"}
+
+**Background Sync** sets how often the app may refresh in the background (iOS decides the exact moment, so it can take longer than
+the interval); **Sync on App Start** refreshes when you open the app. The page also shows the iCloud status and the last
+background sync.
+
+### Phone Numbers
+
+![Phone Numbers](assets/guide/screens/settings-phone-numbers.png){: width="200"}
+
+Which app opens internal and other numbers (see "Phone numbers" above).
+
+### Privacy
+
+![Privacy](assets/guide/screens/settings-privacy.png){: width="200"}
+
+**Map Links** (a plain link or the map inside the location screen), automatic deletion of the map page's data and **Delete Map
+Website Data**, plus a link to the privacy policy.
+
+### Diagnostics
+
+![Diagnostics](assets/guide/screens/settings-diagnostics.png){: width="200"}
+![Export Diagnostics](assets/guide/screens/export-diagnostics.png){: width="200"}
+![Debug Log](assets/guide/screens/debug-log.png){: width="200"}
+
+**This iPhone** — **Debug Logging** (on by default in the beta), **View Debug Log** and **Export Diagnostics** for bug reports (see
+the [FAQ](faq.md#something-is-wrong-how-do-i-report-it)). **Logs received from Apple Watch** — the logs the Watch sent, to view,
+**Share All**, swipe to delete or **Delete All**; **Request Log from Apple Watch** asks the Watch to send its log, and **Log on
+Apple Watch** switches the Watch's logging (it shows "Waiting for Apple Watch" until the Watch confirms). On the Watch:
+**Settings → Diagnostics → Send Log to iPhone**. Nothing is sent unless you tap or request it.
+
+### About
+
+![About](assets/guide/screens/settings-about.png){: width="200"}
+
+Version and build, and links to the guide, support, privacy policy and the source code.
 
 ## Apple Watch
 
 ![Next Shift on Apple Watch](assets/guide/watch-next-shift.png){: width="160"}
-![Watch settings](assets/guide/watch-settings.png){: width="160"}
-![Watch: Instances](assets/guide/screens/watch-settings-instances.png){: width="140"}
-![Watch: Notifications](assets/guide/screens/watch-settings-notifications.png){: width="140"}
-![Watch: Sync](assets/guide/screens/watch-settings-sync.png){: width="140"}
-![Watch: Diagnostics](assets/guide/screens/watch-settings-diagnostics.png){: width="140"}
-![Watch: About](assets/guide/screens/watch-settings-about.png){: width="140"}
 
-The Watch app shows only your **next shift** (name, time, location) and works on its own, without the iPhone nearby. Its
-**Settings** are a list of pages like the iPhone's: **Instances** (switch instances on or off, add one directly on the Watch, Parallel Syncs), **Notifications** (the Watch's own reminder times), **Sync**, **Diagnostics** (its own debug logging switch and **Send Log to iPhone**) and **About**.
-Your instances are shared between iPhone and Watch through iCloud.
+The Watch app shows only your **next shift** (name, time, location) and works on its own, without the iPhone nearby. Your
+instances are shared between iPhone and Watch through iCloud.
 
 To add the **complication**: on the Watch, touch and hold the watch face, tap **Edit**, choose a complication slot and pick
 **Next Shift** (circular, rectangular and inline styles are available).
+
+### Watch settings
+
+![Watch settings](assets/guide/watch-settings.png){: width="160"}
+
+Its **Settings** are a list of pages like the iPhone's.
+
+- **Instances** — switch instances on or off (tap the switch; tapping the name opens the instance), add one directly on the Watch, Parallel Syncs.
+
+  ![Watch: Instances](assets/guide/screens/watch-settings-instances.png){: width="140"}
+
+- **Notifications** — the Watch's own reminder times.
+
+  ![Watch: Notifications](assets/guide/screens/watch-settings-notifications.png){: width="140"}
+
+- **Sync** — sync on app start; background sync by interval is not available on the Watch.
+
+  ![Watch: Sync](assets/guide/screens/watch-settings-sync.png){: width="140"}
+
+- **Diagnostics** — its own debug logging switch and **Send Log to iPhone**.
+
+  ![Watch: Diagnostics](assets/guide/screens/watch-settings-diagnostics.png){: width="140"}
+
+- **About** — version and iCloud status.
+
+  ![Watch: About](assets/guide/screens/watch-settings-about.png){: width="140"}
 
 ## What your instance offers: the Features list
 

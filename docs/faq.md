@@ -72,6 +72,11 @@ Tap the colored band of an instance in the "Sectioned" view to fold its entries 
 Shifts, News and Profile show data from all active instances. **Settings → Instances → Multiple Active Instances** chooses between one merged
 list, a switcher, or one section per instance. Each row shows a small badge with its instance.
 
+### Does the app run on a Mac?
+
+Yes, on a Mac with Apple silicon: install the beta with the TestFlight app on the Mac (same invitation link); the iPhone/iPad
+app opens in its own window. The Apple Watch functions are not part of it. Your instances sync through iCloud.
+
 ### Can I sign up for or swap shifts?
 
 Not yet. The app is read-only for shifts by design; signing up needs support in the Engelsystem server's API first.
