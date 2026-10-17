@@ -192,11 +192,13 @@ private struct WatchInstancesSettingsView: View {
                     EmptyView()
                 }
                 .labelsHidden()
-                // A wider, taller tap area: a switch alone is small, and a tap that just misses it opens the instance.
-                .frame(minWidth: 64, minHeight: 44)
+                // A wider tap area over the full row height (like the "Add Instance" button below): a switch alone is
+                // small, and a tap that just misses it opens the instance.
+                .frame(minWidth: 64, maxHeight: .infinity)
                 .contentShape(Rectangle())
                 .accessibilityLabel("\(instance.name) Active")
             }
+            .frame(minHeight: 44)
         }
     }
 
