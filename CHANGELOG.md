@@ -6,6 +6,8 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-17
+
 ### Added
 - Shift details: tapping a shift opens a page with the shift type and its description, the team by angel type ("2 of 3",
   your own entry highlighted, "did not show up" marks), tags, night-shift hint, talk link and — on your own shifts —
@@ -70,6 +72,8 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - Watch: the active switch in Settings → Instances has a larger tap area, so a tap that just misses it no longer opens the instance.
+- The build number is now the number of commits of the version (Settings › About shows it with the commit hash); it is no longer counted by hand.
+- Watch Diagnostics: Debug Logging and Send Log to iPhone are on the first screen.
 - Missing rights or functions are no longer shown as errors: areas the server or your account does not offer are simply
   hidden. Settings › Instances › [instance] has a **Features** list that shows what is available and why something is not;
   “Test Connection” shows a short summary instead of the former 403 warning.
@@ -111,5 +115,6 @@ First TestFlight build (version 0.1.0, build 2).
   30 days / 1 MB, and nothing is sent automatically.
 - Privacy Policy and Support pages published via GitHub Pages.
 
-[Unreleased]: https://github.com/cookieBerlin/EngelsystemClient/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/cookieBerlin/EngelsystemClient/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/cookieBerlin/EngelsystemClient/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cookieBerlin/EngelsystemClient/releases/tag/v0.1.0

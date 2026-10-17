@@ -10,8 +10,8 @@ Part of the Engelsystem Client documentation set — see [`CLAUDE.md`](../CLAUDE
 | Watch app | `net.cuccato.engelsystem.de.EngelsystemClient.watchkitapp` |
 | Complication extension | `net.cuccato.engelsystem.de.EngelsystemClient.watchkitapp.nextshiftcomplication` |
 
-Team ID `8A5FNU94BM` (not secret). Version `0.1.0` (build `1`) in
-`project.pbxproj` (`MARKETING_VERSION`/`CURRENT_PROJECT_VERSION`).
+Team ID `8A5FNU94BM` (not secret). Version `0.2.0` in
+`project.pbxproj` (`MARKETING_VERSION`); the build number is the commit count (see "Build number" below).
 The history of the namespace changes is in [`history.md`](history.md).
 
 ## Privacy and legal pages
