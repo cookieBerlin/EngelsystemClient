@@ -26,6 +26,12 @@ the R tasks when the owner reports a merge.
 - [ ] **W-12** Device check on the Watch: the active switch in Settings › Instances now spans the full row height
       (commit `de752b0`); confirm that tapping it is easy and the name side still opens the instance. If not, tune
       `WatchSettingsView.instanceRow`.
+- [ ] **W-13** Mac: check in App Store Connect that the app is available for the Mac (Pricing and Availability → *Make this
+      app available* on Apple silicon Macs; TestFlight on the Mac worked in the owner's first test). The guide and the FAQ
+      already say the beta runs on a Mac with Apple silicon through TestFlight (without the Watch functions) — confirm the
+      wording (same invitation link, window behaviour) and correct `docs/guide.md` / `docs/faq.md` if it differs.
+- [ ] **W-14** After the next screenshot publication, look at the live guide once in light and in dark mode (the images swap
+      to `<name>-dark.png`; a missing dark image must fall back to the light one) and on a phone-width window.
 
 ## Removing the compatibility workarounds (R tasks, ADR 0013/0015)
 
