@@ -15,6 +15,18 @@ rights or functions are **never errors** (silent hiding plus a feature list per 
 fallbacks are deleted again (R tasks). Order of work: K-10 – K-13 (framework, done), then S-01 – S-06 (features with fallbacks),
 the R tasks when the owner reports a merge.
 
+## Website and device checks (owner)
+
+- [ ] **W-10** Search visibility: register `https://cookieberlin.github.io/EngelsystemClient/` in Google Search Console
+      (URL-prefix property, verify with a meta tag — the owner hands the tag over and it goes into
+      `docs/_layouts/default.html`), submit `sitemap.xml` and request indexing of the start page. Check after a few weeks
+      that searching for the app name finds the site.
+- [ ] **W-11** Backlinks: link the site from the GitHub profile, the Engelsystem community (forum/chat) and, once it exists,
+      the App Store listing (marketing and support URL); search engines rank an unlinked new site very low.
+- [ ] **W-12** Device check on the Watch: the active switch in Settings › Instances now spans the full row height
+      (commit `de752b0`); confirm that tapping it is easy and the name side still opens the instance. If not, tune
+      `WatchSettingsView.instanceRow`.
+
 ## Removing the compatibility workarounds (R tasks, ADR 0013/0015)
 
 **Fallbacks are temporary.** Every code path, comment and test that exists only because a PR is not merged is tagged
