@@ -116,6 +116,7 @@ added by hand; hours from your shifts are not part of that list.
 ![Locations](assets/guide/locations.png){: width="240"}
 
 ![Location details](assets/guide/screens/location-detail.png){: width="200"}
+![A location with its website](assets/guide/screens/location-detail-website.png){: width="200"}
 
 All rooms and places of the instance with their descriptions. Tap one for details such as a DECT number and a link to the map. The map page is shown right inside the location screen (almost full screen, loaded fresh each time) with an **Open Map in Browser**
 button. The map page's cookies (for example your consent) stay on your device; the app deletes them every 30 days by default (or keeps them only until you quit the app, if you choose that); in **Settings › Privacy** you can change that, delete them yourself or
