@@ -119,30 +119,16 @@ both added via the `xcodeproj` Ruby gem, not by hand-editing
     claims that path as its output (`"duplicate output file"` build
     error) — confirmed both failure modes hands-on before landing on
     disabling sandboxing for these two targets as the practical fix.
-- **Build number (`CURRENT_PROJECT_VERSION`/`CFBundleVersion`) only
-  auto-increments when archiving**, not on every build — deliberately
-  *not* done via a per-target Run Script Build Phase gated on
-  `${ACTION}`, because the iOS app target depends on (and builds after)
-  the Watch app target, so a phase living on the iOS target would bump
-  the version too late for the already-built Watch app's own Info.plist.
-  Instead: `VERSIONING_SYSTEM = apple-generic` on both targets (enables
-  `agvtool`), plus an **Archive-action pre-action** on the
-  `EngelsystemClient.xcscheme` scheme (`<PreActions>` under
-  `<ArchiveAction>`) running `xcrun agvtool next-version -all`, which
-  runs once, before *any* target starts building, and bumps
-  `CURRENT_PROJECT_VERSION` across every target in the project
-  consistently (confirmed hands-on: 1 → 2 across all 14 build configs in
-  one invocation, iOS + Watch + both test targets + Complication).
-  **Verified 2026-10-12 (first real archive): `xcodebuild archive` from the command
-  line *does* run the pre-action too**, but the bump then lands *during* the build —
-  the app target had already read build number 1 while the complication's
-  `Info.plist` picked up the freshly written literal `2`, so the archive was
-  inconsistent (app 1 / complication 2) and would fail App Store validation. For a
-  CLI archive pass the number explicitly (`xcodebuild archive … CURRENT_PROJECT_VERSION=<n>`
-  where `<n>` is the current number + 1) so every bundle agrees, then commit the bumped
-  `project.pbxproj`/`EngelsystemComplication/Info.plist`. In Xcode's UI (Product →
-  Archive) the pre-action runs before the build and is consistent. `agvtool` also prints
-  `Cannot find "NO"`/`Cannot find "YES"` noise while doing this — harmless.
+- **Build number (`CFBundleVersion`) = number of commits** (`git rev-list --count HEAD`), set by
+  `Scripts/embed-build-info.sh`, a build phase of the iOS app and the Watch app (changed 2026-10-17; before, an
+  `agvtool next-version` archive pre-action bumped it by hand-managed counting). The phase writes the number (and the
+  short hash for Settings › About) into the built `Info.plist` of the app **and** of the extensions embedded in it —
+  the complication has no phase of its own because its sandboxed build cannot read `.git` and sandboxing stays on there.
+  Every commit therefore has its own rising number, an archive of a tagged commit always has the same number in all
+  bundles, and nothing is bumped or committed for an upload. `CURRENT_PROJECT_VERSION` in the project is only the
+  fallback (no git history, e.g. a source archive) and for the test targets. A re-upload of the same commit is rejected
+  by App Store Connect (same build number): make a commit first (any real change). Rewriting history (squash/rebase)
+  can lower the count — never do that after an upload.
 - **App Group** `group.net.cuccato.engelsystem.de.shared` (Watch app + `EngelsystemComplication`
   extension only, not iOS): shares the next-shift snapshot with the complication
   process (see "Watch app scope" in [`CLAUDE.md`](../CLAUDE.md) and "Complication" in

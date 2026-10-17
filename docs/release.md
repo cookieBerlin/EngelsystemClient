@@ -15,11 +15,12 @@ Run top to bottom for every build. Identifiers and metadata:
 2. `swift test` in `EngelsystemClientKit` green, plus a full Xcode build of
    the iOS app **and** the Watch app (`xcodebuild build -scheme …`) and the
    app test targets.
-3. Bump `CURRENT_PROJECT_VERSION` for every upload; bump
-   `MARKETING_VERSION` for a new release (both in the Xcode project).
+3. The build number is the commit count and needs no bump (see "Build number" in [`app-store.md`](app-store.md));
+   bump `MARKETING_VERSION` for a new release (in the Xcode project). Commit first — the same commit cannot be
+   uploaded twice.
 4. Check [`privacy.md`](privacy.md) still matches the shipped data handling.
 5. **Changelog:** in the commit that bumps the version, rename `## [Unreleased]` in
-   [`CHANGELOG.md`](../CHANGELOG.md) to `## [<MARKETING_VERSION>] - <date>` (note the build number),
+   [`CHANGELOG.md`](../CHANGELOG.md) to `## [<MARKETING_VERSION>] - <date>` (the build number is `git rev-list --count v<version>`, so it is not written down),
    add a fresh empty `## [Unreleased]` above it and update the compare links at the bottom.
 
 ## Archive and upload
@@ -28,7 +29,7 @@ The signed-in Apple account lives in Xcode's GUI session: `xcodebuild -exportArc
 from a terminal fails with "No Accounts", so **distribute from the Xcode Organizer**
 (Window → Organizer → Archives → Distribute App → App Store Connect → Upload). A CLI
 archive is fine for validating that the project builds and embeds the Watch app and
-complication — see "Build number" in [`app-store.md`](app-store.md) for the number gotcha.
+complication.
 
 1. Scheme `EngelsystemClient`, destination *Any iOS Device*.
 2. Product → Archive → Organizer → Distribute App → App Store Connect →

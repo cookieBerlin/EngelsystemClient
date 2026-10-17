@@ -269,7 +269,7 @@
 				7605052030457830002B3D76 /* Frameworks */,
 				7605052130457830002B3D76 /* Resources */,
 				76050577304578E0002B3D76 /* Embed Watch Content */,
-				469D78827F85D99F0CFB2CFE /* Embed Git Commit Hash */,
+				469D78827F85D99F0CFB2CFE /* Embed Build Info */,
 			);
 			buildRules = (
 			);
@@ -337,7 +337,7 @@
 				76050550304578DE002B3D76 /* Frameworks */,
 				76050551304578DE002B3D76 /* Resources */,
 				BB559827279462079AE73281 /* Embed Foundation Extensions */,
-				A70801071B8AF514865C281A /* Embed Git Commit Hash */,
+				A70801071B8AF514865C281A /* Embed Build Info */,
 			);
 			buildRules = (
 			);
@@ -532,7 +532,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		469D78827F85D99F0CFB2CFE /* Embed Git Commit Hash */ = {
+		469D78827F85D99F0CFB2CFE /* Embed Build Info */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -542,16 +542,16 @@
 			);
 			inputPaths = (
 			);
-			name = "Embed Git Commit Hash";
+			name = "Embed Build Info";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "GIT_HASH=$(git -C \"${SRCROOT}\" rev-parse --short HEAD 2>/dev/null || echo \"unknown\")\nPLIST=\"${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Delete :GitCommitHash\" \"${PLIST}\" 2>/dev/null\n/usr/libexec/PlistBuddy -c \"Add :GitCommitHash string ${GIT_HASH}\" \"${PLIST}\"\n";
+			shellScript = "\"${SRCROOT}/Scripts/embed-build-info.sh\"\n";
 		};
-		A70801071B8AF514865C281A /* Embed Git Commit Hash */ = {
+		A70801071B8AF514865C281A /* Embed Build Info */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -561,14 +561,14 @@
 			);
 			inputPaths = (
 			);
-			name = "Embed Git Commit Hash";
+			name = "Embed Build Info";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "GIT_HASH=$(git -C \"${SRCROOT}\" rev-parse --short HEAD 2>/dev/null || echo \"unknown\")\nPLIST=\"${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Delete :GitCommitHash\" \"${PLIST}\" 2>/dev/null\n/usr/libexec/PlistBuddy -c \"Add :GitCommitHash string ${GIT_HASH}\" \"${PLIST}\"\n";
+			shellScript = "\"${SRCROOT}/Scripts/embed-build-info.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
