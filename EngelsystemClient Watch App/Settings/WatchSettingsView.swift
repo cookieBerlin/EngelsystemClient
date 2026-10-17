@@ -302,6 +302,7 @@ private struct WatchDiagnosticsSettingsView: View {
 
     var body: some View {
         List {
+            // One section, so the switch and the send button are both on the first screen (the explanations follow below).
             Section {
                 // The switch changes through the model, which also remembers when (the newer change wins against
                 // the iPhone's remote switch).
@@ -309,12 +310,6 @@ private struct WatchDiagnosticsSettingsView: View {
                     get: { isDebugLoggingEnabled },
                     set: { viewModel.setLogging($0) }
                 ))
-            } footer: {
-                Text("Records this app's internal activity on the Watch for troubleshooting. Never includes API keys or other secrets.")
-                    .font(.caption2)
-            }
-
-            Section {
                 Button {
                     viewModel.sendLog()
                     entryCount = DebugLog.shared.entries.count
@@ -333,7 +328,7 @@ private struct WatchDiagnosticsSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             } footer: {
-                Text("Only when you tap. The log goes to your own iPhone, nowhere else.")
+                Text("Debug Logging records this app's internal activity on the Watch for troubleshooting; it never includes API keys or other secrets. The log is sent only when you tap, to your own iPhone, nowhere else.")
                     .font(.caption2)
             }
         }
