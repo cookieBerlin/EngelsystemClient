@@ -89,6 +89,20 @@ final class ManualScreenshotTests: ScreenshotTestCase {
             }
         }
 
+        scene("location-website") {
+            // Workshop Room A is the demo location with a web address: its detail page shows the embedded website.
+            self.open("Locations")
+            let room = self.containing("Workshop Room A", in: self.app)
+            self.waitFor(room)
+            if room.exists {
+                room.tap()
+                if self.app.navigationBars["Workshop Room A"].waitForExistence(timeout: 5) {
+                    Thread.sleep(forTimeInterval: 10) // the page comes from the internet
+                    self.shot("location-detail-website")
+                }
+            }
+        }
+
         scene("messages") {
             self.open("Messages")
             let conversation = self.containing("Helper Angel", in: self.app)
