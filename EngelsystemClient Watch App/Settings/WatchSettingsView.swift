@@ -192,6 +192,9 @@ private struct WatchInstancesSettingsView: View {
                     EmptyView()
                 }
                 .labelsHidden()
+                // A wider, taller tap area: a switch alone is small, and a tap that just misses it opens the instance.
+                .frame(minWidth: 64, minHeight: 44)
+                .contentShape(Rectangle())
                 .accessibilityLabel("\(instance.name) Active")
             }
         }

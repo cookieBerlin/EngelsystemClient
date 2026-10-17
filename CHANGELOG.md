@@ -69,6 +69,7 @@ versioning: [Semantic Versioning](https://semver.org/).
   “my own account” support for work logs are no longer supported.
 
 ### Changed
+- Watch: the active switch in Settings → Instances has a larger tap area, so a tap that just misses it no longer opens the instance.
 - Missing rights or functions are no longer shown as errors: areas the server or your account does not offer are simply
   hidden. Settings › Instances › [instance] has a **Features** list that shows what is available and why something is not;
   “Test Connection” shows a short summary instead of the former 403 warning.
