@@ -122,7 +122,7 @@ server, contact that event's organizers.
 These pages are static and served by GitHub Pages. They use no cookies, no analytics and no external resources — all files
 (including the stylesheet and scripts) come from this site itself. If you switch between light and dark mode, your choice is
 stored only in your own browser (local storage) and is never sent anywhere. As the hosting provider, GitHub may process
-technical data such as your IP address when you visit; see GitHub's privacy statement.
+technical data such as your IP address when you visit; see [GitHub's General Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
 
 ## Children's privacy
 
