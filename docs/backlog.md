@@ -22,10 +22,12 @@ the R tasks when the owner reports a merge.
       the app name finds the site, then remove this item.
 - [ ] **W-11** Backlinks: link the site from the GitHub profile, the Engelsystem community (forum/chat) and, once it exists,
       the App Store listing (marketing and support URL); search engines rank an unlinked new site very low.
-- [ ] **W-13** Mac: plan an explicit test of the app on a Mac with Apple silicon (TestFlight install, window sizes and
-      resizing, sidebar layout, keyboard and pointer, notifications, phone-number links, the embedded
-      map, debug log export). Availability in the store and the Xcode setting are confirmed (2026-10-17; Release build
-      `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES`). iCloud sync of instances works on the Mac (2026-10-19, after the CloudKit schema was deployed to Production). Afterwards replace the careful "not tested in depth yet" wording in
+- [ ] **W-13** Mac: explicit test of the app on a Mac with Apple silicon. Availability in the store and the Xcode setting are
+      confirmed (2026-10-17; Release build `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES`). Done (2026-10-19): TestFlight
+      install and start, iCloud sync of instances (after the CloudKit schema was deployed to Production), window sizes and
+      resizing, sidebar layout and navigation, keyboard and pointer. Still to test: notifications (permission, shift
+      reminders as Mac notifications), phone-number links (call, copy, softphone choice), the embedded map and “Open Map in
+      Browser”, debug log export (share menu). Afterwards replace the careful "not tested in depth yet" wording in
       `docs/guide.md` and `docs/faq.md` by what the test showed.
 - [ ] **W-14** After the next screenshot publication, look at the live guide once in light and in dark mode (the images swap
       to `<name>-dark.png`; a missing dark image must fall back to the light one) and on a phone-width window.
