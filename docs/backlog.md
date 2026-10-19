@@ -20,8 +20,6 @@ the R tasks when the owner reports a merge.
 - [ ] **W-10** Search visibility: the site is verified in Google Search Console, `sitemap.xml` is submitted and indexing of the
       start page is requested (all 2026-10-19). Still to do: after a few weeks (about 2026-11-09) check that searching for
       the app name finds the site, then remove this item.
-- [ ] **W-11** Backlinks: link the site from the GitHub profile, the Engelsystem community (forum/chat) and, once it exists,
-      the App Store listing (marketing and support URL); search engines rank an unlinked new site very low.
 - [ ] **W-13** Mac: explicit test of the app on a Mac with Apple silicon. Availability in the store and the Xcode setting are
       confirmed (2026-10-17; Release build `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES`). Done (2026-10-19): TestFlight
       install and start, iCloud sync of instances (after the CloudKit schema was deployed to Production), window sizes and
