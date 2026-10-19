@@ -9,6 +9,7 @@
   <title>{{ page_title }}</title>
   <meta name="description" content="{{ page_description }}">
   <link rel="canonical" href="{{ page_url }}">
+  {% if page.google_site_verification %}<meta name="google-site-verification" content="{{ page.google_site_verification }}" />{% endif %}
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="{{ site.title }}">
   <meta property="og:title" content="{{ page_title }}">
