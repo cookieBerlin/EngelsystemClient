@@ -41,8 +41,11 @@ struct PhoneNumberActionTests {
         #expect(preference.url(for: internalNumber)?.absoluteString == "cloudsip:1000?dialAction=videoCall")
         preference.action = .text
         #expect(preference.url(for: internalNumber)?.absoluteString == "cloudsip:1000?dialAction=text")
+        preference.app = .teams
+        #expect(preference.url(for: other)?.absoluteString == "msteams://teams.microsoft.com/l/call/0/0?users=4:+4930123456")
+        #expect(preference.app.scheme == nil)
         #expect(CallAction.allCases.map(\.title).count == 4)
-        #expect(CallApp.allCases.map(\.title).count == 6)
+        #expect(CallApp.allCases.map(\.title).count == 7)
     }
 
     @Test func copyOnlyHasNoLink() throws {

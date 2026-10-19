@@ -197,7 +197,9 @@ background sync.
 
 ![Phone Numbers](assets/guide/screens/settings-phone-numbers.png){: width="200"}
 
-Which app opens internal and other numbers (see "Phone numbers" above).
+Which app opens internal and other numbers (see "Phone numbers" above): the system default, Acrobits Softphone, Groundwire,
+Cloud Softphone, Microsoft Teams, a custom link or copy only. On a Mac the system default is whatever app handles `tel:` links there
+(often Teams); choose another entry to change that.
 
 ### Privacy
 

@@ -42,6 +42,8 @@ enum CallApp: String, CaseIterable, Identifiable {
     case acrobitsSoftphone
     case groundwire
     case cloudSoftphone
+    /// Microsoft Teams' call deep link (`msteams://…/l/call/0/0?users=4:<number>`, `4:` marks a phone number).
+    case teams
     case custom
     /// No link at all, the number can only be copied.
     case copyOnly
@@ -54,6 +56,7 @@ enum CallApp: String, CaseIterable, Identifiable {
         case .acrobitsSoftphone: return "Acrobits Softphone"
         case .groundwire: return "Groundwire"
         case .cloudSoftphone: return "Cloud Softphone"
+        case .teams: return "Microsoft Teams"
         case .custom: return "Custom Scheme"
         case .copyOnly: return "Copy Only"
         }
@@ -65,7 +68,7 @@ enum CallApp: String, CaseIterable, Identifiable {
         case .acrobitsSoftphone: return "asoftphone"
         case .groundwire: return "groundwire"
         case .cloudSoftphone: return "cloudsip"
-        case .system, .custom, .copyOnly: return nil
+        case .system, .teams, .custom, .copyOnly: return nil
         }
     }
 }
@@ -122,6 +125,7 @@ struct CallPreference: Equatable {
         switch app {
         case .copyOnly: return nil
         case .custom: return customTemplate
+        case .teams: return "msteams://teams.microsoft.com/l/call/0/0?users=4:" + Self.numberPlaceholder
         case .system: return (kind == .internalNumber ? "sip:" : "tel:") + Self.numberPlaceholder
         case .acrobitsSoftphone, .groundwire, .cloudSoftphone:
             let base = [app.scheme, Self.numberPlaceholder].compactMap { $0 }.joined(separator: ":")

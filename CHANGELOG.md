@@ -6,6 +6,10 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Settings › Phone Numbers: **Microsoft Teams** can be chosen as the app that opens phone numbers (useful on a Mac where Teams
+  handles `tel:` links anyway, or to call through Teams on the iPhone).
+
 ## [0.2.0] - 2026-10-17
 
 ### Added
