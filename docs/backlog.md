@@ -22,9 +22,6 @@ the R tasks when the owner reports a merge.
       the app name finds the site, then remove this item.
 - [ ] **W-11** Backlinks: link the site from the GitHub profile, the Engelsystem community (forum/chat) and, once it exists,
       the App Store listing (marketing and support URL); search engines rank an unlinked new site very low.
-- [ ] **W-12** Device check on the Watch: the active switch in Settings › Instances now spans the full row height
-      (commit `de752b0`); confirm that tapping it is easy and the name side still opens the instance. If not, tune
-      `WatchSettingsView.instanceRow`.
 - [ ] **W-13** Mac: plan an explicit test of the app on a Mac with Apple silicon (TestFlight install, window sizes and
       resizing, sidebar layout, keyboard and pointer, iCloud sync of instances, notifications, phone-number links, the embedded
       map, debug log export). Availability in the store and the Xcode setting are confirmed (2026-10-17; Release build
