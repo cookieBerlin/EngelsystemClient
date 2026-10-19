@@ -17,10 +17,10 @@ the R tasks when the owner reports a merge.
 
 ## Website and device checks (owner)
 
-- [ ] **W-10** Search visibility: register `https://cookieberlin.github.io/EngelsystemClient/` in Google Search Console
-      (URL-prefix property, verify with a meta tag — the owner hands the tag over and it goes into
-      `docs/_layouts/default.html`), submit `sitemap.xml` and request indexing of the start page. Check after a few weeks
-      that searching for the app name finds the site.
+- [ ] **W-10** Search visibility: the property `https://cookieberlin.github.io/EngelsystemClient/` is verified in Google Search
+      Console (2026-10-19, meta tag via the `google_site_verification` front matter of `docs/index.html`). Still to do:
+      submit `sitemap.xml`, request indexing of the start page, and check after a few weeks that searching for the app
+      name finds the site.
 - [ ] **W-11** Backlinks: link the site from the GitHub profile, the Engelsystem community (forum/chat) and, once it exists,
       the App Store listing (marketing and support URL); search engines rank an unlinked new site very low.
 - [ ] **W-12** Device check on the Watch: the active switch in Settings › Instances now spans the full row height
