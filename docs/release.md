@@ -18,8 +18,12 @@ Run top to bottom for every build. Identifiers and metadata:
 3. The build number is the commit count and needs no bump (see "Build number" in [`app-store.md`](app-store.md));
    bump `MARKETING_VERSION` for a new release (in the Xcode project). Commit first — the same commit cannot be
    uploaded twice.
-4. Check [`privacy.md`](privacy.md) still matches the shipped data handling.
-5. **Changelog:** in the commit that bumps the version, rename `## [Unreleased]` in
+4. **CloudKit schema:** if a SwiftData model changed (new model, new or changed field), open the CloudKit Dashboard,
+   container `iCloud.net.cuccato.engelsystem.de`, and *Deploy Schema Changes* from Development to Production **before**
+   the build reaches testers. TestFlight and App Store builds use the Production environment; without the deployed
+   schema the sync of instances fails silently (history: 2026-10-19).
+5. Check [`privacy.md`](privacy.md) still matches the shipped data handling.
+6. **Changelog:** in the commit that bumps the version, rename `## [Unreleased]` in
    [`CHANGELOG.md`](../CHANGELOG.md) to `## [<MARKETING_VERSION>] - <date>` (the build number is `git rev-list --count v<version>`, so it is not written down),
    add a fresh empty `## [Unreleased]` above it and update the compare links at the bottom.
 

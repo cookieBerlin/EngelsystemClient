@@ -23,9 +23,9 @@ the R tasks when the owner reports a merge.
 - [ ] **W-11** Backlinks: link the site from the GitHub profile, the Engelsystem community (forum/chat) and, once it exists,
       the App Store listing (marketing and support URL); search engines rank an unlinked new site very low.
 - [ ] **W-13** Mac: plan an explicit test of the app on a Mac with Apple silicon (TestFlight install, window sizes and
-      resizing, sidebar layout, keyboard and pointer, iCloud sync of instances, notifications, phone-number links, the embedded
+      resizing, sidebar layout, keyboard and pointer, notifications, phone-number links, the embedded
       map, debug log export). Availability in the store and the Xcode setting are confirmed (2026-10-17; Release build
-      `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES`). Afterwards replace the careful "not tested in depth yet" wording in
+      `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES`). iCloud sync of instances works on the Mac (2026-10-19, after the CloudKit schema was deployed to Production). Afterwards replace the careful "not tested in depth yet" wording in
       `docs/guide.md` and `docs/faq.md` by what the test showed.
 - [ ] **W-14** After the next screenshot publication, look at the live guide once in light and in dark mode (the images swap
       to `<name>-dark.png`; a missing dark image must fall back to the light one) and on a phone-width window.

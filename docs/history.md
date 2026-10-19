@@ -751,3 +751,13 @@ Closed record of the first TestFlight release (it used to be a roadmap item):
   Gotcha: a Watch app built by the Watch UI test run (`Scripts/screenshots.sh`) reports build `2`, because that build path
   does not run the stamping phase the way an archive does; the About image for the Watch was therefore taken from a plain
   Watch build.
+
+## Instances did not sync in TestFlight: CloudKit schema missing in Production (2026-10-19)
+
+- Symptom: the first test of 0.2.0 on a Mac (iPhone app on Apple silicon) started fine, Settings showed iCloud as active, but
+  the instances of the other devices never arrived; the debug log showed `Instance is CloudKit-backed` and
+  `accountStatus = 1` and no error at all.
+- Cause: the CloudKit schema had never been deployed from Development to Production. TestFlight builds use Production, so
+  the mirroring failed silently. Fixed by *Deploy Schema Changes* in the CloudKit Dashboard; the sync worked right after.
+- Lesson: an available iCloud account says nothing about the schema. `docs/release.md` now lists the deployment as a step
+  before archiving whenever a model changed.
