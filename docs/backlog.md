@@ -18,8 +18,12 @@ the R tasks when the owner reports a merge.
 ## Website and device checks (owner)
 
 - [ ] **W-10** Search visibility: the site is verified in Google Search Console, `sitemap.xml` is submitted and indexing of the
-      start page is requested (all 2026-10-19). Still to do: after a few weeks (about 2026-11-09) check that searching for
-      the app name finds the site, then remove this item.
+      start page is requested (all 2026-10-19); the start page is indexed. The sitemap shows "could not be read" (Google
+      reports a temporary processing error although the file is valid; checked 2026-10-28), indexing of the guide page
+      was requested 2026-10-28. Still to do: (1) about 2026-11-04 check the sitemap status; if the error persists,
+      add a `sitemap.txt` as a second sitemap; (2) about 2026-11-09 check that `site:cookieberlin.github.io/EngelsystemClient`
+      and the app name find more than the start page, request indexing of FAQ, privacy and support if they are missing,
+      then remove this item.
 - [ ] **W-13** Mac: explicit test of the app on a Mac with Apple silicon. Availability in the store and the Xcode setting are
       confirmed (2026-10-17; Release build `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES`). Done (2026-10-19): TestFlight
       install and start, iCloud sync of instances (after the CloudKit schema was deployed to Production), window sizes and
