@@ -65,10 +65,27 @@
     </div>
   </nav>
 
-  <div class="col-lg-8 mx-auto p-3 py-md-5">
+  <div id="top" class="{% if page.toc %}container-xl{% else %}col-lg-8 mx-auto{% endif %} p-3 py-md-5">
+    {% if page.toc %}
+    {%- comment -%} Pages with `toc: true` get a contents list built from their headings by assets/site.js: always visible beside the text on large screens, folded away on small ones. {%- endcomment %}
+    <div class="row">
+      <aside class="col-lg-3 d-none d-lg-block">
+        <nav id="toc-side" class="toc-side" aria-label="Contents"></nav>
+      </aside>
+      <div class="col-lg-9 col-xl-8">
+        <details id="toc-mobile" class="toc-mobile d-lg-none mb-4">
+          <summary>Contents</summary>
+          <nav aria-label="Contents (small screens)"></nav>
+        </details>
+    {% endif %}
     <main>
       {{ content }}
     </main>
+    {% if page.toc %}
+      </div>
+    </div>
+    <a id="to-top" class="btn btn-sm btn-secondary to-top" href="#top" hidden>&uarr; Top</a>
+    {% endif %}
     <footer class="text-body-secondary pt-4 mt-5 border-top">
       {{ site.title }} is an unofficial app and not affiliated with the Engelsystem project.
       <a href="https://github.com/cookieBerlin/EngelsystemClient" target="_blank" rel="noopener noreferrer">Source code</a> (GPL-2.0)

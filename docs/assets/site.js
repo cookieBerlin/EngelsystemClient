@@ -61,3 +61,59 @@
   new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ['data-bs-theme'] });
   apply();
 })();
+
+// Pages with a contents list (layout: page.toc): a link to every chapter (h2/h3) in the side column on large screens and in
+// a folded "Contents" block on small ones, a "#" link at every heading, and a "Top" button once the page is scrolled.
+(function () {
+  var side = document.getElementById('toc-side');
+  var mobile = document.getElementById('toc-mobile');
+  if (!side || !mobile) return;
+  var headings = document.querySelectorAll('main h2, main h3, main h4');
+
+  var used = {};
+  headings.forEach(function (heading) {
+    if (!heading.id) {
+      heading.id = heading.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'section';
+    }
+    if (used[heading.id]) heading.id += '-' + (used[heading.id] += 1); else used[heading.id] = 1;
+    heading.dataset.label = heading.textContent.trim();
+    var anchor = document.createElement('a');
+    anchor.className = 'anchor-link';
+    anchor.href = '#' + heading.id;
+    anchor.setAttribute('aria-label', 'Link to this section');
+    anchor.textContent = '#';
+    heading.appendChild(anchor);
+  });
+
+  function build(target) {
+    var list = document.createElement('ul');
+    var sub = null;
+    document.querySelectorAll('main h2, main h3').forEach(function (heading) {
+      var item = document.createElement('li');
+      var link = document.createElement('a');
+      link.href = '#' + heading.id;
+      link.textContent = heading.dataset.label;
+      item.appendChild(link);
+      if (heading.tagName === 'H2' || !sub) {
+        list.appendChild(item);
+        sub = null;
+        if (heading.tagName === 'H2') { sub = document.createElement('ul'); item.appendChild(sub); }
+      } else {
+        sub.appendChild(item);
+      }
+    });
+    list.querySelectorAll('ul:empty').forEach(function (empty) { empty.remove(); });
+    target.appendChild(list);
+  }
+  build(side);
+  build(mobile.querySelector('nav'));
+  // Choosing a chapter on a small screen folds the list away again.
+  mobile.addEventListener('click', function (event) {
+    if (event.target.closest('a')) mobile.removeAttribute('open');
+  });
+
+  var top = document.getElementById('to-top');
+  if (top) {
+    window.addEventListener('scroll', function () { top.hidden = window.scrollY < 600; }, { passive: true });
+  }
+})();

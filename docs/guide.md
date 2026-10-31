@@ -2,6 +2,7 @@
 title: User Guide
 html_title: "User Guide – Engelsystem Client"
 description: "Step-by-step guide to the Engelsystem Client app: adding an instance, shifts, news, messages, locations, reminders and the Apple Watch app."
+toc: true
 ---
 
 # User Guide

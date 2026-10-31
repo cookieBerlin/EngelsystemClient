@@ -32,7 +32,8 @@ the R tasks when the owner reports a merge.
       Browser”, debug log export (share menu). Afterwards replace the careful "not tested in depth yet" wording in
       `docs/guide.md` and `docs/faq.md` by what the test showed.
 - [ ] **W-14** After the next screenshot publication, look at the live guide once in light and in dark mode (the images swap
-      to `<name>-dark.png`; a missing dark image must fall back to the light one) and on a phone-width window.
+      to `<name>-dark.png`; a missing dark image must fall back to the light one) and on a phone-width window. Include the contents list (side column on large screens, folded block
+      on small ones, "#" links at headings, "Top" button; added 2026-10-31) on the guide and the FAQ.
 
 ## Removing the compatibility workarounds (R tasks, ADR 0013/0015)
 

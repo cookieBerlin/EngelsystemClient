@@ -31,3 +31,22 @@ main blockquote {
   border-radius: .25rem;
 }
 main pre, main code { font-size: .9em; }
+
+/* Contents list (pages with `toc: true`): sticky in the side column on large screens, a folded block on small ones. */
+.toc-side { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; font-size: .9rem; padding-right: .5rem; }
+.toc-side ul, .toc-mobile ul { list-style: none; padding-left: 0; margin: 0; }
+.toc-side ul ul, .toc-mobile ul ul { padding-left: .9rem; margin-bottom: .35rem; }
+.toc-side li, .toc-mobile li { margin: .2rem 0; }
+.toc-side a, .toc-mobile a { text-decoration: none; }
+.toc-side a:hover, .toc-mobile a:hover { text-decoration: underline; }
+.toc-mobile { background: var(--bs-tertiary-bg); border-radius: .5rem; padding: .6rem .9rem; }
+.toc-mobile summary { cursor: pointer; font-weight: 600; }
+.toc-mobile nav { margin-top: .5rem; }
+
+/* A "#" link at each heading (shown on hover or focus, always faintly on touch screens); headings keep a little room when jumped to. */
+main h2, main h3, main h4 { scroll-margin-top: 1rem; }
+.anchor-link { margin-left: .4rem; text-decoration: none; opacity: 0; font-weight: 400; }
+main h2:hover .anchor-link, main h3:hover .anchor-link, main h4:hover .anchor-link, .anchor-link:focus { opacity: .6; }
+@media (hover: none) { .anchor-link { opacity: .35; } }
+
+.to-top { position: fixed; right: 1rem; bottom: 1rem; z-index: 1030; }
